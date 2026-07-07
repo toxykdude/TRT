@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const id = randomUUID();
   const storedName = `${id}${ext}`;
   const dir = join(base, session.user.id);
-  await mkdir(dir, { recursive: 0o700 });
+  await mkdir(dir, { recursive: true, mode: 0o700 });
   const filePath = join(dir, storedName);
   const buf = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buf, { mode: 0o600 });
