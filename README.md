@@ -24,6 +24,7 @@ summaries and guideline-informed suggestions for clinician review.**
 | [`GOLD.md`](./GOLD.md) | **Source of truth.** Requirements, safety boundary, feature spec. Every change must trace to a requirement here. |
 | [`AGENTS.md`](./AGENTS.md) | **Operating manual.** Setup, layout, conventions, the analysis/AI contract. Read before contributing. |
 | [`docs/ENGINE.md`](./docs/ENGINE.md) | **Deterministic engine.** How analysis works: classify → trends → rules → report, all traceable, all reproducible. |
+| [`docs/RAG.md`](./docs/RAG.md) | **Knowledge base & RAG.** Layer 1 (deterministic TF-IDF KB, no model) + Layer 2 (Graphiti MCP graph, builds with an LLM). |
 | [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | **Ops.** Deploy, cloudflared, verification, secret rotation. |
 | `README.md` | This file. |
 
@@ -35,6 +36,7 @@ summaries and guideline-informed suggestions for clinician review.**
 - **Data:** PostgreSQL + Prisma ORM, Row Level Security on all patient-data tables
 - **Auth:** Auth.js (NextAuth) v5 + Prisma adapter — Credentials + Google OAuth
 - **Analysis:** a **deterministic rules engine** (`packages/engine`) — no AI model in the loop. Same inputs always produce the same report (sha256 hash). See [`docs/ENGINE.md`](./docs/ENGINE.md).
+- **Knowledge base:** a **deterministic TF-IDF/BM25 corpus KB** (`packages/kb`) that attaches cited reference passages to findings — no model. Plus an optional **Graphiti MCP knowledge graph** (FalkorDB) that builds once with an LLM and can enhance an AI assistant. See [`docs/RAG.md`](./docs/RAG.md).
 - **AI (extraction only):** OpenAI API with Structured Outputs for reading values from uploaded documents; scoped strictly to extraction. Guardrails are real and tested.
 - **Deploy:** Vercel-compatible; runs on a Debian LXC behind a Cloudflare Tunnel
 
@@ -51,7 +53,11 @@ summaries and guideline-informed suggestions for clinician review.**
 ├── packages/
 │   ├── db/              # Prisma schema, client, RLS, seed
 │   ├── engine/          # deterministic analysis engine (classify → trends → rules → report)
+│   ├── kb/              # deterministic knowledge base (TF-IDF/BM25) + Graphiti MCP client
 │   └── ai/              # extraction pipeline (OCR/document parsing) + guardrails
+├── scripts/
+│   ├── build-kb.ts      # extract + index the corpus into the deterministic KB
+│   └── ingest_corpus.py # LLM-gated Graphiti graph ingestion (build once, freeze)
 └── .env.example         # env-var reference (copy to .env)
 ```
 
