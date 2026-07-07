@@ -13,6 +13,7 @@ export default async function LabsPage() {
   const db = prismaFor(session!.user.id);
 
   const reports = await db.labReport.findMany({
+    where: { ownerId: session!.user.id },
     orderBy: { uploadedAt: 'desc' },
     include: { _count: { select: { results: true } } },
   });
