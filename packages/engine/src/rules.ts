@@ -15,16 +15,14 @@ import { isAbnormal, isOutOfBand } from './classify';
 import type { ClassifiedResult, CoverageGap, Finding, PatientContext, Trend } from './types';
 
 // ── Severity helper ──────────────────────────────────────────────────────────
-const evidence = (c: ClassifiedResult): Finding['evidence'] => [
-  {
-    biomarkerKey: c.biomarkerKey,
-    biomarkerName: c.biomarkerName,
-    date: c.collectedAt,
-    value: c.valueNumeric,
-    unit: c.unit,
-    refText: c.refText,
-  },
-];
+const evidence = (c: ClassifiedResult) => ({
+  biomarkerKey: c.biomarkerKey,
+  biomarkerName: c.biomarkerName,
+  date: c.collectedAt,
+  value: c.valueNumeric,
+  unit: c.unit,
+  refText: c.refText,
+});
 
 /** pick the most recent classified point for a biomarker key */
 function latest(results: ClassifiedResult[], key: string): ClassifiedResult | undefined {
@@ -146,7 +144,7 @@ function runRedFlagRules(results: ClassifiedResult[]): Finding[] {
         severity: 'red_flag',
         message: rule.message(c),
         biomarkerKey: rule.biomarkerKey,
-        evidence: evidence(c),
+        evidence: [evidence(c)],
       });
     }
   }
@@ -181,7 +179,7 @@ function patternLowTestosterone(ctx: PatternContext): Finding[] {
   if (free && (free.status === 'LOW' || free.status === 'BORDERLINE_LOW')) hits.push(free);
   if (hits.length === 0) return out;
 
-  const ev = [...hits, ...(lh ? [lh] : [])].map((c) => evidence(c)[0]);
+  const ev = [...hits, ...(lh ? [lh] : [])].map((c) => evidence(c));
   let msg =
     `Recorded testosterone value(s) sit in the lower portion of or below the reference range: ` +
     hits.map(outOfRangeMsg).join(' ');
@@ -213,7 +211,7 @@ function patternRisingHematocrit(ctx: PatternContext): Finding[] {
         `Hematocrit is trending up (latest ${fmt(latest_.valueNumeric, latest_.unit)}). ` +
         'Rising hematocrit is a pattern worth monitoring with your clinician.',
       biomarkerKey: 'hematocrit',
-      evidence: evidence(latest_),
+      evidence: [evidence(latest_)],
     },
   ];
 }
@@ -223,7 +221,7 @@ function patternShbg(ctx: PatternContext): Finding[] {
   const shbg = latest(ctx.results, 'shbg');
   const free = latest(ctx.results, 'free_testosterone');
   if (!shbg || !(shbg.status === 'LOW' || shbg.status === 'BORDERLINE_LOW')) return [];
-  const ev = [shbg, ...(free ? [free] : [])].map((c) => evidence(c)[0]);
+  const ev = [shbg, ...(free ? [free] : [])].map((c) => evidence(c));
   return [
     {
       ruleId: 'PT-SHBG-LOW',
@@ -249,7 +247,7 @@ function patternEstradiol(ctx: PatternContext): Finding[] {
         `Estradiol (${fmt(e2.valueNumeric, e2.unit)}) is above the reference range. ` +
         'A discussion point for your clinician, particularly in the context of any symptoms.',
       biomarkerKey: 'estradiol_sensitive',
-      evidence: evidence(e2),
+      evidence: [evidence(e2)],
     },
   ];
 }
@@ -273,7 +271,7 @@ function patternAtherogenic(ctx: PatternContext): Finding[] {
         hits.map(outOfRangeMsg).join(' ') +
         ' Worth discussing cardiovascular follow-up with your clinician.',
       biomarkerKey: 'ldl',
-      evidence: hits.map((c) => evidence(c)[0]),
+      evidence: hits.map((c) => evidence(c)),
     },
   ];
 }
@@ -294,8 +292,8 @@ function patternRenal(ctx: PatternContext): Finding[] {
         'Kidney-function markers are outside the reference range: ' +
         hits.map(outOfRangeMsg).join(' ') +
         ' Worth discussing with your clinician.',
-      biomarkerKey: 'egfr' ?? 'creatinine',
-      evidence: hits.map((c) => evidence(c)[0]),
+      biomarkerKey: egfr ? 'egfr' : 'creatinine',
+      evidence: hits.map((c) => evidence(c)),
     },
   ];
 }
@@ -318,8 +316,8 @@ function patternMetabolic(ctx: PatternContext): Finding[] {
         'Metabolic markers are elevated relative to reference: ' +
         hits.map(outOfRangeMsg).join(' ') +
         ' Worth discussing metabolic health follow-up with your clinician.',
-      biomarkerKey: 'a1c' ?? 'glucose',
-      evidence: hits.map((c) => evidence(c)[0]),
+      biomarkerKey: a1c ? 'a1c' : 'glucose',
+      evidence: hits.map((c) => evidence(c)),
     },
   ];
 }
@@ -353,7 +351,7 @@ function patternOutOfRange(ctx: PatternContext): Finding[] {
         severity: 'info',
         message: outOfRangeMsg(r),
         biomarkerKey: r.biomarkerKey,
-        evidence: evidence(r),
+        evidence: [evidence(r)],
       });
     }
   }
