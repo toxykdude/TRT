@@ -124,6 +124,7 @@ model Patient {
 
   owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   labReports     LabReport[]
+  results        LabResult[]
   medications    Medication[]
   symptomEntries SymptomEntry[]
   bodyComps      BodyComposition[]
