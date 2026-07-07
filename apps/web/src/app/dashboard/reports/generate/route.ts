@@ -63,20 +63,12 @@ export async function POST() {
   },
   // Inject the deterministic KB: findings get cited reference passages from the
   // corpus (Goal 1). The KB search runs in-process (SQLite + TF-IDF), no model.
-  (query, k) => {
-    try {
-      const hits = searchReferences(query, k);
-      console.log(`[kb] query="${query.slice(0, 30)}" → ${hits.length} passage(s)`);
-      return hits.map((p) => ({
-        documentTitle: p.documentTitle,
-        page: p.page,
-        excerpt: p.text,
-      }));
-    } catch (e) {
-      console.error('[kb] search failed:', e instanceof Error ? e.message : e);
-      return [];
-    }
-  },
+  (query, k) =>
+    searchReferences(query, k).map((p) => ({
+      documentTitle: p.documentTitle,
+      page: p.page,
+      excerpt: p.text,
+    })),
   );
 
   // Persist the structured report. redFlags drive the dashboard badge count.
