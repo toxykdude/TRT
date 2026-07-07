@@ -95,7 +95,7 @@ model VerificationToken {
 
 model Patient {
   id        String   @id @default(cuid())
-  ownerId   String   // the User who owns/controls this record (RLS key)
+  ownerId   String   @unique // the User who owns/controls this record (RLS key)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -129,7 +129,6 @@ model Patient {
   bodyComps      BodyComposition[]
   reports        Report[]
 
-  @unique(ownerId)
   @@index([ownerId])
   @@map("patients")
 }
