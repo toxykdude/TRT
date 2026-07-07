@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PrismaClient } from './src/generated/client/index.js';
+import { PrismaClient } from '../src/generated/client/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const sqlPath = join(__dirname, 'sql', 'rls.sql');

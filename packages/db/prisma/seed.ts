@@ -7,7 +7,7 @@
  *
  *   pnpm --filter @trt/db seed
  */
-import { PrismaClient } from './src/generated/client/index.js';
+import { PrismaClient } from '../src/generated/client/index.js';
 
 type Marker = {
   key: string;
