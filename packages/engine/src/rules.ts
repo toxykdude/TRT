@@ -377,8 +377,9 @@ export function runRules(
   ];
   // Red flags first, then by severity, then stable by ruleId
   const sevRank: Record<string, number> = { red_flag: 0, attention: 1, watch: 2, info: 3 };
+  const rank = (s: string) => sevRank[s] ?? 99;
   return [...redFlags, ...patterns].sort((a, b) => {
-    const s = sevRank[a.severity] - sevRank[b.severity];
+    const s = rank(a.severity) - rank(b.severity);
     return s !== 0 ? s : a.ruleId.localeCompare(b.ruleId);
   });
 }
