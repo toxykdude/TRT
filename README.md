@@ -22,7 +22,9 @@ summaries and guideline-informed suggestions for clinician review.**
 | File | What it is |
 |---|---|
 | [`GOLD.md`](./GOLD.md) | **Source of truth.** Requirements, safety boundary, feature spec. Every change must trace to a requirement here. |
-| [`AGENTS.md`](./AGENTS.md) | **Operating manual.** Setup, layout, conventions, the AI guardrail contract. Read before contributing. |
+| [`AGENTS.md`](./AGENTS.md) | **Operating manual.** Setup, layout, conventions, the analysis/AI contract. Read before contributing. |
+| [`docs/ENGINE.md`](./docs/ENGINE.md) | **Deterministic engine.** How analysis works: classify → trends → rules → report, all traceable, all reproducible. |
+| [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | **Ops.** Deploy, cloudflared, verification, secret rotation. |
 | `README.md` | This file. |
 
 ---
@@ -32,7 +34,8 @@ summaries and guideline-informed suggestions for clinician review.**
 - **Frontend:** Next.js 15 (App Router), React, TypeScript (strict), TailwindCSS, shadcn/ui, Framer Motion, React Hook Form, Recharts
 - **Data:** PostgreSQL + Prisma ORM, Row Level Security on all patient-data tables
 - **Auth:** Auth.js (NextAuth) v5 + Prisma adapter — Credentials + Google OAuth
-- **AI:** OpenAI API with Structured Outputs (this pass: typed stubs + **real, tested guardrails**)
+- **Analysis:** a **deterministic rules engine** (`packages/engine`) — no AI model in the loop. Same inputs always produce the same report (sha256 hash). See [`docs/ENGINE.md`](./docs/ENGINE.md).
+- **AI (extraction only):** OpenAI API with Structured Outputs for reading values from uploaded documents; scoped strictly to extraction. Guardrails are real and tested.
 - **Deploy:** Vercel-compatible; runs on a Debian LXC behind a Cloudflare Tunnel
 
 ---
@@ -47,7 +50,8 @@ summaries and guideline-informed suggestions for clinician review.**
 │   └── web/             # Next.js app (App Router)
 ├── packages/
 │   ├── db/              # Prisma schema, client, RLS, seed
-│   └── ai/              # guardrails + extraction/analysis/report pipelines
+│   ├── engine/          # deterministic analysis engine (classify → trends → rules → report)
+│   └── ai/              # extraction pipeline (OCR/document parsing) + guardrails
 └── .env.example         # env-var reference (copy to .env)
 ```
 
@@ -104,10 +108,11 @@ Point the **remote cloudflared** ingress at `http://<lxc-ip>:3000`, then
 ## Status
 
 Foundation pass: landing page, auth, dashboard shell, patient profile, lab upload,
-DB schema with RLS, biomarker catalog seed, and a tested AI guardrail layer.
-Extraction/analysis/report pipelines return deterministic stub output (guardrails
-enforced) — swap in a real OpenAI key in `.env` to go live. See `GOLD.md` §11 for
-the roadmap.
+manual value entry, classified results view, and a **deterministic analysis engine**
+that generates fully traceable clinical reports (same inputs → same report,
+verified by a sha256 hash). DB schema with RLS, biomarker catalog seed, and a
+tested guardrail layer. Extraction (reading values from PDFs) is a separate
+pipeline in `@trt/ai`. See `GOLD.md` §11 for the roadmap.
 
 ---
 

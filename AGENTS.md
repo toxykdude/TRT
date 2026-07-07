@@ -47,12 +47,13 @@ add or extend a guardrail test. See GOLD §2 and §6.
 | Styling | TailwindCSS + shadcn/ui; Framer Motion for animation |
 | Forms | React Hook Form |
 | Charts | Recharts |
-| Data | Supabase (Postgres + Auth + Storage), **Prisma** ORM |
+| Data | PostgreSQL (local on the LXC) + **Prisma** ORM |
 | Security | Row Level Security on **every** patient-data table |
-| Auth | Supabase Auth (email/password, Google OAuth, reset) |
-| AI | OpenAI API with **Structured Outputs** + Function Calling |
+| Auth | Auth.js (NextAuth v5) + Prisma adapter — Credentials + Google OAuth |
+| **Analysis** | **Deterministic rules engine (`packages/engine`) — no AI in the loop** |
+| AI (extraction only) | OpenAI API with **Structured Outputs** (reads values from uploads) |
 | Parsing | OCR + PDF/image extraction |
-| Deploy | Vercel |
+| Deploy | pm2 on Debian LXC behind a Cloudflare Tunnel |
 
 Don't introduce a new dependency without justification in the PR.
 
@@ -145,22 +146,33 @@ the same change.
 
 ---
 
-## 7. AI work — the behavioral contract (GOLD §6)
+## 7. Analysis engine & AI — the behavioral contract (GOLD §6)
 
-Every AI call (extraction, analysis, report, future chat):
+### Analysis is deterministic — no model in the loop
+Analysis and report generation run through `@trt/engine` (see
+[`docs/ENGINE.md`](./docs/ENGINE.md)). There is **no AI model in the analysis
+path**. The engine is a set of pure functions: classify → trends → rules →
+assemble. Same inputs always produce the same report (sha256 `hash`). When you
+add or tune a rule, update the golden-case tests in `packages/engine/src/engine.test.ts`
+in the same PR.
 
-1. Gets the GOLD §2 guardrails **verbatim** in its system prompt.
-2. Returns **Structured Output** validated against a JSON schema; prose only in
+The engine output is still guardrail-audited (GOLD §2) as defense-in-depth,
+even though it's rule-generated.
+
+### AI is scoped to extraction only
+The only model usage is reading values from uploaded documents (OCR/PDF). Any
+extraction call must:
+
+1. Get the GOLD §2 guardrails **verbatim** in its system prompt.
+2. Return **Structured Output** validated against a JSON schema; prose only in
    sanctioned fields.
-3. Is run through a **deterministic guardrail pass** that blocks outputs
+3. Be run through the **deterministic guardrail pass** that blocks outputs
    matching prohibited patterns (dosages, prescriptions, schedules, diagnoses).
-4. Cites **real** guidelines; never fabricates references.
-5. **Refuses** dosage/schedule questions and redirects to the physician.
-6. For extraction: never infer a value that isn't in the source — mark
-   `uncertain` and queue for human review instead.
+4. Never infer a value that isn't in the source — mark `uncertain` and queue
+   for human review instead.
 
-When you change an AI prompt or schema, update the corresponding golden-case
-fixtures and guardrail tests in the same PR.
+When you change an extraction prompt or schema, update the corresponding
+guardrail tests in the same PR.
 
 ---
 

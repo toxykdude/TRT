@@ -89,7 +89,21 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/           # 200
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/login      # 200
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/dashboard  # 307 (redirect)
 pm2 logs trt --lines 20                                            # no errors
-pnpm --filter @trt/ai test                                         # 14 guardrail tests pass
+
+# Engine + guardrail tests (deterministic correctness)
+pnpm --filter @trt/engine test                                     # 31 tests pass
+pnpm --filter @trt/ai test                                         # guardrail tests pass
+```
+
+### Determinism check
+
+The analysis engine is deterministic — identical inputs always produce an
+identical report. Verify by generating a report twice and confirming the same
+`hash`:
+
+```bash
+# (as an authenticated user) POST /dashboard/reports/generate twice
+# both responses return the same "hash": "sha256:..." for the same lab data
 ```
 
 ## Common operations

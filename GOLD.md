@@ -111,10 +111,14 @@ The product is built patient-first; the physician portal is a roadmap item
 - Row Level Security (RLS) on every table that holds patient data
 - Supabase Auth (email/password, Google OAuth, password reset)
 
-**AI**
-- OpenAI API
-- Structured Outputs (JSON schema-constrained)
-- Function Calling for deterministic steps (e.g. "save extracted lab")
+**Analysis (deterministic)**
+- A rules engine (`packages/engine`) — NO AI model in the analysis path. Same
+  inputs → same report (sha256 hash). See [`docs/ENGINE.md`](./docs/ENGINE.md).
+
+**AI (extraction only)**
+- OpenAI API (when an API key is provided) for reading values from uploaded
+  documents (OCR / PDF). Scoped strictly to extraction; never participates in
+  analysis. Structured Outputs (JSON schema-constrained).
 
 **Document parsing**
 - OCR pipeline
@@ -218,20 +222,29 @@ Store: Medication · Route · Frequency · Start Date · End Date · Reason ·
 Clinician · **Dose (historical record only)**. Displayed in reports; **never**
 used as input to generate or recommend new dosages.
 
-### 5.12 AI analysis pipeline
-Given a patient's longitudinal data, produce a **structured** analysis
-(JSON-schema-constrained output) containing:
-- Executive summary
-- Important changes
-- Potential trends
-- Questions for the physician
-- Evidence-based discussion points
-- Possible differential diagnoses **to discuss** (not diagnoses)
-- Need for additional testing
+### 5.12 Deterministic analysis engine
+The analysis layer is a **fully deterministic rules engine** — no AI model
+participates in analysis. For identical inputs it always produces an identical
+report (verifiable via a sha256 `hash`), and every conclusion is traceable to
+the rule and data points that fired it. See [`docs/ENGINE.md`](./docs/ENGINE.md).
 
-All outputs pass through the §2 guardrail filter before rendering.
+Given a patient's longitudinal data, the engine produces a structured analysis
+containing:
+- Classified results (LOW / BORDERLINE / NORMAL / HIGH, against per-lab ranges)
+- Trends (UP / DOWN / FLAT per biomarker, on normalized values)
+- Findings with provenance (`ruleId` + `evidence`):
+  - Red flags (fixed-threshold, single-value) warranting prompt review
+  - Clinical patterns (multi-marker, TRT-relevant) — observational, not diagnoses
+  - Out-of-range sweep for markers not covered by a specific pattern
+- Coverage gaps (missing panels) → suggested additional tests for discussion
+- Questions for the physician, generated one per red-flag/attention finding
+- Executive summary, hormone/CBC/estradiol/SHBG/thyroid/metabolic/CV sections,
+  lifestyle factors, and guideline references — all derived from the findings
 
-### 5.13 AI clinical report
+All prose is guardrail-audited (§2) before rendering; the audit result is
+attached to the report for transparency.
+
+### 5.13 Clinical report (deterministic)
 Generated report sections:
 - Executive Summary
 - Hormone Trends · CBC Trends · Estradiol Trends · SHBG Trends · Thyroid Trends
@@ -251,23 +264,33 @@ forgotten), theme preference.
 
 ---
 
-## 6. AI System — Behavioral Contract
+## 6. Analysis & AI — Behavioral Contract
 
-Every AI interaction (extraction, analysis, report, future chat) must:
+### 6.1 Analysis is deterministic (no model in the loop)
+Analysis and report generation are performed by a **deterministic rules engine**
+([`docs/ENGINE.md`](./docs/ENGINE.md)). There is no AI model in the analysis
+path. This guarantees reproducibility and auditability: the same inputs always
+produce the same report (sha256 hash), and every finding cites the rule and
+evidence that produced it.
+
+The engine's outputs are still guardrail-audited (§2) as defense-in-depth, even
+though they are rule-generated.
+
+### 6.2 AI is scoped to extraction only
+The only place a model participates is **reading structured data from uploaded
+documents** (OCR / PDF parsing). Extraction AI must:
 
 1. Receive the §2 guardrails verbatim in its system prompt.
-2. Emit **structured** output validated against a schema; free-form prose only
-   inside sanctioned text fields.
-3. Be post-processed by a deterministic guardrail pass that rejects/blocks any
-   output matching prohibited patterns (dosage recommendations, prescriptions,
-   schedules, diagnoses).
-4. Cite or reference guideline material where claims are made; never fabricate
-   references.
-5. Refuse to answer "what dose should I take" style prompts and redirect to the
-   physician.
+2. Emit **structured** output validated against a schema; never infer a value
+   that isn't present in the source — mark `uncertain` and queue for human review.
+3. Be post-processed by the deterministic guardrail pass.
 
-Extraction AI is bounded to *reading* structured data from documents; it must
-never infer a value that isn't present (mark as `uncertain` / ask for review).
+### 6.3 Future AI surfaces
+Any future model-powered surface (e.g. a data-query chatbot) must: receive the §2
+guardrails verbatim, emit structured/sanctioned output, be guardrail-filtered,
+cite only real guidelines, and refuse dosage/schedule questions by redirecting to
+the physician. Deterministic analysis results remain the source of truth; a model
+may summarize or query them but must not override them.
 
 ---
 
