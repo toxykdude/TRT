@@ -1,8 +1,10 @@
+import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { prismaFor } from '@trt/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { SafetyBanner } from '@/components/safety-banner';
 import { UploadZone } from '@/components/dashboard/upload-zone';
+import { ManualEntry } from '@/components/dashboard/manual-entry';
 import { LabsList } from '@/components/dashboard/labs-list';
 import { fmtDate } from '@/lib/utils';
 
@@ -33,6 +35,15 @@ export default async function LabsPage() {
         </CardHeader>
         <CardContent>
           <UploadZone />
+          <div className="mt-4 flex items-center gap-3 border-t pt-4">
+            <ManualEntry />
+            <span className="text-xs text-muted-foreground">
+              Or{' '}
+              <Link href="/dashboard/labs/results" className="text-primary hover:underline">
+                view all results →
+              </Link>
+            </span>
+          </div>
         </CardContent>
       </Card>
 

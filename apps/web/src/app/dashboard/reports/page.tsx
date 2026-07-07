@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { prismaFor } from '@trt/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -57,7 +58,9 @@ export default async function ReportsPage() {
             <ul className="divide-y">
               {reports.map((r) => (
                 <li key={r.id} className="flex items-center justify-between py-3 text-sm">
-                  <span>Report · {fmtDate(r.generatedAt)}</span>
+                  <Link href={`/dashboard/reports/${r.id}`} className="font-medium hover:underline">
+                    Report · {fmtDate(r.generatedAt)}
+                  </Link>
                   <span className="text-xs text-muted-foreground">
                     {r.generatedBy} · {r.redFlags.length} red flag{r.redFlags.length === 1 ? '' : 's'}
                   </span>
