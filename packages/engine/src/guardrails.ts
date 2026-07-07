@@ -63,10 +63,12 @@ const RULES: Rule[] = [
   },
 
   // ── Prescriptions (GOLD §2.3.1) ────────────────────────────────────────────
+  // Anchored on actionable phrasing so it doesn't false-positive on disclaimers
+  // that merely *mention* prescribing (e.g. "this tool does not prescribe").
   {
     reason: 'prescription language',
     pattern:
-      /\b(you should (take|start|use)|I (recommend|prescribe|suggest) (you )?take|prescribe|write you a (rx|prescription)|here('?s| is) your (rx|prescription)|Rx:\s*\w)/gi,
+      /\b(you should (take|start|use)|I (will|can|'?ll) (prescribe|recommend|suggest)( you)? (you )?(take|start|use)|prescribe (you|for you)|write you a (rx|prescription)|here('?s| is) your (rx|prescription)|Rx:\s*\w)/gi,
   },
 
   // ── Start/stop/change (GOLD §2.3.7) ────────────────────────────────────────
