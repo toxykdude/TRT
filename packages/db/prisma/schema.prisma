@@ -117,7 +117,7 @@ model Patient {
   smokingStatus       String?
   // History
   medicalConditions String? @db.Text
-  medications       String? @db.Text // free-text summary; structured Medication below
+  medicationsText   String? @db.Text // free-text summary; structured Medication[] below
   supplements       String? @db.Text
   goals             String? @db.Text
   familyHistory     String? @db.Text
