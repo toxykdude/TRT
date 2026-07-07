@@ -26,9 +26,8 @@ const MCP_URL = process.env.GRAPHITI_MCP_URL || ''; // e.g. http://127.0.0.1:800
 export async function graphitiStatus(): Promise<GraphitiStatus> {
   if (!MCP_URL) return { available: false, reason: 'unconfigured' };
   try {
-    const res = await fetch(`${MCP_URL}/healthcheck`, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(`${MCP_URL}/health`, { signal: AbortSignal.timeout(2000) });
     if (!res.ok) return { available: false, reason: 'unreachable' };
-    // Optionally check graph has content via get_status tool — omitted for simplicity.
     return { available: true };
   } catch {
     return { available: false, reason: 'unreachable' };
@@ -47,8 +46,8 @@ export async function searchFacts(query: string, limit = 5): Promise<{
   if (!status.available) return { results: [], status };
 
   try {
-    // Graphiti MCP HTTP transport accepts JSON-RPC tool calls.
-    const res = await fetch(`${MCP_URL}/mcp`, {
+    // Graphiti MCP HTTP (streamable) transport accepts JSON-RPC tool calls at /mcp/.
+    const res = await fetch(`${MCP_URL.replace(/\/$/, '')}/mcp/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(5000),
