@@ -1,0 +1,59 @@
+# ── Secrets & env ───────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.trt_dbpw
+*.pem
+*.key
+
+# ── Dependencies ────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Build output ────────────────────────────────────────────────
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Prisma ──────────────────────────────────────────────────────
+# keep schema + migrations in git; ignore generated client cache
+packages/db/src/generated/
+
+# ── Uploads & runtime data (NEVER commit patient data) ──────────
+uploads/
+/var/lib/trt/
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.heic
+!docs/**/*.pdf
+!docs/**/*.png
+
+# ── Testing & coverage ──────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Logs ────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+pnpm-debug.log*
+logs/
+
+# ── Editor / OS ─────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# ── Misc ────────────────────────────────────────────────────────
+.turbo/
+.cache/

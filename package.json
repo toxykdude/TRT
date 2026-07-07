@@ -1,0 +1,25 @@
+{
+  "name": "trt-clinical-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TRT Clinical Decision Support Dashboard — evidence-based clinical summaries, not a prescribing system. See GOLD.md §2.",
+  "packageManager": "pnpm@10.18.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @trt/web dev",
+    "build": "pnpm --filter @trt/web build",
+    "start": "pnpm --filter @trt/web start",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @trt/db generate",
+    "db:migrate": "pnpm --filter @trt/db migrate",
+    "db:seed": "pnpm --filter @trt/db seed"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}
