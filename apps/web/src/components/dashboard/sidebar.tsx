@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NAV } from './nav-items';
+import { signOutAction } from '@/app/actions';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -35,13 +36,7 @@ export function Sidebar() {
         })}
       </nav>
       <div className="px-6 py-4">
-        <form
-          action={async () => {
-            'use server';
-            const { signOut } = await import('@/lib/auth');
-            await signOut({ redirectTo: '/' });
-          }}
-        >
+        <form action={signOutAction}>
           <button className="text-xs text-muted-foreground hover:text-foreground">Sign out</button>
         </form>
       </div>
