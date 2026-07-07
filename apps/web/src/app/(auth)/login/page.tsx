@@ -1,28 +1,14 @@
-'use server';
-
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { auth, signIn } from '@/lib/auth';
+import { auth } from '@/lib/auth';
+import { loginAction, googleAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SafetyBanner } from '@/components/safety-banner';
 
 export default async function LoginPage() {
   const session = await auth();
   if (session?.user) redirect('/dashboard');
-
-  async function loginAction(formData: FormData) {
-    'use server';
-    const email = String(formData.get('email') ?? '');
-    const password = String(formData.get('password') ?? '');
-    try {
-      await signIn('credentials', { email, password, redirectTo: '/dashboard' });
-    } catch (e) {
-      // re-throw redirect; surface others
-      throw e;
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -54,12 +40,7 @@ export default async function LoginPage() {
         </div>
       </div>
 
-      <form
-        action={async () => {
-          'use server';
-          await signIn('google', { redirectTo: '/dashboard' });
-        }}
-      >
+      <form action={googleAction}>
         <Button variant="outline" type="submit" className="w-full">
           Continue with Google
         </Button>

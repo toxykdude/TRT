@@ -16,6 +16,10 @@ import { prisma } from '@trt/db';
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: 'jwt' },
+  // Behind the Cloudflare Tunnel the Host header is the public domain
+  // (trt.powerhousegym.co), which differs from the local bind address. Auth.js
+  // rejects untrusted hosts by default; trust it explicitly.
+  trustHost: true,
   theme: { logo: '/icon.svg' },
   providers: [
     Google({

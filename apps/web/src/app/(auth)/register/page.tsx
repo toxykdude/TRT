@@ -1,10 +1,7 @@
-'use server';
-
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import bcrypt from 'bcryptjs';
-import { servicePrisma } from '@trt/db';
-import { auth, signIn } from '@/lib/auth';
+import { auth } from '@/lib/auth';
+import { registerAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,28 +9,6 @@ import { Label } from '@/components/ui/label';
 export default async function RegisterPage() {
   const session = await auth();
   if (session?.user) redirect('/dashboard');
-
-  async function registerAction(formData: FormData) {
-    'use server';
-    const name = String(formData.get('name') ?? '').trim();
-    const email = String(formData.get('email') ?? '').trim().toLowerCase();
-    const password = String(formData.get('password') ?? '');
-
-    if (!email || !password || password.length < 8) {
-      throw new Error('Email and an 8+ character password are required.');
-    }
-
-    const existing = await servicePrisma.user.findUnique({ where: { email } });
-    if (existing) throw new Error('An account with that email already exists.');
-
-    // Signup uses the service client (no RLS context yet — there's no session).
-    const passwordHash = await bcrypt.hash(password, 12);
-    await servicePrisma.user.create({
-      data: { name, email, passwordHash, role: 'PATIENT' },
-    });
-
-    await signIn('credentials', { email, password, redirectTo: '/dashboard' });
-  }
 
   return (
     <div className="space-y-6">
