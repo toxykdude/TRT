@@ -1,0 +1,335 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// TRT Clinical Decision Support Dashboard — Prisma schema
+// Source of truth: GOLD.md. Safety boundary: GOLD.md §2 (Prime Directive).
+//
+// Row Level Security: Prisma cannot express Postgres RLS policies. They are
+// defined in prisma/sql/rls.sql and applied via `pnpm --filter @trt/db rls:apply`.
+// Every table holding patient data has RLS enabled; policies key on
+// current_setting('app.user_id'). The Prisma client extension in src/index.ts
+// sets that session variable per request. See AGENTS.md §6.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Auth.js (NextAuth v5) adapter models ─────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // present when using Credentials provider (bcrypt)
+  role          Role      @default(PATIENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  patients      Patient[]
+  consents      ConsentRecord[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  PATIENT
+  CLINICIAN
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ── Patient & longitudinal clinical data ────────────────────────────────────
+//
+// A Patient is the medical-record subject. In this pass each User (PATIENT role)
+// owns exactly one Patient row; the schema supports multiple (clinician portal,
+// GOLD §11 roadmap). ownerId is the RLS tenancy key.
+
+model Patient {
+  id        String   @id @default(cuid())
+  ownerId   String   // the User who owns/controls this record (RLS key)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // GOLD §5.4 — Patient profile fields
+  // Demographics / vitals
+  dateOfBirth  DateTime?
+  sex          String? // "male" | "female" | "intersex" — TRT context
+  heightCm     Float?
+  weightKg     Float?
+  bodyFatPct   Float?
+  waistCm      Float?
+  bloodPressureSystolic Int?
+  bloodPressureDiastolic Int?
+  restingHeartRate Int?
+  // Lifestyle
+  sleepHoursPerNight  Float?
+  exerciseFrequency   String? // free text e.g. "3x/week resistance"
+  alcoholUse          String?
+  smokingStatus       String?
+  // History
+  medicalConditions String? @db.Text
+  medications       String? @db.Text // free-text summary; structured Medication below
+  supplements       String? @db.Text
+  goals             String? @db.Text
+  familyHistory     String? @db.Text
+
+  owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  labReports     LabReport[]
+  medications    Medication[]
+  symptomEntries SymptomEntry[]
+  bodyComps      BodyComposition[]
+  reports        Report[]
+
+  @unique(ownerId)
+  @@index([ownerId])
+  @@map("patients")
+}
+
+// GOLD §5.7 — biomarker catalog. Extensible: adding a marker is a data change,
+// not a code change. Reference ranges here are *typical* defaults only; the
+// authoritative range for any given result is stored on the LabResult (per-lab).
+model Biomarker {
+  id           String  @id @default(cuid())
+  key          String  @unique // machine key e.g. "total_testosterone"
+  name         String  // display name e.g. "Total Testosterone"
+  category     String  // "hormone" | "thyroid" | "cbc" | "cmp" | "lipid" | ...
+  canonicalUnit String // e.g. "ng/dL"
+  // Typical reference range (advisory only; real ranges live on LabResult)
+  refLow       Float?
+  refHigh      Float?
+  refUnit      String?
+  notes        String? @db.Text
+
+  results LabResult[]
+
+  @@map("biomarkers")
+}
+
+// GOLD §5.6 — an uploaded lab report (a file + metadata). Status tracks the
+// extraction pipeline. File lives in private storage; only metadata in DB.
+model LabReport {
+  id          String      @id @default(cuid())
+  patientId   String
+  ownerId     String      // denormalized for RLS (same as patient.ownerId)
+  uploadedAt  DateTime    @default(now())
+  collectedAt DateTime?   // when the sample was drawn (may differ from upload)
+  laboratory  String?
+  doctor      String?
+  fileName    String
+  filePath    String      // private storage path (not web-accessible)
+  mimeType    String
+  sizeBytes   BigInt
+  status      LabStatus   @default(UPLOADED)
+  // Extraction provenance
+  extractedBy String?     // "stub" | "openai" | "manual"
+  extractedAt DateTime?
+  reviewNeeded Boolean     @default(false) // true when extraction uncertain
+
+  patient Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  results LabResult[]
+
+  @@index([patientId])
+  @@index([ownerId])
+  @@map("lab_reports")
+}
+
+enum LabStatus {
+  UPLOADED      // file received, extraction not run
+  EXTRACTING    // pipeline running
+  EXTRACTED     // values pulled, awaiting/after review
+  REVIEW_NEEDED // extraction flagged uncertain
+  FAILED        // extraction failed; surface for human review
+}
+
+// GOLD §5.6 / §5.7 — a single extracted biomarker result.
+// RAW values (as printed) are kept alongside the NORMALIZED value so trends can
+// compare across labs while preserving provenance. The reference range is stored
+// per-result because ranges differ by lab/assay (GOLD §5.7).
+model LabResult {
+  id            String   @id @default(cuid())
+  labReportId   String
+  patientId     String
+  ownerId       String   // denormalized for RLS
+  biomarkerId   String
+  collectedAt   DateTime? // mirrors LabReport.collectedAt for query convenience
+
+  // Raw (as printed on the report)
+  rawValue      String?  // "612" (string — preserves ">, <, *" etc.)
+  rawUnit       String?
+  rawRefLow     String?
+  rawRefHigh    String?
+  rawRefText    String?  // the range string exactly as printed
+  // Normalized (canonical, for trend comparison)
+  valueNumeric  Float?   // null if non-numeric (e.g. "positive")
+  unit          String?  // canonical unit
+  flag          String?  // "H" | "L" | "AB" | null — as flagged by the lab
+  uncertain     Boolean  @default(false) // true if extraction couldn't parse confidently
+
+  labReport LabReport @relation(fields: [labReportId], references: [id], onDelete: Cascade)
+  biomarker Biomarker @relation(fields: [biomarkerId], references: [id])
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([biomarkerId])
+  @@index([ownerId])
+  @@unique([labReportId, biomarkerId])
+  @@map("lab_results")
+}
+
+// GOLD §5.10 — symptom scoring. Fixed 0–10 ordinal so scores are chartable.
+model SymptomEntry {
+  id        String   @id @default(cuid())
+  patientId String
+  ownerId   String   // denormalized for RLS
+  date      DateTime
+  symptom   String   // "energy" | "mood" | "libido" | ... (GOLD §5.10)
+  score     Int      // 0–10
+  note      String?
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([ownerId])
+  @@map("symptom_entries")
+}
+
+// GOLD §5.11 — Medication. Dose is HISTORICAL RECORD ONLY and must never feed
+// dosage-recommendation logic (GOLD §2, §5.11).
+model Medication {
+  id        String    @id @default(cuid())
+  patientId String
+  ownerId   String    // denormalized for RLS
+  name      String
+  route     String?   // "intramuscular" | "subcutaneous" | "oral" | ...
+  frequency String?
+  startDate DateTime?
+  endDate   DateTime?
+  reason    String?
+  clinician String?
+  dose      String?   // HISTORICAL RECORD ONLY — display only, never an input to recommendations
+  createdAt DateTime  @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([ownerId])
+  @@map("medications")
+}
+
+model BodyComposition {
+  id         String    @id @default(cuid())
+  patientId  String
+  ownerId    String
+  date       DateTime
+  weightKg   Float?
+  bodyFatPct Float?
+  waistCm    Float?
+  note       String?
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([ownerId])
+  @@map("body_compositions")
+}
+
+// GOLD §5.13 — generated AI clinical report. Stored as JSON sections; the
+// generator enforces GOLD §2 guardrails before persisting/rendering.
+model Report {
+  id           String   @id @default(cuid())
+  patientId    String
+  ownerId      String
+  generatedAt  DateTime @default(now())
+  generatedBy  String   // "stub" | "openai"
+  dataRangeStart DateTime?
+  dataRangeEnd   DateTime?
+  sections     Json     // structured report sections (Zod-validated in packages/ai)
+  redFlags     String[] @default([])
+  guardrailBlockedCount Int @default(0)
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([ownerId])
+  @@map("reports")
+}
+
+// GOLD §8 — patient consent management. No data processing/sharing without it.
+model ConsentRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  scope     String   // e.g. "ai_analysis" | "data_sharing" | "research"
+  granted   Boolean
+  grantedAt DateTime?
+  policy    String?  // version/URI of the consent text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("consent_records")
+}
+
+// GOLD §8 — audit log. One row per create/update/delete on patient data.
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // "create" | "update" | "delete" | "read_sensitive"
+  entity    String   // table name
+  entityId  String?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("audit_logs")
+}
