@@ -5,7 +5,7 @@
  * so the model is constrained to it at generation time.
  */
 import { z } from 'zod';
-import { enforceGuardrails, type GuardrailResult } from './guardrails.js';
+import { enforceGuardrails, type GuardrailResult } from './guardrails';
 
 // ── Extraction ───────────────────────────────────────────────────────────────
 export const ExtractedResultSchema = z.object({

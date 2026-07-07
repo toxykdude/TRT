@@ -8,7 +8,7 @@
  * tests catch it before merge.
  */
 import { describe, it, expect } from 'vitest';
-import { enforceGuardrails } from './guardrails.js';
+import { enforceGuardrails } from './guardrails';
 
 describe('enforceGuardrails — must BLOCK (GOLD §2.3 prohibitions)', () => {
   it('blocks exact testosterone dosages', () => {

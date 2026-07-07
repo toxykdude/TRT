@@ -10,7 +10,7 @@
  * value. The stub marks every result `uncertain: true` precisely because it
  * didn't actually read a document — surfacing that to the user for review.
  */
-import { ExtractionSchema, type Extraction, type ExtractedResult, guarded } from './schemas.js';
+import { ExtractionSchema, type Extraction, type ExtractedResult, guarded } from './schemas';
 
 export type ExtractLabInput = {
   /** raw file bytes or path — unused by the stub */

@@ -5,7 +5,7 @@
  * Sections follow GOLD §5.13. The disclaimer (GOLD §2.5) is added by the report
  * renderer (apps/web), not here — this module produces the structured payload.
  */
-import { ReportSectionSchema, guarded, type ReportSection } from './schemas.js';
+import { ReportSectionSchema, guarded, type ReportSection } from './schemas';
 
 export type ReportInput = {
   resultCount: number;

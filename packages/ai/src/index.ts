@@ -9,11 +9,11 @@ export {
   enforceGuardrails,
   refuseAndRedirect,
   type GuardrailResult,
-} from './guardrails.js';
+} from './guardrails';
 
-export { extractLab, extractLabGuarded, type ExtractLabInput } from './extraction.js';
-export { analyze, analyzeGuarded, type AnalyzeInput } from './analysis.js';
-export { generateReport, generateReportGuarded, type ReportInput } from './report.js';
+export { extractLab, extractLabGuarded, type ExtractLabInput } from './extraction';
+export { analyze, analyzeGuarded, type AnalyzeInput } from './analysis';
+export { generateReport, generateReportGuarded, type ReportInput } from './report';
 
 export {
   ExtractionSchema,
@@ -24,4 +24,4 @@ export {
   type AnalysisSection,
   type ReportSection,
   type ExtractedResult,
-} from './schemas.js';
+} from './schemas';

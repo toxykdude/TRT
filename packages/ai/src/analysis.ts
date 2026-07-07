@@ -5,7 +5,7 @@
  * It NEVER diagnoses or prescribes. It summarizes, compares to ranges, surfaces
  * trends, and suggests topics/tests to discuss with a physician.
  */
-import { AnalysisSectionSchema, guarded, type AnalysisSection } from './schemas.js';
+import { AnalysisSectionSchema, guarded, type AnalysisSection } from './schemas';
 
 export type AnalyzeInput = {
   patientName?: string;
