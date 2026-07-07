@@ -3,15 +3,15 @@
 -- GOLD.md §8 (Security & Compliance), AGENTS.md §6.
 --
 -- IMPORTANT: Prisma maps camelCase fields to camelCase columns by default
--- (ownerId, userId, etc.). This SQL uses those exact column names.
+-- ("ownerId", "userId", etc.). This SQL uses those exact column names.
 --
 -- Strategy
 --   • Every table holding patient data has RLS enabled.
---   • Tenancy key = the owning user's id, in an `ownerId` column (directly on
+--   • Tenancy key = the owning user's id, in an `"ownerId"` column (directly on
 --     Patient; denormalized onto child rows for RLS efficiency).
 --   • The application sets a session variable per request:
 --         SET LOCAL app.user_id = '<user-id>';
---     (see packages/db/src/index.ts). Policies compare ownerId against it.
+--     (see packages/db/src/index.ts). Policies compare "ownerId" against it.
 --   • The 'trt' role is the only role the app connects as.
 --
 -- RLS is defense-in-depth, not a substitute for app-layer authorization.
@@ -32,7 +32,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO tr
 -- The 'trt' role bypasses RLS so it can perform elevated operations that have
 -- no user context yet — specifically USER CREATION AT SIGNUP and admin/maintenance
 -- jobs. This does NOT weaken security in the app: every normal request runs via
--- prismaFor(userId) which sets app.user_id, and the policies below still apply to
+-- prismaFor("userId") which sets app.user_id, and the policies below still apply to
 -- the 'trt' role. BYPASSRLS is the escape hatch for the small set of operations
 -- (signup) that legitimately need it. The service client (servicePrisma) is the
 -- ONLY code path that should rely on this; never use it to serve patient data.
@@ -45,70 +45,70 @@ ALTER TABLE patients FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS patients_owner_isolation ON patients;
 CREATE POLICY patients_owner_isolation ON patients
   FOR ALL TO trt
-  USING (ownerId = app_user_id())
-  WITH CHECK (ownerId = app_user_id());
+  USING ("ownerId" = app_user_id())
+  WITH CHECK ("ownerId" = app_user_id());
 
--- ── Child tables: ownerId denormalized ───────────────────────────────────────
+-- ── Child tables: "ownerId" denormalized ───────────────────────────────────────
 ALTER TABLE lab_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lab_reports FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS lab_reports_owner_isolation ON lab_reports;
 CREATE POLICY lab_reports_owner_isolation ON lab_reports
-  FOR ALL TO trt USING (ownerId = app_user_id()) WITH CHECK (ownerId = app_user_id());
+  FOR ALL TO trt USING ("ownerId" = app_user_id()) WITH CHECK ("ownerId" = app_user_id());
 
 ALTER TABLE lab_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lab_results FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS lab_results_owner_isolation ON lab_results;
 CREATE POLICY lab_results_owner_isolation ON lab_results
-  FOR ALL TO trt USING (ownerId = app_user_id()) WITH CHECK (ownerId = app_user_id());
+  FOR ALL TO trt USING ("ownerId" = app_user_id()) WITH CHECK ("ownerId" = app_user_id());
 
 ALTER TABLE medications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medications FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS medications_owner_isolation ON medications;
 CREATE POLICY medications_owner_isolation ON medications
-  FOR ALL TO trt USING (ownerId = app_user_id()) WITH CHECK (ownerId = app_user_id());
+  FOR ALL TO trt USING ("ownerId" = app_user_id()) WITH CHECK ("ownerId" = app_user_id());
 
 ALTER TABLE symptom_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE symptom_entries FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS symptom_entries_owner_isolation ON symptom_entries;
 CREATE POLICY symptom_entries_owner_isolation ON symptom_entries
-  FOR ALL TO trt USING (ownerId = app_user_id()) WITH CHECK (ownerId = app_user_id());
+  FOR ALL TO trt USING ("ownerId" = app_user_id()) WITH CHECK ("ownerId" = app_user_id());
 
 ALTER TABLE body_compositions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE body_compositions FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS body_comps_owner_isolation ON body_compositions;
 CREATE POLICY body_comps_owner_isolation ON body_compositions
-  FOR ALL TO trt USING (ownerId = app_user_id()) WITH CHECK (ownerId = app_user_id());
+  FOR ALL TO trt USING ("ownerId" = app_user_id()) WITH CHECK ("ownerId" = app_user_id());
 
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS reports_owner_isolation ON reports;
 CREATE POLICY reports_owner_isolation ON reports
-  FOR ALL TO trt USING (ownerId = app_user_id()) WITH CHECK (ownerId = app_user_id());
+  FOR ALL TO trt USING ("ownerId" = app_user_id()) WITH CHECK ("ownerId" = app_user_id());
 
 -- ── User-owned tables (auth + consent + audit) ───────────────────────────────
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accounts FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS accounts_user_isolation ON accounts;
 CREATE POLICY accounts_user_isolation ON accounts
-  FOR ALL TO trt USING (userId = app_user_id()) WITH CHECK (userId = app_user_id());
+  FOR ALL TO trt USING ("userId" = app_user_id()) WITH CHECK ("userId" = app_user_id());
 
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS sessions_user_isolation ON sessions;
 CREATE POLICY sessions_user_isolation ON sessions
-  FOR ALL TO trt USING (userId = app_user_id()) WITH CHECK (userId = app_user_id());
+  FOR ALL TO trt USING ("userId" = app_user_id()) WITH CHECK ("userId" = app_user_id());
 
 ALTER TABLE consent_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE consent_records FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS consent_user_isolation ON consent_records;
 CREATE POLICY consent_user_isolation ON consent_records
-  FOR ALL TO trt USING (userId = app_user_id()) WITH CHECK (userId = app_user_id());
+  FOR ALL TO trt USING ("userId" = app_user_id()) WITH CHECK ("userId" = app_user_id());
 
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS audit_user_isolation ON audit_logs;
 CREATE POLICY audit_user_isolation ON audit_logs
-  FOR ALL TO trt USING (userId = app_user_id()) WITH CHECK (userId = app_user_id());
+  FOR ALL TO trt USING ("userId" = app_user_id()) WITH CHECK ("userId" = app_user_id());
 
 -- The users table: a user reads/updates only their own row.
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -125,7 +125,7 @@ CREATE POLICY biomarkers_read_all ON biomarkers
   FOR SELECT TO trt USING (true);
 
 -- NOTE on signup: creating the first users row for a new account can't be done
--- under RLS (there's no userId yet). Auth.js signup runs with a *service*
+-- under RLS (there's no "userId" yet). Auth.js signup runs with a *service*
 -- connection (bypassing RLS) — see packages/db/src/index.ts `servicePrisma`.
 -- In this local-Postgres setup the same 'trt' role is used, so signup needs
 -- the policy to allow the insert. The users_self_only WITH CHECK requires
