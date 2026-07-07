@@ -16,6 +16,7 @@ import { computeTrends } from './trends';
 import { coverageGaps, runRules } from './rules';
 import { assembleReport } from './report';
 import { enforceGuardrails } from './guardrails';
+import { enrichWithKnowledge, type KbSearchFn } from './knowledge';
 import type { DeterministicReport, EngineInput } from './types';
 
 export { enforceGuardrails, refuseAndRedirect } from './guardrails';
@@ -23,29 +24,35 @@ export type { GuardrailResult } from './guardrails';
 export * from './types';
 export { classifyResult, classifyAll, statusLabel, isAbnormal, isOutOfBand } from './classify';
 export { computeTrends, trendArrow, trendWord } from './trends';
+export { enrichWithKnowledge } from './knowledge';
+export type { KbSearchFn, KbReference } from './knowledge';
 
 /**
  * Run the deterministic engine over the patient's data.
  * Returns a fully-structured, traceable report.
+ *
+ * @param input  patient + lab results
+ * @param kbSearch  optional deterministic KB search function (from @trt/kb).
+ *                  When provided, findings are enriched with cited reference
+ *                  passages from the corpus. Determinism is preserved: same
+ *                  inputs + KB → same references → same hash.
  */
-export function analyze(input: EngineInput): DeterministicReport {
+export function analyze(input: EngineInput, kbSearch?: KbSearchFn): DeterministicReport {
   const { patient, results } = input;
 
   const classified = classifyAll(results);
   const trends = computeTrends(classified);
-  const findings = runRules(classified, trends, patient);
+  let findings = runRules(classified, trends, patient);
+  if (kbSearch) {
+    findings = enrichWithKnowledge(findings, kbSearch);
+  }
   const gaps = coverageGaps(classified);
 
   const report = assembleReport(results, classified, trends, findings, gaps);
 
-  // Defense-in-depth: audit every prose section against the guardrails. If (by
-  // some rule-wording mistake) a sentence read as prescriptive/diagnostic, the
-  // guardrail would flag it. We log the audit count but never silently alter
-  // the deterministic output — flagged text is surfaced, not hidden, so it can
-  // be corrected in the rule wording.
+  // Defense-in-depth: audit every prose section against the guardrails.
   const allProse = Object.values(report.sections).flat().join(' ');
   const audit = enforceGuardrails(allProse);
-  // Attach the audit result for transparency (not used to mutate the report).
   (report as DeterministicReport & { guardrailAudit: unknown }).guardrailAudit = {
     ok: audit.ok,
     reasons: audit.reasons,

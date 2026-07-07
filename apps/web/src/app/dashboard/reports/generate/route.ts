@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prismaFor, Prisma } from '@trt/db';
 import { analyze } from '@trt/engine';
 import type { ResultPoint } from '@trt/engine';
+import { searchReferences } from '@trt/kb';
 
 /**
  * Generate a deterministic clinical report (GOLD §5.13).
@@ -59,7 +60,16 @@ export async function POST() {
       medicationsText: patient.medicationsText,
     },
     results,
-  });
+  },
+  // Inject the deterministic KB: findings get cited reference passages from the
+  // corpus (Goal 1). The KB search runs in-process (SQLite + TF-IDF), no model.
+  (query, k) =>
+    searchReferences(query, k).map((p) => ({
+      documentTitle: p.documentTitle,
+      page: p.page,
+      excerpt: p.text,
+    })),
+  );
 
   // Persist the structured report. redFlags drive the dashboard badge count.
   const created = await db.report.create({

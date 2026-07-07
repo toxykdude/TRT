@@ -217,3 +217,51 @@ describe('analyze — GOLD §2 guardrail audit', () => {
     expect(audit.ok).toBe(true);
   });
 });
+
+describe('analyze — knowledge-base enrichment (Goal 1.3)', () => {
+  const fakeKb = (query: string, _k?: number) => [
+    {
+      documentTitle: `Anabolics Book (${query.split(' ')[0]})`,
+      page: 42,
+      excerpt: 'Reference material about this biomarker and its clinical interpretation.',
+    },
+  ];
+
+  it('attaches KB references to findings when a search fn is provided', () => {
+    const r = analyze(
+      {
+        patient: basePatient,
+        results: [mk('hematocrit', 'Hematocrit', 'cbc', 56, '%', 41, 53, '2026-01-01')],
+      },
+      fakeKb,
+    );
+    const f = r.findings.find((x) => x.biomarkerKey === 'hematocrit');
+    expect(f?.references).toBeDefined();
+    expect(f!.references!.length).toBeGreaterThan(0);
+    expect(r.sections.knowledgeBaseReferences.length).toBeGreaterThan(0);
+  });
+
+  it('produces identical references (same hash) for the same KB search fn', () => {
+    const r1 = analyze(
+      { patient: basePatient, results: [mk('hematocrit', 'Hematocrit', 'cbc', 56, '%', 41, 53, '2026-01-01')] },
+      fakeKb,
+    );
+    const r2 = analyze(
+      { patient: basePatient, results: [mk('hematocrit', 'Hematocrit', 'cbc', 56, '%', 41, 53, '2026-01-01')] },
+      fakeKb,
+    );
+    expect(r1.hash).toBe(r2.hash);
+  });
+
+  it('produces a different hash with vs without KB enrichment', () => {
+    const none = analyze({
+      patient: basePatient,
+      results: [mk('hematocrit', 'Hematocrit', 'cbc', 56, '%', 41, 53, '2026-01-01')],
+    });
+    const withKb = analyze(
+      { patient: basePatient, results: [mk('hematocrit', 'Hematocrit', 'cbc', 56, '%', 41, 53, '2026-01-01')] },
+      fakeKb,
+    );
+    expect(none.hash).not.toBe(withKb.hash);
+  });
+});

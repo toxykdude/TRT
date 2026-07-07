@@ -118,6 +118,28 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
         </CardContent>
       </Card>
 
+      {s.knowledgeBaseReferences && s.knowledgeBaseReferences.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" /> References from the knowledge base
+            </CardTitle>
+            <CardDescription>
+              Cited passages from the corpus, retrieved deterministically (no AI model).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {s.knowledgeBaseReferences.map((r, i) => (
+                <li key={i} className="border-l-2 border-primary/40 pl-3 italic">
+                  {r}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

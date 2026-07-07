@@ -113,6 +113,12 @@ export type Finding = {
     unit: string | null;
     refText: string | null;
   }>;
+  /** cited reference passages from the deterministic KB (Goal 1), if any */
+  references?: Array<{
+    documentTitle: string;
+    page: number | null;
+    excerpt: string;
+  }>;
 };
 
 // ── Gap analysis ─────────────────────────────────────────────────────────────
@@ -156,6 +162,8 @@ export type DeterministicReport = {
     redFlags: string[];
     lifestyleFactors: string;
     guidelineReferences: string[];
+    /** cited passages from the deterministic KB (Goal 1), empty if KB not built */
+    knowledgeBaseReferences: string[];
   };
   /** deterministic — same inputs always produce the same report hash */
   hash: string;

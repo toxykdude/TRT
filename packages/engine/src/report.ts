@@ -161,6 +161,21 @@ export function assembleReport(
     'AACE/ACE clinical guidance on hypogonadism and male sexual health (refer to current published editions for exact citations).',
   ];
 
+  // ── Knowledge-base references (deterministic, cited) ──────────────────────
+  // Aggregate all cited passages attached to findings via KB enrichment.
+  const seenRefs = new Set<string>();
+  const knowledgeBaseReferences: string[] = [];
+  for (const f of findings) {
+    if (!f.references) continue;
+    for (const r of f.references) {
+      const key = `${r.documentTitle}|${r.excerpt.slice(0, 40)}`;
+      if (seenRefs.has(key)) continue;
+      seenRefs.add(key);
+      const page = r.page != null ? ` p.${r.page}` : '';
+      knowledgeBaseReferences.push(`${r.documentTitle}${page}: ${r.excerpt}`);
+    }
+  }
+
   const sections = {
     executiveSummary: execSummary,
     hormoneTrends,
@@ -175,6 +190,7 @@ export function assembleReport(
     redFlags: redFlagMessages,
     lifestyleFactors,
     guidelineReferences,
+    knowledgeBaseReferences,
   };
 
   // Deterministic hash over everything except the timestamp (which is recorded

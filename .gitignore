@@ -37,6 +37,15 @@ uploads/
 !docs/**/*.pdf
 !docs/**/*.png
 
+# ── Knowledge-base corpus & runtime artifacts ───────────────────
+# The to-rag/ corpus is local-only (1.4GB, copyright, not source).
+# Build outputs (extracted text, SQLite DB, manifests) stay on the LXC.
+to-rag/
+*.db
+*.db-shm
+*.db-wal
+kb-text/
+
 # ── Testing & coverage ──────────────────────────────────────────
 coverage/
 .nyc_output/
