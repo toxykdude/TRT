@@ -1,6 +1,11 @@
-export { default } from 'next-auth/middleware';
+import { withAuth } from 'next-auth/middleware';
+
+// Protect everything under /dashboard (GOLD §5.3). Defense-in-depth alongside
+// the per-layout auth() guard. Auth routes + api/auth remain public.
+export default withAuth({
+  pages: { signIn: '/login' },
+});
 
 export const config = {
-  // Protect everything under /dashboard; auth routes + api/auth are public.
   matcher: ['/dashboard/:path*'],
 };

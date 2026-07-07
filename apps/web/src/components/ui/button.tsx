@@ -2,6 +2,27 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
+/**
+ * Minimal Slot: when `asChild` is set, merge the button's classes/props onto the
+ * single child element (e.g. a next/link <Link>) instead of wrapping it. This
+ * avoids pulling in @radix-ui/react-slot for the few places we need it.
+ */
+function Slot({
+  children,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
+  if (React.isValidElement(children)) {
+    const child = children as React.ReactElement<Record<string, unknown>>;
+    return React.cloneElement(child, {
+      ...props,
+      ...child.props,
+      className: cn(className, child.props.className),
+    });
+  }
+  return null;
+}
+
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
   {
@@ -26,13 +47,20 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'className'>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+  className?: string;
+}
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => (
-    <button ref={ref} className={cn(buttonVariants({ variant, size, className }))} {...props} />
-  ),
+  ({ className, variant, size, asChild, ...props }, ref) => {
+    const cls = cn(buttonVariants({ variant, size }), className);
+    if (asChild) {
+      return <Slot className={cls}>{props.children as React.ReactElement}</Slot>;
+    }
+    return <button ref={ref} className={cls} {...props} />;
+  },
 );
 Button.displayName = 'Button';
 
