@@ -67,7 +67,7 @@ export async function POST() {
       patientId: patient.id,
       ownerId: session.user.id,
       generatedBy: 'deterministic-engine',
-      sections: report as unknown as Record<string, unknown>,
+      sections: report.sections as unknown as Record<string, unknown>,
       redFlags: report.sections.redFlags,
       dataRangeStart: report.meta.dataRangeStart ? new Date(report.meta.dataRangeStart) : null,
       dataRangeEnd: report.meta.dataRangeEnd ? new Date(report.meta.dataRangeEnd) : null,
