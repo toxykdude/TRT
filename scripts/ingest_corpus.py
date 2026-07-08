@@ -132,23 +132,53 @@ async def main() -> int:
     await client.build_indices_and_constraints()
 
     from datetime import datetime, timezone
+
+    # Large docs blow past the LLM context window ("Prompt 超长"). Chunk each
+    # doc into passages of ~CHUNK_CHARS and ingest each as its own episode.
+    CHUNK_CHARS = 8000
+
+    def passages(text: str) -> list[str]:
+        text = text.strip()
+        if len(text) <= CHUNK_CHARS:
+            return [text] if text else []
+        out = []
+        for i in range(0, len(text), CHUNK_CHARS):
+            chunk = text[i : i + CHUNK_CHARS].strip()
+            # try to break on a paragraph boundary near the end
+            if i + CHUNK_CHARS < len(text):
+                last_break = chunk.rfind("\n\n")
+                if 0 < last_break > CHUNK_CHARS // 2:
+                    chunk = chunk[:last_break].strip()
+            if chunk and len(chunk) > 200:  # skip tiny fragments
+                out.append(chunk)
+        return out
+
     ingested = 0
     for tf in pending:
         title = tf.stem
         try:
             text = tf.read_text(encoding="utf-8", errors="replace")
-            await client.add_episode(
-                name=title,
-                episode_body=text,
-                source_description=f"Corpus document: {title}",
-                reference_time=datetime.now(timezone.utc),
-            )
+            chunks = passages(text)
+            if not chunks:
+                print(f"  . {title}: no usable text, skipping")
+                continue
+            for idx, chunk in enumerate(chunks):
+                try:
+                    await client.add_episode(
+                        name=f"{title}#{idx + 1}",
+                        episode_body=chunk,
+                        source_description=f"Corpus document: {title} (part {idx + 1}/{len(chunks)})",
+                        reference_time=datetime.now(timezone.utc),
+                    )
+                except Exception as ce:  # noqa: BLE001
+                    # a single bad chunk shouldn't kill the whole doc
+                    print(f"  ~ {title} part {idx + 1}/{len(chunks)} skipped: {str(ce)[:80]}", file=sys.stderr)
             manifest[tf.name] = str(tf.stat().st_size)
             save_manifest(manifest)
             ingested += 1
-            print(f"  + {title}")
+            print(f"  + {title} ({len(chunks)} passage{'s' if len(chunks) != 1 else ''})")
         except Exception as e:  # noqa: BLE001
-            print(f"  x {title}: {e}", file=sys.stderr)
+            print(f"  x {title}: {str(e)[:100]}", file=sys.stderr)
 
     await client.close()
     print(f"\n+ Ingested {ingested} document(s). Graph built — now a frozen knowledge base.")

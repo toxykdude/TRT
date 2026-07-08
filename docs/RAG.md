@@ -92,34 +92,49 @@ context to enhance answers.
 | Service | Port | Purpose |
 |---|---|---|
 | FalkorDB | 6379 | Graph DB (Redis-based; chosen over Neo4j for the 2GB box) |
-| Graphiti MCP | 8000 | MCP server (`/mcp/` for tools, `/health` for status) |
+| **Graph query service** | **8001** | **Local Python service** (sentence-transformers + FalkorDB) — the web app's query path |
+| Graphiti MCP | 8000 | Graphiti MCP server (available; the local query service is the primary path) |
 
-> Neo4j was the original choice but its own capped config exceeds 2GB before the
-> app — FalkorDB (Graphiti's default) is the in-use backend. The Graphiti config
-> is backend-pluggable; switching is a compose-file change.
+> The **local query service** (`scripts/graph_query_service.py`) is the path the
+> web app uses, NOT the docker MCP. Reason: the MCP image is hardcoded to an
+> OpenAI embeddings endpoint, but Z.AI (the LLM provider) has no embeddings API.
+> The local service embeds queries with the **same** all-MiniLM-L6-v2 model used
+> at ingestion, so embeddings match. It runs under pm2 as `trt-graph`.
 
-Compose file: `/opt/trt-rag/graphiti/mcp_server/docker/docker-compose-falkordb-safe.yml`
-(no auth on FalkorDB for this image version; MCP on :8000; restart: unless-stopped).
+> Neo4j was the original choice but its own capped config exceeds the box's RAM;
+> FalkorDB (Graphiti's default) is the in-use backend. Backend is pluggable.
 
 ### Build the graph (needs an LLM key — the one model-dependent step)
-The graph **cannot be built without an LLM**. When you have a key:
+The graph is built with **Z.AI** (GLM-4.5-air, OpenAI-compatible) as the LLM and
+**local sentence-transformers** (all-MiniLM-L6-v2) for embeddings. This pairing
+is required because Z.AI's global API has no embeddings endpoint; the embedder
+runs locally so embeddings stay consistent between ingestion and query.
 
 ```bash
-# 1. Set the key on the MCP stack
-cd /opt/trt-rag/graphiti/mcp_server/docker
-export OPENAI_API_KEY=sk-...   # or ANTHROPIC_API_KEY / GOOGLE_API_KEY
-# edit docker-compose-falkordb-safe.yml: set OPENAI_API_KEY (replace placeholder),
-# then: docker compose -f docker-compose-falkordb-safe.yml up -d
+# 1. Set the Z.AI key (one-time)
+bash /opt/trt-rag/set-key.sh   # pastes masked → /opt/trt-rag/.env
 
-# 2. Ingest the corpus (reads Layer 1's extracted text, builds the graph)
-cd /opt/trt
-python3 -m venv .venv && . .venv/bin/activate
-pip install "graphiti-core[falkordb]"
-python3 scripts/ingest_corpus.py    # gated: exits cleanly if no key set
+# 2. Install the Python env (one-time)
+cd /opt/trt && python3 -m venv .venv && . .venv/bin/activate
+pip install "graphiti-core[falkordb,sentence-transformers]"
+
+# 3. Ingest the medical corpus (reads Layer 1's extracted text, builds the graph)
+python3 scripts/ingest_corpus.py
+#   - large docs are auto-chunked into ~8K-char passages
+#   - idempotent (manifest at /var/lib/trt/kb/graphiti_ingested.json)
+#   - resumable; re-run after interruption to continue
+
+# 4. The graph query service runs under pm2 (name: trt-graph, port 8001)
+pm2 list   # confirm trt-graph online
 ```
-`ingest_corpus.py` is idempotent (tracks ingested sources in a manifest). After
-it completes, the graph is a **frozen knowledge base** — disable the key again
-if you want zero ongoing model dependency; queries still work.
+
+> **Cost/time reality**: Graphiti makes several LLM calls per passage (entity
+> extraction, edges, dedup, summarization). The Anabolics book alone is ~440
+> passages. Full ingestion of the medical corpus is a multi-hour job. It runs
+> unattended in the background and is fully resumable.
+
+After ingestion, the graph is a **frozen knowledge base** — queries use the local
+embedder + FalkorDB (no LLM at query time), so runtime stays deterministic.
 
 ### MCP tools exposed
 `add_episode`, `search_nodes`, `search_facts`, `get_episodes`, `get_entity_edge`,
