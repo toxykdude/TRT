@@ -1,15 +1,15 @@
 /**
- * Graphiti MCP client — Goal 2.
+ * Knowledge-graph query client (Goal 2).
  *
- * Talks to the Graphiti MCP server (HTTP transport) to query the knowledge
- * graph built from the corpus. The graph is built ONCE (during ingestion, which
- * uses an LLM) and then FROZEN — at query time only embeddings + graph traversal
- * run on the Graphiti side (no generative LLM), so runtime stays deterministic.
+ * Talks to the LOCAL graph query service (scripts/graph_query_service.py on
+ * :8001), which uses the SAME local embedder (sentence-transformers) used at
+ * ingestion to query FalkorDB directly. This keeps embeddings consistent and
+ * avoids the Graphiti docker MCP, which is hardcoded to an OpenAI embeddings
+ * endpoint that Z.AI doesn't offer.
  *
- * Graceful fallback: if the MCP server is unreachable, the graph is empty, or
- * no LLM key was ever set (graph never built), queries return an empty result
- * with a status note instead of throwing. The deterministic KB (@trt/store) is
- * the always-available primary; Graphiti is the optional enhancement.
+ * Graceful fallback: if the service is down, the graph is empty, or ingestion
+ * hasn't run, queries return [] with a status note. Layer 1 (deterministic KB)
+ * always carries the report regardless.
  */
 export type GraphitiResult = {
   fact: string;
@@ -21,12 +21,13 @@ export type GraphitiStatus =
   | { available: true }
   | { available: false; reason: 'unconfigured' | 'unreachable' | 'not_built' };
 
-const MCP_URL = process.env.GRAPHITI_MCP_URL || ''; // e.g. http://127.0.0.1:8000
+// The local query service (sentence-transformers + FalkorDB).
+const GRAPH_URL = process.env.GRAPH_QUERY_URL || process.env.GRAPHITI_MCP_URL || '';
 
 export async function graphitiStatus(): Promise<GraphitiStatus> {
-  if (!MCP_URL) return { available: false, reason: 'unconfigured' };
+  if (!GRAPH_URL) return { available: false, reason: 'unconfigured' };
   try {
-    const res = await fetch(`${MCP_URL}/health`, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(`${GRAPH_URL}/health`, { signal: AbortSignal.timeout(2000) });
     if (!res.ok) return { available: false, reason: 'unreachable' };
     return { available: true };
   } catch {
@@ -35,7 +36,7 @@ export async function graphitiStatus(): Promise<GraphitiStatus> {
 }
 
 /**
- * Search the Graphiti knowledge graph for relationship facts relevant to a query.
+ * Search the knowledge graph for relationship facts relevant to a query.
  * Returns [] (with a swallowed status) if the graph isn't built/available.
  */
 export async function searchFacts(query: string, limit = 5): Promise<{
@@ -46,44 +47,18 @@ export async function searchFacts(query: string, limit = 5): Promise<{
   if (!status.available) return { results: [], status };
 
   try {
-    // Graphiti MCP HTTP (streamable) transport accepts JSON-RPC tool calls at /mcp/.
-    const res = await fetch(`${MCP_URL.replace(/\/$/, '')}/mcp/`, {
+    const res = await fetch(`${GRAPH_URL}/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(5000),
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'tools/call',
-        params: {
-          name: 'search_facts',
-          arguments: { query, num_results: limit },
-        },
-      }),
+      body: JSON.stringify({ query, k: limit }),
     });
     if (!res.ok) return { results: [], status: { available: false, reason: 'unreachable' } };
-    const data = (await res.json()) as { result?: { content?: Array<{ text?: string }> } };
-    const text = data.result?.content?.[0]?.text ?? '[]';
-    const facts = safeParseFacts(text);
-    return { results: facts.slice(0, limit), status };
+    const data = (await res.json()) as { results?: GraphitiResult[] };
+    const results = data.results ?? [];
+    if (results.length === 0) return { results: [], status: { available: false, reason: 'not_built' } };
+    return { results: results.slice(0, limit), status };
   } catch {
     return { results: [], status: { available: false, reason: 'unreachable' } };
-  }
-}
-
-function safeParseFacts(text: string): GraphitiResult[] {
-  try {
-    const parsed = JSON.parse(text) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((f) => {
-      const o = f as Record<string, unknown>;
-      return {
-        fact: String(o.fact ?? o.fact_text ?? o.text ?? JSON.stringify(o)),
-        source: o.source ? String(o.source) : undefined,
-        score: typeof o.score === 'number' ? o.score : undefined,
-      };
-    });
-  } catch {
-    return [{ fact: text }];
   }
 }
