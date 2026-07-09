@@ -119,6 +119,8 @@ export type Finding = {
     page: number | null;
     excerpt: string;
   }>;
+  /** relationship facts from the knowledge graph (Goal 2), if any */
+  graphFacts?: string[];
 };
 
 // ── Gap analysis ─────────────────────────────────────────────────────────────
@@ -164,6 +166,8 @@ export type DeterministicReport = {
     guidelineReferences: string[];
     /** cited passages from the deterministic KB (Goal 1), empty if KB not built */
     knowledgeBaseReferences: string[];
+    /** relationship facts from the knowledge graph (Goal 2), empty if no graph */
+    knowledgeGraphFacts: string[];
   };
   /** deterministic — same inputs always produce the same report hash */
   hash: string;

@@ -24,8 +24,9 @@ export type { GuardrailResult } from './guardrails';
 export * from './types';
 export { classifyResult, classifyAll, statusLabel, isAbnormal, isOutOfBand } from './classify';
 export { computeTrends, trendArrow, trendWord } from './trends';
-export { enrichWithKnowledge } from './knowledge';
-export type { KbSearchFn, KbReference } from './knowledge';
+export { assembleReport } from './report';
+export { enrichWithKnowledge, enrichWithGraph } from './knowledge';
+export type { KbSearchFn, KbReference, GraphSearchFn } from './knowledge';
 
 /**
  * Run the deterministic engine over the patient's data.

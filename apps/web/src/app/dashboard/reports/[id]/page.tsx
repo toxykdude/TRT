@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { SafetyBanner } from '@/components/safety-banner';
 import { Button } from '@/components/ui/button';
 import { fmtDate } from '@/lib/utils';
-import { ArrowLeft, Flag, HelpCircle, Beaker, BookOpen } from 'lucide-react';
+import { ArrowLeft, Flag, HelpCircle, Beaker, BookOpen, Network } from 'lucide-react';
 
 type ReportRow = {
   id: string;
@@ -133,6 +133,28 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
               {s.knowledgeBaseReferences.map((r, i) => (
                 <li key={i} className="border-l-2 border-primary/40 pl-3 italic">
                   {r}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {s.knowledgeGraphFacts && s.knowledgeGraphFacts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Network className="h-4 w-4" /> Knowledge graph relationships
+            </CardTitle>
+            <CardDescription>
+              Medical entity relationships from the corpus knowledge graph (Neo4j).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {s.knowledgeGraphFacts.map((fact, i) => (
+                <li key={i} className="border-l-2 border-primary/40 pl-3">
+                  {fact}
                 </li>
               ))}
             </ul>

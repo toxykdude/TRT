@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prismaFor, Prisma } from '@trt/db';
-import { analyze } from '@trt/engine';
+import { analyze, enrichWithGraph, assembleReport } from '@trt/engine';
 import type { ResultPoint } from '@trt/engine';
-import { searchReferences } from '@trt/kb';
+import { searchReferences, searchGraphFacts } from '@trt/kb';
 
 /**
  * Generate a deterministic clinical report (GOLD §5.13).
@@ -63,13 +63,45 @@ export async function POST() {
   },
   // Inject the deterministic KB: findings get cited reference passages from the
   // corpus (Goal 1). The KB search runs in-process (SQLite + TF-IDF), no model.
-  (query, k) =>
-    searchReferences(query, k).map((p) => ({
-      documentTitle: p.documentTitle,
-      page: p.page,
-      excerpt: p.text,
-    })),
+  let report = analyze(
+    {
+      patient: {
+        sex: (patient.sex as 'male' | 'female' | 'intersex' | null) ?? null,
+        ageYears,
+        sleepHoursPerNight: patient.sleepHoursPerNight,
+        alcoholUse: patient.alcoholUse,
+        smokingStatus: patient.smokingStatus,
+        medicalConditions: patient.medicalConditions,
+        medicationsText: patient.medicationsText,
+      },
+      results,
+    },
+    // Layer 1 — deterministic KB
+    (query, k) =>
+      searchReferences(query, k).map((p) => ({
+        documentTitle: p.documentTitle,
+        page: p.page,
+        excerpt: p.text,
+      })),
   );
+
+  // Layer 2 — knowledge graph relationship facts (async, graceful fallback).
+  // Enrich findings with graph facts, then re-assemble the report sections so
+  // the new knowledgeGraphFacts section is populated. Determinism: the graph is
+  // frozen after ingestion, so the same query → same facts.
+  const enrichedFindings = await enrichWithGraph(report.findings, async (q, k) => {
+    const { results } = await searchGraphFacts(q, k);
+    return results.map((r) => r.fact);
+  });
+  if (enrichedFindings !== report.findings) {
+    report = assembleReport(
+      report.classified, // results (ClassifiedResult extends ResultPoint)
+      report.classified,
+      report.trends,
+      enrichedFindings,
+      report.coverageGaps,
+    );
+  }
 
   // Persist the structured report. redFlags drive the dashboard badge count.
   const created = await db.report.create({

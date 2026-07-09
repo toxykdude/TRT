@@ -176,6 +176,19 @@ export function assembleReport(
     }
   }
 
+  // ── Knowledge-graph facts (Goal 2) ────────────────────────────────────────
+  const seenFacts = new Set<string>();
+  const knowledgeGraphFacts: string[] = [];
+  for (const f of findings) {
+    if (!f.graphFacts) continue;
+    for (const fact of f.graphFacts) {
+      const key = fact.slice(0, 60);
+      if (seenFacts.has(key)) continue;
+      seenFacts.add(key);
+      knowledgeGraphFacts.push(fact);
+    }
+  }
+
   const sections = {
     executiveSummary: execSummary,
     hormoneTrends,
@@ -191,6 +204,7 @@ export function assembleReport(
     lifestyleFactors,
     guidelineReferences,
     knowledgeBaseReferences,
+    knowledgeGraphFacts,
   };
 
   // Deterministic hash over everything except the timestamp (which is recorded

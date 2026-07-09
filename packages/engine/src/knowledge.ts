@@ -79,3 +79,30 @@ function truncate(s: string, max: number): string {
   const clean = s.replace(/\s+/g, ' ').trim();
   return clean.length <= max ? clean : clean.slice(0, max - 1) + '…';
 }
+
+// ── Knowledge-graph enrichment (Goal 2 — async, optional) ────────────────────
+
+/** An async graph-fact search: query → relationship facts. */
+export type GraphSearchFn = (query: string, k?: number) => Promise<string[]>;
+
+/**
+ * Enrich findings with relationship facts from the knowledge graph. Async,
+ * graceful — if the graph is unavailable/empty, findings pass through unchanged.
+ */
+export async function enrichWithGraph(findings: Finding[], search: GraphSearchFn): Promise<Finding[]> {
+  const enriched = await Promise.all(
+    findings.map(async (f) => {
+      if (!f.biomarkerKey) return f;
+      const phrase = SEARCH_PHRASES[f.biomarkerKey];
+      if (!phrase) return f;
+      try {
+        const facts = await search(phrase, 3);
+        if (facts.length === 0) return f;
+        return { ...f, graphFacts: facts.slice(0, 3) };
+      } catch {
+        return f; // graph unavailable — never break the report
+      }
+    }),
+  );
+  return enriched;
+}
