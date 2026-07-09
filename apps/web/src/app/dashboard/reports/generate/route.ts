@@ -49,20 +49,7 @@ export async function POST() {
     ? Math.floor((Date.now() - patient.dateOfBirth.getTime()) / (1000 * 60 * 60 * 24 * 365.25))
     : null;
 
-  const report = analyze({
-    patient: {
-      sex: (patient.sex as 'male' | 'female' | 'intersex' | null) ?? null,
-      ageYears,
-      sleepHoursPerNight: patient.sleepHoursPerNight,
-      alcoholUse: patient.alcoholUse,
-      smokingStatus: patient.smokingStatus,
-      medicalConditions: patient.medicalConditions,
-      medicationsText: patient.medicationsText,
-    },
-    results,
-  },
-  // Inject the deterministic KB: findings get cited reference passages from the
-  // corpus (Goal 1). The KB search runs in-process (SQLite + TF-IDF), no model.
+  // Layer 1 deterministic KB + Layer 2 knowledge graph enrichment.
   let report = analyze(
     {
       patient: {
