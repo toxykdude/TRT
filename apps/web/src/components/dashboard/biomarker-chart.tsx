@@ -28,23 +28,12 @@ type Props = {
   className?: string;
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  LOW: '#ef4444',
-  BORDERLINE_LOW: '#f59e0b',
-  NORMAL: '#10b981',
-  BORDERLINE_HIGH: '#f59e0b',
-  HIGH: '#ef4444',
-  NON_NUMERIC: '#9ca3af',
-  NO_RANGE: '#9ca3af',
-};
-
 /**
  * Interactive biomarker trend chart (GOLD §5.9).
  * Reference range is shaded green; out-of-range points are red/amber.
  */
 export function BiomarkerChart({ biomarkerName, unit, data, refLow, refHigh, className }: Props) {
   const hasRange = refLow != null && refHigh != null;
-  // Y-domain: include all values + range, with padding
   const allVals = [...data.map((d) => d.value).filter((v): v is number => v != null)];
   if (refLow != null) allVals.push(refLow);
   if (refHigh != null) allVals.push(refHigh);
@@ -85,27 +74,22 @@ export function BiomarkerChart({ biomarkerName, unit, data, refLow, refHigh, cla
             labelStyle={{ color: 'hsl(var(--foreground))' }}
             formatter={(v: number) => [`${v} ${unit ?? ''}`, biomarkerName]}
           />
-          {/* Reference range shaded band */}
-          {hasRange && (
-            <ReferenceArea y1={refLow!} y2={refHigh!} fill="#10b981" fillOpacity={0.08} />
+          {hasRange && refLow != null && refHigh != null && (
+            <ReferenceArea y1={refLow} y2={refHigh} fill="#10b981" fillOpacity={0.08} />
           )}
-          {hasRange && (
-            <>
-              <ReferenceLine y={refLow} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <ReferenceLine y={refHigh} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.5} />
-            </>
+          {hasRange && refLow != null && (
+            <ReferenceLine y={refLow} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.5} />
+          )}
+          {hasRange && refHigh != null && (
+            <ReferenceLine y={refHigh} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.5} />
           )}
           <Line
             type="monotone"
             dataKey="value"
             stroke="hsl(var(--primary))"
             strokeWidth={2}
-            dot={(props: { cx?: number; cy?: number; payload?: DataPoint }) => {
-              const { cx, cy, payload } = props;
-              if (cx == null || cy == null || !payload) return <g />;
-              const color = STATUS_COLOR[payload.status] ?? '#6b7280';
-              return <circle cx={cx} cy={cy} r={4} fill={color} stroke="hsl(var(--card))" strokeWidth={1.5} />;
-            }}
+            dot={{ r: 4, fill: 'hsl(var(--primary))' }}
+            activeDot={{ r: 6 }}
             connectNulls
           />
         </LineChart>
