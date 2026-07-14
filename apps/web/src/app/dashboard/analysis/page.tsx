@@ -29,7 +29,7 @@ export default async function AnalysisPage() {
   const markers = buildMarkerViews(results as never);
   const categories = groupByCategory(markers);
   const latestReport = reports[0];
-  const sections = (latestReport?.sections ?? {}) as Record<string, never>;
+  const sections = (latestReport?.sections ?? {}) as Record<string, unknown>;
   const redFlags = (sections.redFlags as string[]) ?? [];
   const graphFacts = (sections.knowledgeGraphFacts as string[]) ?? [];
   const questions = (sections.questionsForPhysician as string[]) ?? [];
