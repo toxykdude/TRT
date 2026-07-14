@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FlaskConical, FileText, Upload, ArrowRight } from 'lucide-react';
+import { FlaskConical, FileText, Upload, ArrowRight, Activity } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { prismaFor } from '@trt/db';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,18 +49,19 @@ export default async function DashboardHome() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{latestResults.length > 0 ? '·' : 0}</div>
+            <div className="text-2xl font-bold">{labCount > 0 ? latestResults.length : 0}</div>
             <p className="text-xs text-muted-foreground">most recent shown below</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-primary/30 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Quick action</CardTitle>
+            <CardTitle className="text-sm font-medium">Your analysis</CardTitle>
+            <Activity className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <Button asChild size="sm">
-              <Link href="/dashboard/labs">
-                <Upload className="mr-2 h-4 w-4" /> Upload a lab
+              <Link href="/dashboard/analysis">
+                View comprehensive analysis <ArrowRight className="ml-1 h-3 w-3" />
               </Link>
             </Button>
           </CardContent>

@@ -7,11 +7,13 @@ import {
   Clock,
   BarChart3,
   Settings,
+  Activity,
 } from 'lucide-react';
 
 /** Shared sidebar nav (GOLD §5.3). One source for desktop + mobile. */
 export const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/analysis', label: 'Analysis', icon: Activity },
   { href: '/dashboard/patients', label: 'Patients', icon: Users },
   { href: '/dashboard/labs', label: 'Labs', icon: FlaskConical },
   { href: '/dashboard/reports', label: 'Reports', icon: FileText },

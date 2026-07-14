@@ -1,28 +1,36 @@
-import { ShieldAlert } from 'lucide-react';
 import { SAFETY_DISCLAIMER, cn } from '@/lib/utils';
 
 /**
- * The mandatory clinical disclaimer banner (GOLD §2.5).
- * Must appear on every clinical surface. Two variants:
- *   • "full"   — the complete banner with icon, for dashboard/report pages
- *   • "compact"— single line, for tight bars/footers
+ * The clinical disclaimer. Kept on every clinical surface (legal protection);
+ * rendered subtly so it doesn't dominate the UX.
+ *
+ * Variants:
+ *   • "banner"  — compact amber-tinted strip (dashboard pages)
+ *   • "footer"  — single muted line (report footers)
+ *   • "compact" — tiny text (tight bars)
  */
-export function SafetyBanner({ variant = 'full', className }: { variant?: 'full' | 'compact'; className?: string }) {
+export function SafetyBanner({
+  variant = 'banner',
+  className,
+}: {
+  variant?: 'banner' | 'footer' | 'compact';
+  className?: string;
+}) {
   if (variant === 'compact') {
-    return (
-      <p className={cn('text-[11px] leading-tight text-muted-foreground', className)}>{SAFETY_DISCLAIMER}</p>
-    );
+    return <p className={cn('text-[11px] leading-tight text-muted-foreground', className)}>{SAFETY_DISCLAIMER}</p>;
   }
+  if (variant === 'footer') {
+    return <p className={cn('text-xs text-muted-foreground/70', className)}>{SAFETY_DISCLAIMER}</p>;
+  }
+  // banner: subtle, not alarming
   return (
-    <div
-      role="note"
+    <p
       className={cn(
-        'flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm',
+        'rounded-md border border-border/50 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground',
         className,
       )}
     >
-      <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden />
-      <p className="text-foreground/80">{SAFETY_DISCLAIMER}</p>
-    </div>
+      {SAFETY_DISCLAIMER}
+    </p>
   );
 }
