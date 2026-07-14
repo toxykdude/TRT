@@ -83,8 +83,10 @@ export function buildMarkerViews(results: LabResultWithBiomarker[]): MarkerView[
     const vals = sorted.map((s) => s.valueNumeric).filter((v): v is number => v != null);
     let trend: MarkerView['trend'] = 'SINGLE';
     if (vals.length >= 2) {
-      const delta = vals[vals.length - 1]! - vals[0]!;
-      const rel = vals[0] !== 0 ? delta / Math.abs(vals[0]) : 0;
+      const first = vals[0] ?? 0;
+      const last = vals[vals.length - 1] ?? 0;
+      const delta = last - first;
+      const rel = first !== 0 ? delta / Math.abs(first) : 0;
       trend = Math.abs(delta) < 0.001 || Math.abs(rel) < 0.05 ? 'FLAT' : delta > 0 ? 'UP' : 'DOWN';
     }
 
