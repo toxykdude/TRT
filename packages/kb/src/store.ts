@@ -207,6 +207,101 @@ export class KbStore {
     );
   }
 
+  /** Total indexed passages (chunks) across the corpus. */
+  chunkCount(): number {
+    return Number(
+      (this.db.prepare('SELECT COUNT(*) AS n FROM chunks').get() as { n: number }).n,
+    );
+  }
+
+  /** List every indexed document (the corpus catalog), ordered by title. */
+  listDocuments(): KbDocument[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, title, source_path, content_hash, method, pages, char_count
+         FROM documents ORDER BY title COLLATE NOCASE`,
+      )
+      .all() as Array<{
+      id: number;
+      title: string;
+      source_path: string;
+      content_hash: string;
+      method: string;
+      pages: number | null;
+      char_count: number;
+    }>;
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      sourcePath: r.source_path,
+      contentHash: r.content_hash,
+      method: r.method,
+      pages: r.pages,
+      charCount: r.char_count,
+    }));
+  }
+
+  /** Fetch one passage by chunk id, with its source citation. Null if unknown id. */
+  getPassage(chunkId: number): KbPassage | null {
+    const row = this.db
+      .prepare(
+        `SELECT c.id AS chunk_id, c.ordinal, c.page, c.text,
+                d.title AS doc_title, d.source_path AS doc_source
+         FROM chunks c JOIN documents d ON d.id = c.document_id
+         WHERE c.id = ?`,
+      )
+      .get(chunkId) as
+      | {
+          chunk_id: number;
+          ordinal: number;
+          page: number | null;
+          text: string;
+          doc_title: string;
+          doc_source: string;
+        }
+      | undefined;
+    if (!row) return null;
+    return {
+      chunkId: row.chunk_id,
+      documentTitle: row.doc_title,
+      sourcePath: row.doc_source,
+      page: row.page,
+      ordinal: row.ordinal,
+      text: row.text,
+      score: 0,
+    };
+  }
+
+  /** Passages of one document in corpus order (read a specific source directly). */
+  getDocumentPassages(documentId: number, limit = 20, offset = 0): KbPassage[] {
+    const rows = this.db
+      .prepare(
+        `SELECT c.id AS chunk_id, c.ordinal, c.page, c.text,
+                d.title AS doc_title, d.source_path AS doc_source
+         FROM chunks c JOIN documents d ON d.id = c.document_id
+         WHERE c.document_id = ?
+         ORDER BY c.ordinal
+         LIMIT ? OFFSET ?`,
+      )
+      .all(documentId, limit, offset) as Array<{
+      chunk_id: number;
+      ordinal: number;
+      page: number | null;
+      text: string;
+      doc_title: string;
+      doc_source: string;
+    }>;
+    return rows.map((r) => ({
+      chunkId: r.chunk_id,
+      documentTitle: r.doc_title,
+      sourcePath: r.doc_source,
+      page: r.page,
+      ordinal: r.ordinal,
+      text: r.text,
+      score: 0,
+    }));
+  }
+
   /** BM25 search over the corpus. Returns top-k cited passages. */
   search(query: string, k = 5): KbPassage[] {
     const qTerms = Array.from(new Set(tokenize(query)));

@@ -151,6 +151,33 @@ embedder + FalkorDB (no LLM at query time), so runtime stays deterministic.
 
 ---
 
+## AI-model access — the TRT MCP server (`@trt/mcp`)
+
+Both knowledge layers, plus the platform's own documents, are exposed to **any
+MCP-capable AI model** through a dedicated MCP server in `packages/mcp`
+(full reference: **[docs/MCP.md](./MCP.md)**).
+
+```
+AI model ──MCP (stdio | Streamable HTTP :8002)──► @trt/mcp
+                                                   ├─► Layer 1 KB (BM25 passages)
+                                                   ├─► Layer 2 graph (:8001 facts)
+                                                   └─► GOLD.md / docs/* (platform truth)
+```
+
+- **Tools**: `search_knowledge_base`, `search_knowledge_graph`, `search_all`,
+  `list_corpus_documents`, `get_passage`, `get_rag_status`, `get_platform_info`,
+  `lookup_biomarker`.
+- **Resources**: `trt://platform/{gold,agents,readme}`,
+  `trt://platform/docs/{engine,rag,deployment,mcp}`, `trt://kb/{documents,status}`.
+- **Prompts**: `trt_knowledge_query` (grounded-answer template with GOLD §2 baked in).
+- **Safety**: retrieval-only, §2.5 disclaimer on every clinical response,
+  guardrail-audited surface, no patient data (PHI never crosses MCP).
+- **Deploy**: `pm2 start "node_modules/.bin/tsx packages/mcp/src/http.ts" --name trt-mcp`
+  → `http://127.0.0.1:8002/mcp` (+ `GET /health`). Smoke test:
+  `node_modules/.bin/tsx scripts/mcp-smoke.ts`.
+
+---
+
 ## Determinism contract (GOLD §2 / Goal 1)
 
 - Layer 1 search is pure BM25 — same query → same passages.

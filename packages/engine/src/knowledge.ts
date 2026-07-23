@@ -21,7 +21,7 @@ export type KbReference = {
 export type KbSearchFn = (query: string, k?: number) => KbReference[];
 
 /** Map a biomarker key → a KB-friendly search phrase. */
-const SEARCH_PHRASES: Record<string, string> = {
+export const SEARCH_PHRASES: Record<string, string> = {
   total_testosterone: 'total testosterone reference range',
   free_testosterone: 'free testosterone',
   bioavailable_testosterone: 'bioavailable testosterone',

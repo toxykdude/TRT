@@ -388,7 +388,7 @@ export function runRules(
 // Deterministic: a fixed panel expectation per category, checked against what's
 // present in the data. Missing markers are suggested for discussion.
 
-const EXPECTED_PANEL: Record<string, string[]> = {
+export const EXPECTED_PANEL: Record<string, string[]> = {
   hormone: [
     'total_testosterone',
     'free_testosterone',
@@ -406,7 +406,7 @@ const EXPECTED_PANEL: Record<string, string[]> = {
   inflammation: ['hscrp'],
 };
 
-const PRETTY: Record<string, string> = {
+export const BIOMARKER_DISPLAY_NAMES: Record<string, string> = {
   total_testosterone: 'Total testosterone',
   free_testosterone: 'Free testosterone',
   lh: 'LH',
@@ -420,7 +420,7 @@ const PRETTY: Record<string, string> = {
   a1c: 'Hemoglobin A1C',
 };
 
-const pretty = (k: string) => PRETTY[k] ?? k;
+const pretty = (k: string) => BIOMARKER_DISPLAY_NAMES[k] ?? k;
 
 export function coverageGaps(results: ClassifiedResult[]): CoverageGap[] {
   const present = new Set(results.map((r) => r.biomarkerKey));

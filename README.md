@@ -25,6 +25,7 @@ summaries and guideline-informed suggestions for clinician review.**
 | [`AGENTS.md`](./AGENTS.md) | **Operating manual.** Setup, layout, conventions, the analysis/AI contract. Read before contributing. |
 | [`docs/ENGINE.md`](./docs/ENGINE.md) | **Deterministic engine.** How analysis works: classify → trends → rules → report, all traceable, all reproducible. |
 | [`docs/RAG.md`](./docs/RAG.md) | **Knowledge base & RAG.** Layer 1 (deterministic TF-IDF KB, no model) + Layer 2 (Graphiti MCP graph, builds with an LLM). |
+| [`docs/MCP.md`](./docs/MCP.md) | **MCP server.** How any AI model retrieves the knowledge stack + platform docs via MCP (tools, resources, prompts, deployment). |
 | [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | **Ops.** Deploy, cloudflared, verification, secret rotation. |
 | `README.md` | This file. |
 
@@ -37,6 +38,7 @@ summaries and guideline-informed suggestions for clinician review.**
 - **Auth:** Auth.js (NextAuth) v5 + Prisma adapter — Credentials + Google OAuth
 - **Analysis:** a **deterministic rules engine** (`packages/engine`) — no AI model in the loop. Same inputs always produce the same report (sha256 hash). See [`docs/ENGINE.md`](./docs/ENGINE.md).
 - **Knowledge base:** a **deterministic TF-IDF/BM25 corpus KB** (`packages/kb`) that attaches cited reference passages to findings — no model. Plus an optional **Graphiti MCP knowledge graph** (FalkorDB) that builds once with an LLM and can enhance an AI assistant. See [`docs/RAG.md`](./docs/RAG.md).
+- **MCP server:** `@trt/mcp` exposes the whole knowledge stack + platform docs to any MCP-capable AI model over stdio or Streamable HTTP — retrieval-only, GOLD §2 guardrail-audited, no PHI. See [`docs/MCP.md`](./docs/MCP.md).
 - **AI (extraction only):** OpenAI API with Structured Outputs for reading values from uploaded documents; scoped strictly to extraction. Guardrails are real and tested.
 - **Deploy:** Vercel-compatible; runs on a Debian LXC behind a Cloudflare Tunnel
 
@@ -54,6 +56,7 @@ summaries and guideline-informed suggestions for clinician review.**
 │   ├── db/              # Prisma schema, client, RLS, seed
 │   ├── engine/          # deterministic analysis engine (classify → trends → rules → report)
 │   ├── kb/              # deterministic knowledge base (TF-IDF/BM25) + Graphiti MCP client
+│   ├── mcp/             # MCP server: exposes KB + graph + platform docs to AI models
 │   └── ai/              # extraction pipeline (OCR/document parsing) + guardrails
 ├── scripts/
 │   ├── build-kb.ts      # extract + index the corpus into the deterministic KB

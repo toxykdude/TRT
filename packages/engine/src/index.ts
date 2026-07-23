@@ -25,8 +25,9 @@ export * from './types';
 export { classifyResult, classifyAll, statusLabel, isAbnormal, isOutOfBand } from './classify';
 export { computeTrends, trendArrow, trendWord } from './trends';
 export { assembleReport } from './report';
-export { enrichWithKnowledge, enrichWithGraph } from './knowledge';
+export { enrichWithKnowledge, enrichWithGraph, SEARCH_PHRASES } from './knowledge';
 export type { KbSearchFn, KbReference, GraphSearchFn } from './knowledge';
+export { EXPECTED_PANEL, BIOMARKER_DISPLAY_NAMES } from './rules';
 
 /**
  * Run the deterministic engine over the patient's data.

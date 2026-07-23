@@ -76,6 +76,7 @@ Don't introduce a new dependency without justification in the PR.
 │   ├── db/                  # Prisma schema + client + migrations
 │   ├── ai/                  # extraction, analysis, report pipelines + guardrails
 │   ├── parsing/             # OCR / PDF / image extraction
+│   ├── mcp/                 # MCP server: KB + graph + platform docs for AI models
 │   └── ui/                  # shared UI primitives (optional)
 ├── supabase/                # schema, RLS policies, storage bucket config
 ├── docs/                    # architecture, ADRs, data dictionary, clinical refs
@@ -173,6 +174,15 @@ extraction call must:
 
 When you change an extraction prompt or schema, update the corresponding
 guardrail tests in the same PR.
+
+### MCP server (`@trt/mcp`) — AI-model access to the knowledge stack
+`packages/mcp` exposes the corpus KB, the Graphiti graph, and platform docs to
+any MCP-capable model (see [`docs/MCP.md`](./docs/MCP.md)). It is
+**retrieval-only**: no generation, no patient data/PHI, the §2.5 disclaimer on
+every clinical response, and the whole model-facing surface (instructions,
+tool descriptions, prompts) must pass `enforceGuardrails` — enforced by
+`packages/mcp/src/safety.test.ts`. If you change any user/model-facing string
+there, keep that test green.
 
 ---
 

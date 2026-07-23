@@ -11,6 +11,8 @@
     "dev": "pnpm --filter @trt/web dev",
     "build": "pnpm --filter @trt/web build",
     "start": "pnpm --filter @trt/web start",
+    "mcp": "pnpm --filter @trt/mcp start",
+    "mcp:http": "pnpm --filter @trt/mcp start:http",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
