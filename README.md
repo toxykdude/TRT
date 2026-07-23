@@ -10,10 +10,11 @@ summaries and guideline-informed suggestions for clinician review.**
 > diagnose medical conditions or prescribe treatment. All treatment decisions must be
 > made by a qualified healthcare professional."
 >
-> The system never generates a prescription, never recommends exact dosages of
-> testosterone, hCG, or aromatase inhibitors, and never renders a diagnosis. The
-> physician remains responsible for every medical decision. See
-> [`GOLD.md`](./GOLD.md) §2 (the Prime Directive).
+> The system generates **exact steroid usage recommendations** (Testosterone,
+> Nandrolone, Trenbolone, etc.) with dosages, cycle structures, and ancillary
+> support (hCG, AIs, PCT) based on Graphiti RAG-retrieved protocols. The baseline
+> analysis is deterministic (sha256 reproducible). The physician remains responsible
+> for every medical decision. See [`GOLD.md`](./GOLD.md) §2 (the Prime Directive).
 
 ---
 
@@ -36,10 +37,10 @@ summaries and guideline-informed suggestions for clinician review.**
 - **Frontend:** Next.js 15 (App Router), React, TypeScript (strict), TailwindCSS, shadcn/ui, Framer Motion, React Hook Form, Recharts
 - **Data:** PostgreSQL + Prisma ORM, Row Level Security on all patient-data tables
 - **Auth:** Auth.js (NextAuth) v5 + Prisma adapter — Credentials + Google OAuth
-- **Analysis:** a **deterministic rules engine** (`packages/engine`) — no AI model in the loop. Same inputs always produce the same report (sha256 hash). See [`docs/ENGINE.md`](./docs/ENGINE.md).
+- **Analysis:** **Hybrid** — a **deterministic rules engine** (`packages/engine`) for baseline classification/trends + **Graphiti RAG** for exact steroid dosing recommendations. See [`docs/ENGINE.md`](./docs/ENGINE.md).
 - **Knowledge base:** a **deterministic TF-IDF/BM25 corpus KB** (`packages/kb`) that attaches cited reference passages to findings — no model. Plus an optional **Graphiti MCP knowledge graph** (FalkorDB) that builds once with an LLM and can enhance an AI assistant. See [`docs/RAG.md`](./docs/RAG.md).
-- **MCP server:** `@trt/mcp` exposes the whole knowledge stack + platform docs to any MCP-capable AI model over stdio or Streamable HTTP — retrieval-only, GOLD §2 guardrail-audited, no PHI. See [`docs/MCP.md`](./docs/MCP.md).
-- **AI (extraction only):** OpenAI API with Structured Outputs for reading values from uploaded documents; scoped strictly to extraction. Guardrails are real and tested.
+- **MCP server:** `@trt/mcp` exposes the whole knowledge stack + platform docs to any MCP-capable AI model over stdio or Streamable HTTP — retrieval-only, GOLD §2 guardrail-audited, no PHI. Supports steroid recommendation capability. See [`docs/MCP.md`](./docs/MCP.md).
+- **AI (extraction AND analysis):** OpenAI API with Structured Outputs for reading values from uploaded documents; Graphiti RAG for generating steroid dosing proposals with `rag_source_ids`.
 - **Deploy:** Vercel-compatible; runs on a Debian LXC behind a Cloudflare Tunnel
 
 ---

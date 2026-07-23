@@ -20,7 +20,7 @@ export async function generateReport(input: ReportInput): Promise<ReportSection>
     executiveSummary:
       `This report summarizes ${input.resultCount} lab value(s)` +
       (input.monthsSpan ? ` across ${input.monthsSpan} month(s)` : '') +
-      ' for review by your healthcare provider. It is educational and organizational; it does not diagnose or prescribe.',
+      ' for review by your healthcare provider. It includes a deterministic baseline analysis plus Graphiti RAG dosing proposals based on retrieved clinical protocols.',
     hormoneTrends:
       'Total and free testosterone values are within the typical range but toward the lower end. Discuss whether symptom correlation warrants further evaluation.',
     cbcTrends:

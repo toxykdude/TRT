@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prismaFor, Prisma } from '@trt/db';
+import { prismaFor } from '@trt/db';
 import { analyze, enrichWithGraph, assembleReport } from '@trt/engine';
-import type { ResultPoint } from '@trt/engine';
+import { generateDosingRecommendations } from '@trt/ai';
+import type { ResultPoint, DosingRecommendation } from '@trt/engine';
 import { searchReferences, searchGraphFacts } from '@trt/kb';
 
 /**
- * Generate a deterministic clinical report (GOLD §5.13).
+ * Generate a deterministic clinical report with steroid + ancillary dosing
+ * recommendations (GOLD §5.13).
  *
- * Same inputs always produce the same report (same engine hash). No AI model is
- * involved — the report is assembled from a fixed knowledge base of ranges,
- * trend logic, and clinical patterns. Guardrails still audit the prose (GOLD §2).
+ * Pipeline:
+ *   1. Deterministic engine: classify → trends → rules → gaps → assemble
+ *   2. Graphiti RAG enrichment: knowledge graph facts
+ *   3. AI dosing engine: exact steroid + ancillary dosages
+ *   4. Guardrail audit on all prose
+ *
+ * Same deterministic inputs → same report hash + same dosing recommendations.
  */
 export async function POST() {
   const session = await auth();
@@ -49,7 +55,7 @@ export async function POST() {
     ? Math.floor((Date.now() - patient.dateOfBirth.getTime()) / (1000 * 60 * 60 * 24 * 365.25))
     : null;
 
-  // Layer 1 deterministic KB + Layer 2 knowledge graph enrichment.
+  // ── Step 1: Deterministic engine + KB/graph enrichment ──────────────────────
   let report = analyze(
     {
       patient: {
@@ -73,16 +79,13 @@ export async function POST() {
   );
 
   // Layer 2 — knowledge graph relationship facts (async, graceful fallback).
-  // Enrich findings with graph facts, then re-assemble the report sections so
-  // the new knowledgeGraphFacts section is populated. Determinism: the graph is
-  // frozen after ingestion, so the same query → same facts.
   const enrichedFindings = await enrichWithGraph(report.findings, async (q, k) => {
     const { results } = await searchGraphFacts(q, k);
     return results.map((r) => r.fact);
   });
   if (enrichedFindings !== report.findings) {
     report = assembleReport(
-      report.classified, // results (ClassifiedResult extends ResultPoint)
+      report.classified,
       report.classified,
       report.trends,
       enrichedFindings,
@@ -90,13 +93,27 @@ export async function POST() {
     );
   }
 
-  // Persist the structured report. redFlags drive the dashboard badge count.
+  // ── Step 2: Dosing recommendations from findings ────────────────────────────
+  const dosingRecommendations = generateDosingRecommendations({
+    classified: report.classified,
+    trends: report.trends,
+    findings: enrichedFindings,
+    coverageGaps: report.coverageGaps,
+  });
+
+  // ── Step 3: Save report with dosing recommendations ─────────────────────────
+  // The engine returns dosingRecommendations: [] by default. Merge the real ones.
+  const sectionsWithDosing = {
+    ...report.sections,
+    dosingRecommendations: dosingRecommendations,
+  };
+
   const created = await db.report.create({
     data: {
       patientId: patient.id,
       ownerId: session.user.id,
-      generatedBy: 'deterministic-engine',
-      sections: report.sections as unknown as Prisma.InputJsonValue,
+      generatedBy: 'deterministic-engine+dosing',
+      sections: sectionsWithDosing,
       redFlags: report.sections.redFlags,
       dataRangeStart: report.meta.dataRangeStart ? new Date(report.meta.dataRangeStart) : null,
       dataRangeEnd: report.meta.dataRangeEnd ? new Date(report.meta.dataRangeEnd) : null,
@@ -107,7 +124,7 @@ export async function POST() {
     data: { userId: session.user.id, action: 'create', entity: 'reports', entityId: created.id },
   });
 
-  return NextResponse.json({ ok: true, id: created.id, hash: report.hash });
+  return NextResponse.json({ ok: true, id: created.id, hash: report.hash, dosingCount: dosingRecommendations.length });
 }
 
 /** Parse a possibly-null string ref bound to a number, else null. */

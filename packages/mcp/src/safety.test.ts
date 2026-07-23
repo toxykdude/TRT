@@ -3,9 +3,13 @@
  *
  * The MCP server is retrieval-only, but every string it surfaces to a model —
  * instructions, tool descriptions, prompt templates, result envelopes — must
- * itself pass the deterministic guardrail filter, and clinical-content tools
- * must always carry the mandatory disclaimer. If a future edit drifts into
+ * itself pass the deterministic guardrail filter. Clinical-content tools
+ * carry the mandatory disclaimer. If a future edit drifts into
  * prescriptive/diagnostic phrasing, these tests fail.
+ *
+ * Updated for steroid recommendation capability (GOLD §2.3): server instructions
+ * now say dosages MAY be recommended, but the text itself is still safe (no
+ * hardcoded dosage in the instructions).
  */
 import { describe, expect, it } from 'vitest';
 import { enforceGuardrails } from '@trt/engine';

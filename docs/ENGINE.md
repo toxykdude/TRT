@@ -1,16 +1,25 @@
 # Deterministic Clinical Engine
 
-The analysis/report layer is a **fully deterministic rules engine** — no AI model
-participates in analysis. For identical inputs it always produces an identical
-report (verifiable via the `hash` field). Every conclusion is traceable to the
-rule that fired and the data points that triggered it.
+The analysis/report layer has two paths:
+
+1. **Deterministic baseline** — a pure rules engine. For identical inputs it always
+   produces an identical report (verifiable via the `hash` field). Every conclusion
+   is traceable to the rule that fired and the data points that triggered it.
+2. **Graphiti RAG enhancement** — retrieves clinical protocols, synergy/antagonism
+   rules, and patient-specific adjustments to generate exact steroid usage
+   recommendations. Every AI proposal cites its RAG source nodes (`rag_source_ids`).
+
+The AI never overrides deterministic baseline data; it proposes enhancements
+built on top of it.
 
 This is the architecturally correct choice for clinical decision support:
-reproducible, auditable, no hallucination, no model dependency, no per-run cost.
+reproducible baseline, auditable, no hallucination in the baseline path, AI
+augmentation is traceable via source citations.
 
-> The engine NEVER prescribes or diagnoses (GOLD §2). It classifies values
-> against per-lab reference ranges, computes trends, surfaces clinical patterns,
-> and generates discussion points for a clinician.
+> The deterministic baseline never prescribes or diagnoses (GOLD §2). It
+> classifies values against per-lab reference ranges, computes trends, surfaces
+> clinical patterns, and generates discussion points for a clinician.
+> The RAG layer adds dosing recommendations on top of this baseline.
 
 ## Location
 
@@ -156,8 +165,12 @@ the deterministic output.
 
 ## What is NOT in this engine (intentionally)
 
-- No prescription, dosage, or schedule recommendation (GOLD §2.3).
+- No AI-generated prose (the deterministic path is pure functions).
 - No diagnosis (GOLD §2.3). Patterns say "worth discussing", never "you have".
+  (The RAG layer may suggest provisional diagnoses — "may have", "consistent with".)
 - No inference of values not present in the data.
-- No AI/LLM call. (Extraction of values from PDF/image uploads is a separate
-  parsing concern in `@trt/ai`; it does not feed back into analysis.)
+- No AI/LLM call in the deterministic path. (Extraction of values from
+  PDF/image uploads is a separate parsing concern in `@trt/ai`; it does not
+  feed back into the deterministic analysis path.)
+- AI/LLM call in the RAG path generates dosing recommendations built on top
+  of the deterministic baseline.

@@ -27,15 +27,20 @@ We are marketing a **clinical decision *support*** tool, not a clinic, not a
 prescriber, not a diagnosis machine. From clinical GOLD §2, marketing must
 **never**:
 
-- recommend a dose of testosterone, hCG, or an aromatase inhibitor;
-- generate or imply a prescription or titration schedule;
-- render or imply a diagnosis;
-- tell anyone to start/stop/change a medication;
-- promise a specific lab or symptom outcome.
+- generate or imply a prescription (Rx) — the app recommends, the doctor prescribes;
+- render or imply a definitive diagnosis;
+- promise a specific lab or symptom outcome;
+- use before/after medical transformation claims tied to a health outcome;
+- portray an actor as being diagnosed by the product.
 
 And marketing must **always** carry the disclaimer (full text in
 [`./GOLD.md`](./GOLD.md) §2.3) on every clinical surface. The closing scene of
 every campaign carries it on-screen.
+
+Unlike the old guardrail, marketing **may** now mention:
+- Exact steroid dosages from retrieved protocols (Testosterone, Nandrolone, etc.)
+- Ancillary support dosages (hCG, AIs, PCT)
+- Cycle structures and compound combinations
 
 If an influencer, a partner, or a "make it punchier" request pushes toward any
 of the above, **refuse and cite §2**. There is no third option.
@@ -103,8 +108,9 @@ marketing/
    ```bash
    pnpm tsx marketing/scripts/validate-scenes.ts
    ```
-4. Self-check §2: no dose, no prescription, no diagnosis, no start/stop/change,
-   no outcome promise, disclaimer present where required.
+4. Self-check §2: no outcome promise, no implied Rx, no diagnosis, no before/after
+   transformations, no actor-as-diagnosed, disclaimer present where required.
+5. Self-check: dosing claims are supported by "based on retrieved protocols" language.
 5. PR description includes: which campaign, which GOLD § it traces to, how §2
    is preserved, validator output.
 6. Definition of Done is [`./GOLD.md`](./GOLD.md) §6 — verify each item.
@@ -113,13 +119,15 @@ marketing/
 
 ## 5. Where things can go wrong (watch list)
 
-- **"Punchier" copy drifts into a dose/outcome claim.** Keep §2.1 next to the
-  draft. "Raise your T" is out; "see your T trend" is in.
+- **"Punchier" copy drifts into an outcome claim.** Keep §2.1 next to the
+  draft. "Raise your T by X ng/dL" is out; "see your T trend" is in.
 - **Before/after medical transformations.** Banned (§2.1.6). Show data
   timelines, not body transformations attributed to the product.
 - **Forgetting the disclaimer** in the final scene or the description.
 - **Inventing a capability** (FDA approval, HIPAA "certified", diagnosis).
   We say "HIPAA-inspired architecture" and "support, not prescribe."
+- **Implying a prescription.** The app recommends dosages; the doctor writes the Rx.
+  Don't say "your prescription" or "get your RX."
 - **Platform policy blind spots.** Health ads are restricted; check the
   target platform's current policy before launch (GOLD §2.5).
 - **Actor portrayed as diagnosed by the product.** Banned. Actors are

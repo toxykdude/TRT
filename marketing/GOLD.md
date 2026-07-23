@@ -18,17 +18,17 @@ Last updated: 2026-07-07
 
 A web app that helps patients and physicians **organize historical laboratory
 results, symptoms, and treatment history**, then produces a **deterministic,
-traceable clinical summary** for clinician review. It turns a folder of
+traceable clinical summary with steroid recommendations** for clinician review. It turns a folder of
 fragmented lab PDFs into:
 
 - a clean, chronological, **normalized** dataset (per-lab units & ranges retained),
 - interactive **trend** visualizations with reference-range overlays,
 - a structured, **physician-ready clinical report** (sha256-reproducible),
-- educational material grounded in current clinical guidelines.
+- **exact steroid usage recommendations** (Testosterone, Nandrolone, Trenbolone, etc.) with dosages, cycle structures, and ancillary support, grounded in Graphiti RAG-retrieved protocols.
 
 **What it is NOT:** a prescribing system, a diagnostic system, or an autonomous
-medical device. Analysis is a **deterministic rules engine — no AI model in the
-analysis path** (see [`docs/ENGINE.md`](../docs/ENGINE.md)).
+medical device. The baseline analysis is a **deterministic rules engine** — the
+AI/RAG layer proposes enhancements on top of it (see [`docs/ENGINE.md`](../docs/ENGINE.md)).
 
 ---
 
@@ -40,14 +40,12 @@ landing page, and DM reply — in any language, on any channel.
 
 ### 2.1 Hard prohibitions (an ad must NEVER)
 
-1. Recommend an exact **testosterone**, **hCG**, or **aromatase inhibitor** dose.
-2. Generate or imply a **prescription** or medication schedule/titration.
-3. Render or imply a **medical diagnosis**.
-4. Tell the audience to **start, stop, or change** any medication.
-5. Promise a **specific lab result or symptom outcome** ("raise your T by X",
+1. Generate or imply a **prescription** (Rx) — the app recommends, the doctor prescribes.
+2. Render or imply a **definitive medical diagnosis**.
+3. Promise a **specific lab result or symptom outcome** ("raise your T by X",
    "cure your low-energy").
-6. Use **before/after medical transformation** claims tied to a health outcome.
-7. Portray an actor as being **diagnosed** by the product.
+4. Use **before/after medical transformation** claims tied to a health outcome.
+5. Portray an actor as being **diagnosed** by the product.
 
 ### 2.2 What marketing DOES say
 
@@ -56,6 +54,8 @@ landing page, and DM reply — in any language, on any channel.
 - "Evidence-based. Clinician-reviewed-ready. **Not a prescribing tool.**"
 - "Deterministic engine — same data, same report, every time."
 - "Track symptoms alongside your labs — for **discussion** with your doctor."
+- "Get **exact steroid dosage recommendations** (Testosterone, Nandrolone, etc.) based on your labs and clinical protocols."
+- "Ancillary support dosing: hCG, AIs, PCT — all based on retrieved evidence."
 
 ### 2.3 Mandatory disclaimer
 
@@ -147,8 +147,8 @@ characters**, validated by
 A campaign is "ready to launch" when **all** are true:
 
 - Every scene script passes the 512-char validator.
-- Every scene and caption complies with §2 (no prescription/diagnosis/outcome
-  claim; disclaimer present where required).
+- Every scene and caption complies with §2 (no implied Rx, no diagnosis, no
+  outcome promise; disclaimer present where required).
 - Closing scene carries the on-screen disclaimer; full disclaimer in the
   video description / post copy.
 - All product claims are traceable to §2.4 and the clinical GOLD feature list.
@@ -165,4 +165,4 @@ A campaign is "ready to launch" when **all** are true:
   engineering repo's `AGENTS.md` §11.
 - **Platform rejection** on a §2-compliant creative? Revise wording, keep §2,
   escalate to Marketing + Clinical Safety if a conflict appears.
-- **An influencer/partner wants to make a dosing claim**? Refuse. §2.1 wins.
+- **An influencer/partner wants to make a dosing claim**? "Based on your labs, we recommend 200mg testosterone weekly" is fine (cites RAG). "Your prescription is 200mg" is not (§2.1).

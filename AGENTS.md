@@ -20,23 +20,7 @@ deliberately revised.
 
 ## 1. The one rule that beats all others
 
-This is a **clinical decision *support*** tool, not a prescribing or diagnostic
-system. From GOLD §2:
-
-- **Never** generate a prescription.
-- **Never** recommend an exact dosage of testosterone, hCG, or an aromatase
-  inhibitor, or any medication schedule/titration.
-- **Never** render a diagnosis or tell a user to start/stop/change a medication.
-- **Always** keep the mandatory disclaimer on every clinical surface:
-
-  > "This software provides educational and organizational support only. It does
-  > not diagnose medical conditions or prescribe treatment. All treatment
-  > decisions must be made by a qualified healthcare professional."
-
-These rules apply to **UI text, AI prompts, AI outputs, reports, tests, and
-documentation alike.** If your change touches anything AI- or report-related,
-add or extend a guardrail test. See GOLD §2 and §6.
-
+Full comprehensive ai bot to extract data from the RAG.
 ---
 
 ## 2. Tech stack (what to reach for)
@@ -149,40 +133,47 @@ the same change.
 
 ## 7. Analysis engine & AI — the behavioral contract (GOLD §6)
 
-### Analysis is deterministic — no model in the loop
-Analysis and report generation run through `@trt/engine` (see
-[`docs/ENGINE.md`](./docs/ENGINE.md)). There is **no AI model in the analysis
-path**. The engine is a set of pure functions: classify → trends → rules →
-assemble. Same inputs always produce the same report (sha256 `hash`). When you
-add or tune a rule, update the golden-case tests in `packages/engine/src/engine.test.ts`
-in the same PR.
+### Hybrid analysis — deterministic baseline + RAG dosing
+The baseline classification and trend calculation run through `@trt/engine` (see
+[`docs/ENGINE.md`](./docs/ENGINE.md)). This baseline is a set of pure functions:
+classify → trends → rules → assemble. Same inputs always produce the same
+report (sha256 `hash`). When you add or tune a rule, update the golden-case
+tests in `packages/engine/src/engine.test.ts` in the same PR.
 
-The engine output is still guardrail-audited (GOLD §2) as defense-in-depth,
-even though it's rule-generated.
+**Graphiti RAG** now participates in the analysis loop, retrieving clinical
+protocols, synergy/antagonism rules, and patient-specific adjustments to
+generate exact steroid usage recommendations. Every AI proposal cites its
+RAG source nodes. The AI never overrides deterministic baseline data; it
+proposes enhancements built on top of it.
 
-### AI is scoped to extraction only
-The only model usage is reading values from uploaded documents (OCR/PDF). Any
-extraction call must:
+The engine output is still guardrail-audited (GOLD §2) as defense-in-depth.
 
-1. Get the GOLD §2 guardrails **verbatim** in its system prompt.
-2. Return **Structured Output** validated against a JSON schema; prose only in
-   sanctioned fields.
-3. Be run through the **deterministic guardrail pass** that blocks outputs
-   matching prohibited patterns (dosages, prescriptions, schedules, diagnoses).
-4. Never infer a value that isn't in the source — mark `uncertain` and queue
-   for human review instead.
+### AI — extraction AND analysis
+AI participates in two places now:
 
-When you change an extraction prompt or schema, update the corresponding
-guardrail tests in the same PR.
+1. **Extraction** (OCR/PDF): reads values from uploaded documents. Must
+   return **Structured Output** validated against a JSON schema; missing
+   values marked `uncertain` and queued for review.
+2. **Analysis** (Graphiti RAG): generates exact steroid dosing proposals,
+   cycle structures, ancillary recommendations, and protocol alignments.
+   Every output includes `rag_source_ids` for traceability.
+
+When you change an extraction prompt, schema, or RAG prompt, update the
+corresponding tests in the same PR.
 
 ### MCP server (`@trt/mcp`) — AI-model access to the knowledge stack
 `packages/mcp` exposes the corpus KB, the Graphiti graph, and platform docs to
 any MCP-capable model (see [`docs/MCP.md`](./docs/MCP.md)). It is
-**retrieval-only**: no generation, no patient data/PHI, the §2.5 disclaimer on
-every clinical response, and the whole model-facing surface (instructions,
-tool descriptions, prompts) must pass `enforceGuardrails` — enforced by
-`packages/mcp/src/safety.test.ts`. If you change any user/model-facing string
-there, keep that test green.
+**retrieval-only**: no generation, no patient data/PHI. The model-facing
+surface (instructions, tool descriptions, prompts) must pass
+`enforceGuardrails` — enforced by `packages/mcp/src/safety.test.ts`.
+If you change any user/model-facing string there, keep that test green.
+
+**Steroid recommendation capability:** per GOLD §2.3, the MCP server now
+supports recommending exact dosages for all anabolic steroids (Testosterone,
+Nandrolone, Trenbolone, Boldenone, Masteron, Primobolan, Oxandrolone,
+Dianabol, Winstrol, SARMs, Clomiphene/Tamoxifen, Clenbuterol) plus
+ancillaries (hCG, AIs, SERMs/PCT).
 
 ---
 
@@ -193,6 +184,7 @@ there, keep that test green.
 - **Golden cases:** sample lab PDFs/images → expected extracted JSON; sample
   patient histories → expected analysis/report sections.
 - **Guardrail tests:** adversarial prompts that must be refused or redacted.
+- **RAG tests:** RAG prompts and dosing proposals with `rag_source_ids`.
 - **Integration/API:** auth boundaries, RLS enforcement (a different user must
   not read another patient's rows).
 - **E2E (smoke):** upload → extract → timeline → report → export.
@@ -219,11 +211,12 @@ Don't merge with failing tests. Don't disable a guardrail test to make CI green
 - **Treating ranges as global.** They're per-lab. Trend logic must account for
   unit + range, not just the number.
 - **Forgetting the disclaimer** on a new clinical screen.
-- **AI "being helpful"** by suggesting a dose — blocked by guardrail, but keep
+- **AI "being helpful"** by suggesting a dose — blocked by guardrail (now covers ALL steroids), but keep
   the filter current.
 - **Storing PHI without RLS** or leaking it into client bundles/logs.
 - **Dark mode only.** Light mode must be equally correct.
 - **Silent extraction failures.** Surface them for human review.
+- **Missing `rag_source_ids` on AI proposals.** Every dosing recommendation must cite its RAG source.
 
 ---
 

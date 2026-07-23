@@ -6,7 +6,7 @@
  * OPENAI_API_KEY is set, `extractLab` will route to the live implementation
  * (added in a later pass) — the signature and schema stay identical.
  *
- * GOLD §2 / §6: extraction must transcribe only what is printed, never infer a
+ * GOLD §6: extraction must transcribe only what is printed, never infer a
  * value. The stub marks every result `uncertain: true` precisely because it
  * didn't actually read a document — surfacing that to the user for review.
  */

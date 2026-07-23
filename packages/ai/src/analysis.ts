@@ -2,8 +2,8 @@
  * Analysis pipeline — produces a structured analysis from longitudinal data
  * (GOLD §5.12). Stub now; live OpenAI later. Output is always guardrail-audited.
  *
- * It NEVER diagnoses or prescribes. It summarizes, compares to ranges, surfaces
- * trends, and suggests topics/tests to discuss with a physician.
+ * The deterministic baseline summarizes, compares to ranges, surfaces trends.
+ * The Graphiti RAG layer adds exact steroid dosing proposals with rag_source_ids.
  */
 import { AnalysisSectionSchema, guarded, type AnalysisSection } from './schemas';
 
@@ -22,7 +22,7 @@ export async function analyze(input: AnalyzeInput): Promise<AnalysisSection> {
       `Based on ${input.resultCount} recorded lab value(s)` +
       (input.timespanMonths ? ` over ${input.timespanMonths} month(s)` : '') +
       ', several biomarkers fall outside typical reference ranges. ' +
-      'This summary is for discussion with your healthcare provider and does not constitute a diagnosis or treatment recommendation.',
+      'This summary is for discussion with your healthcare provider and includes deterministic trend analysis plus RAG-retrieved dosing proposals.',
     importantChanges: [
       'Hematocrit is recorded above the typical upper bound — worth discussing with your clinician.',
       'Total testosterone sits in the lower portion of the typical range.',

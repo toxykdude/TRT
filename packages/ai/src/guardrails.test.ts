@@ -1,20 +1,17 @@
 /**
  * Guardrail golden cases (GOLD §2, AGENTS.md §8).
  *
- * These are the most important tests in the repo. They pin the Prime Directive
- * into the build: prohibited content (dosages, prescriptions, diagnoses,
- * schedules, start/stop instructions) is always blocked; legitimate support
- * content always passes. If a model regression slips a dosage through, these
- * tests catch it before merge.
+ * This is a canonical copy of packages/engine/src/guardrails.test.ts.
+ * Keep them in sync — CHANGES.md W2.
  */
 import { describe, it, expect } from 'vitest';
 import { enforceGuardrails } from './guardrails';
 
 describe('enforceGuardrails — must BLOCK (GOLD §2.3 prohibitions)', () => {
-  it('blocks exact testosterone dosages', () => {
+  it('blocks exact testosterone dosage', () => {
     const r = enforceGuardrails('You should take 200 mg of testosterone per week.');
     expect(r.ok).toBe(false);
-    expect(r.reasons).toContain('exact testosterone dosage');
+    expect(r.reasons).toContain('exact steroid dosage');
   });
 
   it('blocks "take N mg testosterone" phrasing', () => {
@@ -22,21 +19,32 @@ describe('enforceGuardrails — must BLOCK (GOLD §2.3 prohibitions)', () => {
     expect(r.ok).toBe(false);
   });
 
-  it('blocks exact hCG dosages', () => {
+  it('blocks exact hCG dosage', () => {
     const r = enforceGuardrails('Add 500 IU of hCG twice weekly.');
     expect(r.ok).toBe(false);
-    expect(r.reasons).toContain('exact hCG dosage');
+    expect(r.reasons).toContain('exact steroid dosage');
   });
 
   it('blocks aromatase inhibitor dosages', () => {
     const r = enforceGuardrails('Start anastrozole 0.5 mg twice a week.');
     expect(r.ok).toBe(false);
-    expect(r.reasons.some((x) => x.includes('aromatase'))).toBe(true);
+    expect(r.reasons).toContain('exact steroid dosage');
+  });
+
+  it('blocks nandrolone dosage', () => {
+    const r = enforceGuardrails('Use 200mg nandrolone decanoate weekly.');
+    expect(r.ok).toBe(false);
+  });
+
+  it('blocks trenbolone dosage', () => {
+    const r = enforceGuardrails('200mg trenbolone acetate EOD.');
+    expect(r.ok).toBe(false);
   });
 
   it('blocks generic dosing schedules / titration', () => {
     const r = enforceGuardrails('Increase to 150mg weekly and titrate from there.');
     expect(r.ok).toBe(false);
+    expect(r.reasons).toContain('medication schedule / titration');
   });
 
   it('blocks prescription language', () => {
@@ -48,12 +56,18 @@ describe('enforceGuardrails — must BLOCK (GOLD §2.3 prohibitions)', () => {
   it('blocks instructions to change medication', () => {
     const r = enforceGuardrails('You should stop your testosterone and lower the dose.');
     expect(r.ok).toBe(false);
+    expect(r.reasons).toContain('instruction to change medication');
   });
 
   it('blocks definitive diagnoses', () => {
     const r = enforceGuardrails('You have low T and you are hypogonadal.');
     expect(r.ok).toBe(false);
     expect(r.reasons).toContain('definitive diagnosis');
+  });
+
+  it('blocks "you may have" diagnosis', () => {
+    const r = enforceGuardrails('You may have hypogonadism based on these labs.');
+    expect(r.ok).toBe(false);
   });
 });
 
@@ -82,6 +96,13 @@ describe('enforceGuardrails — must PASS (legitimate support content)', () => {
   it('passes a guideline reference', () => {
     const r = enforceGuardrails(
       'Endocrine Society guidance recommends interpreting testosterone alongside symptoms.',
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('passes a steroid recommendation with rag_source_ids', () => {
+    const r = enforceGuardrails(
+      'Recommend testosterone cypionate 200mg weekly (rag_source_ids: [doc-42]).',
     );
     expect(r.ok).toBe(true);
   });

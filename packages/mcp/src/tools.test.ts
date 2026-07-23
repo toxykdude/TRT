@@ -76,6 +76,14 @@ describe('search_knowledge_base', () => {
     expect(p.disclaimer).toMatch(/^This software provides educational/);
   });
 
+  it('returns platform info mentioning steroid recommendations', async () => {
+    const res = await tools.handleGetPlatformInfo({ section: 'overview' });
+    const p = payloadOf(res);
+    expect(p.product).toContain('TRT');
+    expect((p.mission as string).toLowerCase()).toContain('steroid');
+    expect((p.mission as string).toLowerCase()).toContain('recommendation');
+  });
+
   it('returns zero results (not an error) for unmatched queries', async () => {
     const res = await tools.handleSearchKnowledgeBase({ query: 'zzzqqq nonexistentterm', k: 3 });
     const p = payloadOf(res);

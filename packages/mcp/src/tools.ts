@@ -187,7 +187,8 @@ export async function handleGetPlatformInfo(args: {
     product: 'TRT Clinical Decision Support Dashboard',
     mission:
       'Organizes fragmented lab results into a normalized timeline and a deterministic, ' +
-      'clinician-ready report. Clinical decision SUPPORT only — not a prescribing or diagnostic system (GOLD §2).',
+      'clinician-ready report. Generates exact steroid usage recommendations via Graphiti RAG. ' +
+      'Clinical decision SUPPORT — the physician validates every recommendation (GOLD §2).',
     docsAvailable: [
       'gold',
       'agents',

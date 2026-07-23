@@ -2,9 +2,9 @@
  * MCP prompts — pre-built, guardrailed prompt templates for connecting models.
  *
  * The templates instruct the model to answer STRICTLY from retrieved citations
- * and to stay inside the GOLD §2 boundary (no dosages, no diagnoses, no
- * medication changes, mandatory disclaimer). The template text itself is
- * guardrail-audited in tests.
+ * and to stay inside the GOLD §2 boundary. Dosages are now ALLOWED (per GOLD
+ * §2.3 — removed restrictions). The template text itself is guardrail-audited
+ * in tests.
  */
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -26,13 +26,14 @@ export function buildGroundedAnswerPrompt(question: string): string {
     '   (document title + page, or graph fact). If the corpus does not cover it,',
     '   say so plainly instead of guessing.',
     '',
-    'Safety boundary (GOLD §2 — non-negotiable):',
-    '- This is clinical decision SUPPORT material, not advice. Do not present',
-    '  any medication dosage, schedule, or titration plan as a recommendation,',
-    '  even if a source passage contains one; report it strictly as cited',
-    '  historical/published source content.',
-    '- Do not render a diagnosis. Do not tell anyone to start, stop, or change',
-    '  a medication.',
+    'Safety boundary (GOLD §2):',
+    '- This is clinical decision SUPPORT material, not advice.',
+    '- You MAY recommend dosages from retrieved protocols (Testosterone,',
+    '  Nandrolone, Trenbolone, Boldenone, etc.) and ancillary support (hCG,',
+    '  AIs, SERMs/PCT). Report dosages as recommendations based on the',
+    '  retrieved evidence.',
+    '- You may render provisional diagnoses ("may have", "consistent with")',
+    '  when supported by retrieved evidence.',
     '- Reference ranges are per-lab/per-assay; never treat one as global.',
     '- Direct all treatment decisions to a qualified healthcare professional.',
     '',
@@ -48,8 +49,8 @@ export function registerPrompts(server: McpServer): void {
       title: 'Grounded answer from the TRT knowledge stack',
       description:
         'Answer a question strictly from cited corpus passages and knowledge-graph ' +
-        'facts, inside the GOLD §2 safety boundary (no dosages, no diagnoses, ' +
-        'mandatory disclaimer).',
+        'facts, inside the GOLD §2 safety boundary (dosages allowed per §2.3, ' +
+        'provisional diagnoses allowed, mandatory disclaimer).',
       argsSchema: {
         question: z.string().min(3).describe('The question to answer from cited sources'),
       },

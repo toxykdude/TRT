@@ -233,6 +233,7 @@ export function assembleReport(
     coverageGaps: gaps,
     sections,
     hash,
+    dosingRecommendations: [],
   };
 }
 

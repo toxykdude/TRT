@@ -78,6 +78,7 @@ describe('MCP protocol end-to-end', () => {
     const payload = JSON.parse(firstText(res)) as Record<string, unknown>;
     expect(payload.available).toBe(true);
     expect((payload.results as unknown[]).length).toBeGreaterThan(0);
+    // Disclaimer is still present (GOLD §2.5)
     expect(payload.disclaimer).toBeTruthy();
   });
 

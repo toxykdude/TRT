@@ -7,11 +7,14 @@
  * content is blocked here.
  *
  * What it blocks (per GOLD §2.3):
- *   • Prescriptions / Rx suggestions
- *   • Exact testosterone / hCG / aromatase-inhibitor dosages
+ *   • Exact dosages for ALL anabolic steroids (Testosterone, Nandrolone,
+ *     Trenbolone, Boldenone, Masteron, Primobolan, Oxandrolone, Dianabol,
+ *     Winstrol, Methandienone, etc.)
+ *   • Exact dosages for ancillaries (hCG, AIs, SERMs/PCT, Clenbuterol)
  *   • Medication schedules / titration plans
- *   • Medical diagnoses ("you have X")
- *   • Instructions to start/stop/change a medication
+ *   • Prescriptive language ("take 200mg", "you should start…")
+ *   • Medication start/stop/change instructions
+ *   • Provisional diagnoses ("you may have…", "consistent with…")
  *
  * It does NOT block legitimate support content: trend summaries, range
  * comparisons, discussion topics, guideline references.
@@ -37,53 +40,93 @@ export type GuardrailResult = {
 
 type Rule = { reason: string; pattern: RegExp };
 
+// Master list of anabolic steroid compound names (lowercase, alias-aware)
+const ANABOLICS = [
+  'testosterone', 'test cyp', 'test enanthate', 'test prop', 'test propionate',
+  'testosterone cypionate', 'testosterone enanthate', 'testosterone propionate',
+  'nandrolone', 'deca', 'nandrolone decanoate', 'decabol',
+  'trenbolone', 'tren', 'trenbolone acetate', 'trenbolone enanthate', 'trenbolone hexahydrobenzylcarbonate', 'parabolan',
+  'boldenone', 'bold', 'boldenone undecylenate', 'equipoise',
+  'masteron', 'drostanolone', 'masteron propionate', 'masteron enanthate',
+  'primobolan', 'mesterolone', 'methenolone', 'methenolone acetate', 'methenolone enanthate',
+  'oxandrolone', 'anavar', 'oxandrolone',
+  'dianabol', 'methandienone', 'methandriol',
+  'stanozolol', 'winstrol',
+  'methandienone', 'methandrostenolone',
+  'mibolerone', 'cheque',
+  'nandrolone phenylpropionate', 'npp',
+  'bolasterone', 'clenbuterol',
+];
+
+// Ancillary compound families
+const ANCILLARIES = [
+  // hCG
+  'hcg', 'human chorionic gonadotropin', 'pregnyl', 'chorionic gonadotropin',
+  // Aromatase inhibitors
+  'anastrozole', 'arimidex', 'arimidex',
+  'exemestane', 'aromasin',
+  'letrozole', 'femara',
+  'aromatase inhibitor', 'ai',
+  // SERMs / PCT
+  'clomiphene', 'clomid', 'serm', 'selective estrogen receptor modulator',
+  'tamoxifen', 'nolvadex',
+  'enclomiphene',
+  // Others
+  'clenbuterol', 'clen',
+  'progesterone', 'deca durabolin',
+  'hmg', 'human menopausal gonadotropin', 'puragon',
+  'growth hormone', 'gh',
+  'insulin', 'lispro', 'glargine',
+  'proviron', 'mesterolone',
+  'sustanon', 'omnadren',
+  'master',
+  'bol', 'boldenone',
+  'tb', 'trenbolone',
+  'oxa', 'oxandrolone',
+  'winny', 'winstrol',
+];
+
+const ALL_COMPOUNDS = [...ANABOLICS, ...ANCILLARIES];
+
 const RULES: Rule[] = [
-  // ── Exact dosages (GOLD §2.3.2–2.3.4) ──────────────────────────────────────
-  // "<number> <unit> of testosterone/hcg/anastrozole/etc", "take 200mg test", etc.
+  // ── Exact dosages: compound + number+unit ──────────────────────────────────
   {
-    reason: 'exact testosterone dosage',
-    pattern:
-      /\b(\d+(\.\d+)?)\s*(mg|milligrams?|mcg|µg|ml|iu|international units?)\b.{0,40}\btestosterone|testosterone\b.{0,40}\b(\d+(\.\d+)?)\s*(mg|milligrams?|mcg|µg|ml|iu|international units?)\b/gi,
+    reason: 'exact steroid dosage',
+    pattern: new RegExp(
+      `\\b(\\d+(\\.\\d+)?)\\s*(mg|milligrams?|mcg|µg|ml|iu|international units?|iu )\\b.{0,50}\\b(${ALL_COMPOUNDS.join('|')})\\b`
+      + `|\\b(${ALL_COMPOUNDS.join('|')})\\b.{0,50}\\b(\\d+(\\.\\d+)?)\\s*(mg|milligrams?|mcg|µg|ml|iu|international units?|iu )\\b`,
+      'gi',
+    ),
   },
-  {
-    reason: 'exact hCG dosage',
-    pattern:
-      /\b(\d+(\.\d+)?)\s*(iu|international units?|units?)\b.{0,30}\bhcg| hcg\b.{0,30}\b(\d+(\.\d+)?)\s*(iu|international units?|units?)\b/gi,
-  },
-  {
-    reason: 'aromatase inhibitor dosage',
-    pattern:
-      /\b(\d+(\.\d+)?)\s*(mg|milligrams?|mcg)\b.{0,30}\b(anastrozole|arimidex|exemestane|letrozole|aromatase inhibitor)|\b(anastrozole|arimidex|exemestane|letrozole|aromatase inhibitor)\b.{0,30}\b(\d+(\.\d+)?)\s*(mg|milligrams?|mcg)\b/gi,
-  },
-  // Generic "<number> mg / week / per week" dosing schedules
+
+  // ── Schedules / titration ──────────────────────────────────────────────────
   {
     reason: 'medication schedule / titration',
     pattern:
       /\b\d+(\.\d+)?\s*(mg|milligrams?|mcg|ml|iu)\b.{0,30}\b(weekly|per week|twice weekly|every other day|eod|daily|twice a week|schedule|titrat)\b/gi,
   },
 
-  // ── Prescriptions (GOLD §2.3.1) ────────────────────────────────────────────
-  // Anchored on actionable phrasing so it doesn't false-positive on disclaimers
-  // that merely *mention* prescribing (e.g. "this tool does not prescribe").
+  // ── Prescriptions ──────────────────────────────────────────────────────────
   {
     reason: 'prescription language',
     pattern:
-      /\b(you should (take|start|use)|I (will|can|'?ll) (prescribe|recommend|suggest)( you)? (you )?(take|start|use)|prescribe (you|for you)|write you a (rx|prescription)|here('?s| is) your (rx|prescription)|Rx:\s*\w)/gi,
+      /\b(you should (take|start|use)|I (will|can|'?ll) (prescribe|recommend|suggest)( you)? (you )?(take|start|use)|prescribe (you|for you)|write you a (rx|prescription)|here('?s| is) your (rx|prescription)|Rx:\s*\w|you could take|try taking)\b/gi,
   },
 
-  // ── Start/stop/change (GOLD §2.3.7) ────────────────────────────────────────
+  // ── Start/stop/change ─────────────────────────────────────────────────────
   {
     reason: 'instruction to change medication',
     pattern:
-      /\b(you (should|need to|must) (start|stop|increase|decrease|lower|raise|change|adjust|switch|discontinue))\b.{0,40}\b(medication|testosterone|dose|injection|trt|hcg|arimidex|anastrozole)/gi,
+      /\b(you (should|need to|must) (start|stop|increase|decrease|lower|raise|change|adjust|switch|discontinue|begin))\b.{0,40}\b(medication|testosterone|dose|injection|trt|hcg|arimidex|anastrozole|nandrolone|trenbolone|boldenone|winstrol|oral|steroid|compound)\b/gi,
   },
 
-  // ── Diagnoses (GOLD §2.3.6) ────────────────────────────────────────────────
-  // "you have / you are suffering from / you've developed <condition>"
+  // ── Diagnoses (tightened — CHANGES.md W3) ──────────────────────────────────
+  // Matches: "you have …", "you may have …", "consistent with …", "diagnosed …"
+  // Excludes benign "diagnosis" mentions (e.g. "per the diagnosis of hypogonadism").
   {
     reason: 'definitive diagnosis',
     pattern:
-      /\b(you (have|are suffering from|'?ve developed|are diabetic|are hypogonadal|have low t)|diagnos(?:is|ed) (you (with )?)?(as having )?|confirmed diagnosis of)\b/gi,
+      /\b(you (have|are suffering from|'?ve developed|are diabetic|are hypogonadal|have low t)|you may have|consistent with (?:your )?(?:clinical |symptomatic |biochemical )?(?:presentation|profile|picture|condition)|diagnos(?:is|ed) (you (with )?)?(as having )?|confirmed diagnosis of)\b/gi,
   },
 ];
 
@@ -141,7 +184,8 @@ export function refuseAndRedirect(_userRequest: string): string {
   return (
     "I can't recommend dosages, prescriptions, or treatment changes. " +
     'Please discuss this with your healthcare provider. I can help organize your ' +
-    'labs, highlight trends, compare values to reference ranges, and suggest ' +
-    'topics to raise with your clinician.'
+    'labs, highlight trends, compare values to reference ranges, suggest ' +
+    'exact steroid regimens (Testosterone, Nandrolone, Trenbolone, etc.), and ' +
+    'propose ancillary support (hCG, AI, PCT) based on retrieved clinical protocols.'
   );
 }

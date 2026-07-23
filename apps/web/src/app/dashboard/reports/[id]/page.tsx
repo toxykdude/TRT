@@ -7,13 +7,44 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { SafetyBanner } from '@/components/safety-banner';
 import { Button } from '@/components/ui/button';
 import { fmtDate } from '@/lib/utils';
-import { ArrowLeft, Flag, HelpCircle, Beaker, BookOpen, Network } from 'lucide-react';
+import { ArrowLeft, Flag, HelpCircle, Beaker, BookOpen, Network, Pill } from 'lucide-react';
+import { DosingRecommendations } from '@/components/dashboard/dosing-recommendations';
+
+type DosingRec = {
+  compound: string;
+  dose: string;
+  frequency: string;
+  route: string;
+  cycleLength: string;
+  indication: string;
+  expectedBiomarkerShift: string;
+  ragSourceIds: string[];
+  priority: 'clinical_priority' | 'standard' | 'alternative';
+  notes?: string;
+};
 
 type ReportRow = {
   id: string;
   generatedAt: Date;
   generatedBy: string;
-  sections: DeterministicReport['sections'];
+  sections: {
+    executiveSummary: string;
+    hormoneTrends: string;
+    cbcTrends: string;
+    estradiolTrends: string;
+    shbgTrends: string;
+    thyroidTrends: string;
+    metabolicHealth: string;
+    cardiovascularRiskFactors: string;
+    questionsForPhysician: string[];
+    suggestedAdditionalTests: string[];
+    redFlags: string[];
+    lifestyleFactors: string;
+    guidelineReferences: string[];
+    knowledgeBaseReferences: string[];
+    knowledgeGraphFacts: string[];
+    dosingRecommendations?: DosingRec[];
+  };
   redFlags: string[];
   dataRangeStart: Date | null;
   dataRangeEnd: Date | null;
@@ -160,6 +191,10 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             </ul>
           </CardContent>
         </Card>
+      )}
+
+      {s.dosingRecommendations && s.dosingRecommendations.length > 0 && (
+        <DosingRecommendations recommendations={s.dosingRecommendations} />
       )}
 
       <Card>

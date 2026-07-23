@@ -11,9 +11,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@trt/engine": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/node": "^22.20.0",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"
   }

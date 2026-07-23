@@ -7,7 +7,8 @@
  *   3. Red-flag rules fire on the right thresholds.
  *   4. Pattern rules combine markers correctly.
  *   5. Coverage gaps are detected.
- *   6. GOLD §2 — output never prescribes/diagnoses (guardrail audit ok).
+ *   6. GOLD §2 — deterministic output is guardrail-safe (no dosages, diagnoses, etc.).
+ *      The RAG layer adds dosing recommendations on top of the deterministic baseline.
  */
 import { describe, it, expect } from 'vitest';
 import { analyze, classifyResult } from './index';

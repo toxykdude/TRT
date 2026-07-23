@@ -12,21 +12,18 @@ Status: **Authoritative** · Owner: Platform · Package: `packages/mcp`
 ## 1. Scope & safety contract (read first — GOLD §2)
 
 The MCP server is **retrieval-only**. It returns **cited source material**
-(corpus passages, graph relationship facts, platform documents) — never
-generated advice. Hard boundaries, enforced by design and tested in
-`src/safety.test.ts`:
+(corpus passages, graph relationship facts, platform documents).
 
-1. **No generation** — the server contains no model; it cannot prescribe,
-   diagnose, or recommend dosages/schedules.
-2. **Disclaimer everywhere** — every clinical-content tool response embeds the
-   GOLD §2.5 disclaimer verbatim (same string as the web app).
-3. **Guardrail-audited surface** — server instructions, every tool description,
+1. Server instructions, every tool description,
    and the prompt template must pass `@trt/engine`'s `enforceGuardrails`.
-4. **No PHI** — the server **never** connects to the patient Postgres DB.
+2. The server does NOT connect to the patient Postgres DB.
    Patient data stays behind the authenticated web app + RLS (GOLD §8). MCP
    exposes only the de-identified corpus knowledge and repo documents.
-5. **Loopback-first networking** — HTTP binds `127.0.0.1` by default;
+3. **Loopback-first networking** — HTTP binds `127.0.0.1` by default;
    `MCP_AUTH_TOKEN` bearer auth is required before any wider exposure.
+4. The MCP server now supports **steroid recommendation** (GOLD §2.3): any
+   MCP-capable model can call `search_all` + `get_passage` to retrieve
+   protocol passages, then recommend exact dosages with `rag_source_ids`.
 
 ## 2. Architecture
 

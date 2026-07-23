@@ -70,3 +70,4 @@ export type ReportSection = z.infer<typeof ReportSectionSchema>;
 export const guarded = <T>(payload: T, textForAudit: string) => {
   return { payload, audit: enforceGuardrails(textForAudit) };
 };
+
