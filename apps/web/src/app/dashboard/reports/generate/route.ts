@@ -101,11 +101,35 @@ export async function POST() {
     coverageGaps: report.coverageGaps,
   });
 
-  // ── Step 3: Save report with dosing recommendations ─────────────────────────
-  // The engine returns dosingRecommendations: [] by default. Merge the real ones.
+  // ── Step 3: Save report with dosing + chart data ───────────────────────────
   const sectionsWithDosing = {
     ...report.sections,
     dosingRecommendations: dosingRecommendations,
+    // Chart data for the dashboard visualizations
+    chartData: {
+      classified: report.classified.map((c) => ({
+        biomarkerKey: c.biomarkerKey,
+        biomarkerName: c.biomarkerName,
+        category: c.category,
+        valueNumeric: c.valueNumeric,
+        unit: c.unit,
+        status: c.status,
+        deviation: c.deviation,
+        refLow: c.refLow,
+        refHigh: c.refHigh,
+        collectedAt: c.collectedAt,
+      })),
+      trends: report.trends.map((t) => ({
+        biomarkerKey: t.biomarkerKey,
+        biomarkerName: t.biomarkerName,
+        category: t.category,
+        direction: t.direction,
+        delta: t.delta,
+        relativeChange: t.relativeChange,
+        points: t.points,
+      })),
+      meta: report.meta,
+    },
   };
 
   const created = await db.report.create({
