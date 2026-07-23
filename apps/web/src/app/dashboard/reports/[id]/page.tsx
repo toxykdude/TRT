@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prismaFor } from '@trt/db';
-import { AppShell } from '@/components/app-shell';
 import { Dashboard } from '@/components/dashboard';
 import { fmtDate } from '@/lib/utils';
 
@@ -27,15 +26,13 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
   if (!report) notFound();
 
   return (
-    <AppShell>
-      <Dashboard
-        report={{
-          sections: report.sections as never,
-          generatedAt: fmtDate(report.generatedAt),
-          generatedBy: report.generatedBy,
-          redFlags: report.redFlags,
-        }}
-      />
-    </AppShell>
+    <Dashboard
+      report={{
+        sections: report.sections as never,
+        generatedAt: fmtDate(report.generatedAt),
+        generatedBy: report.generatedBy,
+        redFlags: report.redFlags,
+      }}
+    />
   );
 }

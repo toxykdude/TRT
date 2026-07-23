@@ -3,24 +3,20 @@
 import {
   Activity,
   TrendingUp,
-  TrendingDown,
   Pill,
   Syringe,
-  Shield,
   Target,
   Calendar,
   Beaker,
   AlertTriangle,
   BookOpen,
   Network,
-  Download,
-  RefreshCw,
   ChevronRight,
+  ArrowLeft,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
@@ -72,20 +68,15 @@ export function Dashboard({ report }: { report: { sections: ReportData; generate
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
+            <a href="/dashboard/reports">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Back to Reports
+            </a>
+          </Button>
           <h1 className="text-2xl font-bold tracking-tight">Clinical Report</h1>
           <p className="text-sm text-muted-foreground">
             Generated {report.generatedAt} · {report.generatedBy}
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Regenerate
-          </Button>
-          <Button size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export PDF
-          </Button>
         </div>
       </div>
 
