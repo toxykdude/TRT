@@ -172,9 +172,9 @@ AI model ──MCP (stdio | Streamable HTTP :8002)──► @trt/mcp
 - **Prompts**: `trt_knowledge_query` (grounded-answer template with GOLD §2 baked in).
 - **Safety**: retrieval-only, §2.5 disclaimer on every clinical response,
   guardrail-audited surface, no patient data (PHI never crosses MCP).
-- **Deploy**: `pm2 start "node_modules/.bin/tsx packages/mcp/src/http.ts" --name trt-mcp`
+- **Deploy**: `pm2 start "packages/mcp/node_modules/.bin/tsx packages/mcp/src/http.ts" --name trt-mcp`
   → `http://127.0.0.1:8002/mcp` (+ `GET /health`). Smoke test:
-  `node_modules/.bin/tsx scripts/mcp-smoke.ts`.
+  `packages/mcp/node_modules/.bin/tsx scripts/mcp-smoke.ts`.
 
 ---
 

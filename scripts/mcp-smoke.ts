@@ -32,42 +32,83 @@ function textOf(result: unknown): string {
 
 async function main() {
   await client.connect(transport);
-  check('initialize', true, `${client.getServerVersion()?.name} v${client.getServerVersion()?.version}`);
+  check(
+    'initialize',
+    true,
+    `${client.getServerVersion()?.name} v${client.getServerVersion()?.version}`,
+  );
 
-const { tools } = await client.listTools();
-check(
-  'tools/list (>= 8)',
-  tools.length >= 8,
-  tools.map((t) => t.name).join(', '),
-);
+  const { tools } = await client.listTools();
+  check('tools/list (>= 8)', tools.length >= 8, tools.map((t) => t.name).join(', '));
 
-const status = await client.callTool({ name: 'get_rag_status', arguments: {} });
-const statusPayload = JSON.parse(textOf(status)) as {
-  deterministicKB: { available: boolean; documents?: number };
-  knowledgeGraph: { available: boolean };
-};
-check('get_rag_status: KB available', statusPayload.deterministicKB.available, `documents=${statusPayload.deterministicKB.documents}`);
-check('get_rag_status: graph available', statusPayload.knowledgeGraph.available);
+  const status = await client.callTool({ name: 'get_rag_status', arguments: {} });
+  const statusPayload = JSON.parse(textOf(status)) as {
+    deterministicKB: { available: boolean; documents?: number };
+    knowledgeGraph: { available: boolean };
+  };
+  check(
+    'get_rag_status: KB available',
+    statusPayload.deterministicKB.available,
+    `documents=${statusPayload.deterministicKB.documents}`,
+  );
+  check('get_rag_status: graph available', statusPayload.knowledgeGraph.available);
 
-const kb = await client.callTool({ name: 'search_knowledge_base', arguments: { query: 'hematocrit polycythemia', k: 3 } });
-const kbPayload = JSON.parse(textOf(kb)) as { available: boolean; count: number; disclaimer?: string };
-check('search_knowledge_base returns cited passages', kbPayload.available && kbPayload.count > 0, `count=${kbPayload.count}`);
-check('response carries GOLD §2.5 disclaimer', typeof kbPayload.disclaimer === 'string' && kbPayload.disclaimer.includes('qualified healthcare professional'));
+  const kb = await client.callTool({
+    name: 'search_knowledge_base',
+    arguments: { query: 'hematocrit polycythemia', k: 3 },
+  });
+  const kbPayload = JSON.parse(textOf(kb)) as {
+    available: boolean;
+    count: number;
+    disclaimer?: string;
+  };
+  check(
+    'search_knowledge_base returns cited passages',
+    kbPayload.available && kbPayload.count > 0,
+    `count=${kbPayload.count}`,
+  );
+  check(
+    'response carries GOLD §2.5 disclaimer',
+    typeof kbPayload.disclaimer === 'string' &&
+      kbPayload.disclaimer.includes('qualified healthcare professional'),
+  );
 
-const graph = await client.callTool({ name: 'search_knowledge_graph', arguments: { query: 'testosterone estradiol aromatase', k: 3 } });
-const graphPayload = JSON.parse(textOf(graph)) as { available: boolean; count: number };
-check('search_knowledge_graph returns facts', graphPayload.available && graphPayload.count > 0, `count=${graphPayload.count}`);
+  const graph = await client.callTool({
+    name: 'search_knowledge_graph',
+    arguments: { query: 'testosterone estradiol aromatase', k: 3 },
+  });
+  const graphPayload = JSON.parse(textOf(graph)) as { available: boolean; count: number };
+  check(
+    'search_knowledge_graph returns facts',
+    graphPayload.available && graphPayload.count > 0,
+    `count=${graphPayload.count}`,
+  );
 
-const all = await client.callTool({ name: 'search_all', arguments: { query: 'shbg free testosterone', k: 2 } });
-const allPayload = JSON.parse(textOf(all)) as { corpusKB: { count: number }; knowledgeGraph: { count: number } };
-check('search_all fans out both layers', allPayload.corpusKB.count >= 0 && allPayload.knowledgeGraph.count >= 0);
+  const all = await client.callTool({
+    name: 'search_all',
+    arguments: { query: 'shbg free testosterone', k: 2 },
+  });
+  const allPayload = JSON.parse(textOf(all)) as {
+    corpusKB: { count: number };
+    knowledgeGraph: { count: number };
+  };
+  check(
+    'search_all fans out both layers',
+    allPayload.corpusKB.count >= 0 && allPayload.knowledgeGraph.count >= 0,
+  );
 
-const gold = await client.readResource({ uri: 'trt://platform/gold' });
-const goldText = (gold.contents[0] as { text?: string }).text ?? '';
-check('resources/read trt://platform/gold', goldText.length > 500);
+  const gold = await client.readResource({ uri: 'trt://platform/gold' });
+  const goldText = (gold.contents[0] as { text?: string }).text ?? '';
+  check('resources/read trt://platform/gold', goldText.length > 500);
 
-const prompt = await client.getPrompt({ name: 'trt_knowledge_query', arguments: { question: 'hematocrit monitoring' } });
-check('prompts/get trt_knowledge_query', JSON.stringify(prompt).includes('qualified healthcare professional'));
+  const prompt = await client.getPrompt({
+    name: 'trt_knowledge_query',
+    arguments: { question: 'hematocrit monitoring' },
+  });
+  check(
+    'prompts/get trt_knowledge_query',
+    JSON.stringify(prompt).includes('qualified healthcare professional'),
+  );
 
   await client.close();
   console.log(failures === 0 ? '\nSMOKE OK' : `\nSMOKE FAILED (${failures} checks)`);

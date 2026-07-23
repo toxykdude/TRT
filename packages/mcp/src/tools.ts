@@ -31,7 +31,9 @@ export type ToolResponse = { content: TextContent[]; isError?: boolean };
 /** Attach the mandatory disclaimer and serialize (clinical content rule, GOLD §2.5). */
 function respond(payload: Record<string, unknown>): ToolResponse {
   return {
-    content: [{ type: 'text', text: JSON.stringify({ ...payload, disclaimer: DISCLAIMER }, null, 2) }],
+    content: [
+      { type: 'text', text: JSON.stringify({ ...payload, disclaimer: DISCLAIMER }, null, 2) },
+    ],
   };
 }
 
@@ -46,7 +48,10 @@ const querySchema = {
 
 // ── Tool handlers (pure, transport-free) ─────────────────────────────────────
 
-export async function handleSearchKnowledgeBase(args: { query: string; k?: number }): Promise<ToolResponse> {
+export async function handleSearchKnowledgeBase(args: {
+  query: string;
+  k?: number;
+}): Promise<ToolResponse> {
   const k = args.k ?? 5;
   const status = kbStatus();
   if (!status.available) {
@@ -73,7 +78,10 @@ export async function handleSearchKnowledgeBase(args: { query: string; k?: numbe
   });
 }
 
-export async function handleSearchKnowledgeGraph(args: { query: string; k?: number }): Promise<ToolResponse> {
+export async function handleSearchKnowledgeGraph(args: {
+  query: string;
+  k?: number;
+}): Promise<ToolResponse> {
   const k = args.k ?? 5;
   const { facts, status } = await graphSearchFacts(args.query, k);
   if (!status.available) {
@@ -142,7 +150,8 @@ export async function handleListCorpusDocuments(): Promise<ToolResponse> {
 }
 
 export async function handleGetPassage(args: { chunkId: number }): Promise<ToolResponse> {
-  if (!kbStatus().available) return respond({ available: false, note: 'KB not built.', passage: null });
+  if (!kbStatus().available)
+    return respond({ available: false, note: 'KB not built.', passage: null });
   const p = kbPassage(args.chunkId);
   if (!p) return fail(`No passage with chunkId ${args.chunkId}.`);
   return respond({
@@ -179,7 +188,15 @@ export async function handleGetPlatformInfo(args: {
     mission:
       'Organizes fragmented lab results into a normalized timeline and a deterministic, ' +
       'clinician-ready report. Clinical decision SUPPORT only — not a prescribing or diagnostic system (GOLD §2).',
-    docsAvailable: ['gold', 'agents', 'readme', 'docs/engine', 'docs/rag', 'docs/deployment', 'docs/mcp'],
+    docsAvailable: [
+      'gold',
+      'agents',
+      'readme',
+      'docs/engine',
+      'docs/rag',
+      'docs/deployment',
+      'docs/mcp',
+    ],
   };
   if (section === 'architecture') {
     return respond({ ...base, services: platformServices(), mcpHttpPort: MCP_HTTP_PORT });
@@ -203,19 +220,32 @@ export async function handleGetPlatformInfo(args: {
   return respond({
     ...base,
     services: platformServices(),
-    engineSummary: { pipeline: engineMetadata().pipeline, determinism: engineMetadata().determinism },
+    engineSummary: {
+      pipeline: engineMetadata().pipeline,
+      determinism: engineMetadata().determinism,
+    },
     hint: 'Use section=architecture|engine|docs for focused views; read trt://platform/* resources for the documents.',
   });
 }
 
-export async function handleLookupBiomarker(args: { key: string; k?: number }): Promise<ToolResponse> {
-  const key = args.key.trim().toLowerCase().replace(/[\s-]+/g, '_');
+export async function handleLookupBiomarker(args: {
+  key: string;
+  k?: number;
+}): Promise<ToolResponse> {
+  const key = args.key
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
   const display = BIOMARKER_DISPLAY_NAMES[key] ?? null;
   const categories = biomarkerCategories(key);
   const phrase = SEARCH_PHRASES[key] ?? key.replace(/_/g, ' ');
   const k = args.k ?? 3;
   const references = kbStatus().available
-    ? kbSearch(phrase, k).map((h) => ({ document: h.documentTitle, page: h.page, chunkId: h.chunkId }))
+    ? kbSearch(phrase, k).map((h) => ({
+        document: h.documentTitle,
+        page: h.page,
+        chunkId: h.chunkId,
+      }))
     : [];
   const { facts, status: graph } = await graphSearchFacts(phrase, k);
   return respond({
@@ -226,14 +256,18 @@ export async function handleLookupBiomarker(args: { key: string; k?: number }): 
     kbSearchPhrase: phrase,
     topReferences: references,
     graphFacts: graph.available ? facts : [],
-    note:
-      'Reference ranges are per-lab/per-assay (GOLD §5.7). Use search_all with the phrase for full cited passages.',
+    note: 'Reference ranges are per-lab/per-assay (GOLD §5.7). Use search_all with the phrase for full cited passages.',
   });
 }
 
 // ── Registration ─────────────────────────────────────────────────────────────
 
-const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
+const READ_ONLY = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
 
 /** Register every retrieval tool on the server. */
 export function registerTools(server: McpServer): void {

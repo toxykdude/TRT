@@ -108,23 +108,23 @@ export function registerResources(server: McpServer): void {
             uri: uri.href,
             mimeType: 'application/json',
             text: JSON.stringify(
-            {
-              available: status.available,
-              ...(status.available
-                ? { documentCount: docs.length, passageCount: status.passages }
-                : { reason: status.reason }),
-              documents: docs.map((d) => ({
-                id: d.id,
-                title: d.title,
-                method: d.method,
-                pages: d.pages,
-                charCount: d.charCount,
-              })),
-              disclaimer: DISCLAIMER,
-            },
-            null,
-            2,
-          ),
+              {
+                available: status.available,
+                ...(status.available
+                  ? { documentCount: docs.length, passageCount: status.passages }
+                  : { reason: status.reason }),
+                documents: docs.map((d) => ({
+                  id: d.id,
+                  title: d.title,
+                  method: d.method,
+                  pages: d.pages,
+                  charCount: d.charCount,
+                })),
+                disclaimer: DISCLAIMER,
+              },
+              null,
+              2,
+            ),
           },
         ],
       };
@@ -150,10 +150,20 @@ export function registerResources(server: McpServer): void {
             text: JSON.stringify(
               {
                 deterministicKB: kb.available
-                  ? { available: true, dbPath: KB_DB_PATH, documents: kb.documents, passages: kb.passages }
+                  ? {
+                      available: true,
+                      dbPath: KB_DB_PATH,
+                      documents: kb.documents,
+                      passages: kb.passages,
+                    }
                   : { available: false, dbPath: KB_DB_PATH, reason: kb.reason },
                 knowledgeGraph: graph.available
-                  ? { available: true, url: GRAPH_QUERY_URL, backend: graph.backend, embedder: graph.embedder }
+                  ? {
+                      available: true,
+                      url: GRAPH_QUERY_URL,
+                      backend: graph.backend,
+                      embedder: graph.embedder,
+                    }
                   : { available: false, url: GRAPH_QUERY_URL, reason: graph.reason },
                 disclaimer: DISCLAIMER,
               },

@@ -10,7 +10,11 @@
  * restarts are seamless. Binds 127.0.0.1:8002 by default; set MCP_AUTH_TOKEN
  * before exposing beyond localhost.
  */
-import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import {
+  createServer as createHttpServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { MCP_AUTH_TOKEN, MCP_HTTP_HOST, MCP_HTTP_PORT } from './config.js';
 import { createServer } from './server.js';
@@ -18,7 +22,10 @@ import { kbStatus, graphStatus } from './retrieval.js';
 
 function json(res: ServerResponse, code: number, body: unknown): void {
   const data = JSON.stringify(body);
-  res.writeHead(code, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) });
+  res.writeHead(code, {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(data),
+  });
   res.end(data);
 }
 
@@ -44,7 +51,9 @@ const http = createHttpServer(async (req, res) => {
     json(res, 200, {
       status: 'healthy',
       server: 'trt-mcp',
-      deterministicKB: kb.available ? { available: true, documents: kb.documents, passages: kb.passages } : kb,
+      deterministicKB: kb.available
+        ? { available: true, documents: kb.documents, passages: kb.passages }
+        : kb,
       knowledgeGraph: graph,
     });
     return;

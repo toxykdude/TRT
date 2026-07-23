@@ -45,15 +45,20 @@ describe('guardrail audit of the whole model-facing surface', () => {
   it('every tool description passes the guardrail filter', () => {
     // Inspect the registered tools via the server's internal registry.
     const server = createServer();
-    const registered = (server as unknown as { _registeredTools: Record<string, { description?: string; title?: string }> })
-      ._registeredTools;
+    const registered = (
+      server as unknown as {
+        _registeredTools: Record<string, { description?: string; title?: string }>;
+      }
+    )._registeredTools;
     const names = Object.keys(registered);
     expect(names.length).toBeGreaterThanOrEqual(8);
     for (const name of names) {
       const t = registered[name]!;
       const text = `${name}\n${t.title ?? ''}\n${t.description ?? ''}`;
       const audit = enforceGuardrails(text);
-      expect(audit.ok, `tool "${name}" description blocked: ${audit.reasons.join(', ')}`).toBe(true);
+      expect(audit.ok, `tool "${name}" description blocked: ${audit.reasons.join(', ')}`).toBe(
+        true,
+      );
     }
   });
 });

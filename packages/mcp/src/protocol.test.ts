@@ -30,7 +30,8 @@ beforeAll(async () => {
     contentHash: 'hash-p',
     method: 'pdftotext',
     pages: 1,
-    text: 'SHBG binds testosterone and lowers free testosterone. ' +
+    text:
+      'SHBG binds testosterone and lowers free testosterone. ' +
       'Hematocrit monitoring is discussed in clinical follow-up guidance.',
   });
   store.close();
@@ -70,7 +71,10 @@ describe('MCP protocol end-to-end', () => {
   });
 
   it('calls search_knowledge_base over the wire', async () => {
-    const res = await client.callTool({ name: 'search_knowledge_base', arguments: { query: 'SHBG testosterone', k: 2 } });
+    const res = await client.callTool({
+      name: 'search_knowledge_base',
+      arguments: { query: 'SHBG testosterone', k: 2 },
+    });
     const payload = JSON.parse(firstText(res)) as Record<string, unknown>;
     expect(payload.available).toBe(true);
     expect((payload.results as unknown[]).length).toBeGreaterThan(0);
@@ -78,7 +82,10 @@ describe('MCP protocol end-to-end', () => {
   });
 
   it('calls get_rag_status (graph gracefully unavailable)', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new Error('down'))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Promise.reject(new Error('down'))),
+    );
     const res = await client.callTool({ name: 'get_rag_status', arguments: {} });
     const payload = JSON.parse(firstText(res)) as Record<string, unknown>;
     expect((payload.deterministicKB as { available: boolean }).available).toBe(true);
@@ -97,7 +104,9 @@ describe('MCP protocol end-to-end', () => {
     expect(text.length).toBeGreaterThan(200);
 
     const docs = await client.readResource({ uri: 'trt://kb/documents' });
-    const catalog = JSON.parse((docs.contents[0] as { text: string }).text) as { documentCount: number };
+    const catalog = JSON.parse((docs.contents[0] as { text: string }).text) as {
+      documentCount: number;
+    };
     expect(catalog.documentCount).toBe(1);
   });
 

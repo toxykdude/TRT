@@ -51,16 +51,16 @@ and is not required.
 
 ### Tools (all read-only, `readOnlyHint: true`)
 
-| Tool | Input | Returns |
-|---|---|---|
-| `search_knowledge_base` | `query`, `k?` | Layer 1 BM25 passages with citations (document, page, chunkId, score) |
-| `search_knowledge_graph` | `query`, `k?` | Layer 2 relationship facts (`fact`, `source`, `score`) |
-| `search_all` | `query`, `k?` | Both layers in one call — best first stop |
-| `list_corpus_documents` | — | Indexed corpus catalog (id, title, method, pages, chars) |
-| `get_passage` | `chunkId` | Full text of one passage + citation (deep-read a hit) |
-| `get_rag_status` | — | Availability + stats of both layers |
-| `get_platform_info` | `section?` | overview / architecture / engine / docs of the platform |
-| `lookup_biomarker` | `key`, `k?` | Display name, panel categories, KB phrase, top references + graph facts |
+| Tool                     | Input         | Returns                                                                 |
+| ------------------------ | ------------- | ----------------------------------------------------------------------- |
+| `search_knowledge_base`  | `query`, `k?` | Layer 1 BM25 passages with citations (document, page, chunkId, score)   |
+| `search_knowledge_graph` | `query`, `k?` | Layer 2 relationship facts (`fact`, `source`, `score`)                  |
+| `search_all`             | `query`, `k?` | Both layers in one call — best first stop                               |
+| `list_corpus_documents`  | —             | Indexed corpus catalog (id, title, method, pages, chars)                |
+| `get_passage`            | `chunkId`     | Full text of one passage + citation (deep-read a hit)                   |
+| `get_rag_status`         | —             | Availability + stats of both layers                                     |
+| `get_platform_info`      | `section?`    | overview / architecture / engine / docs of the platform                 |
+| `lookup_biomarker`       | `key`, `k?`   | Display name, panel categories, KB phrase, top references + graph facts |
 
 Every JSON response includes `disclaimer` (GOLD §2.5). Unavailable layers
 return `{ available: false, reason }` — never an exception that breaks a
@@ -68,55 +68,63 @@ session.
 
 ### Resources
 
-| URI | Content |
-|---|---|
-| `trt://platform/gold` | GOLD.md (product spec, source of truth) |
-| `trt://platform/agents` | AGENTS.md (operating manual) |
-| `trt://platform/readme` | README.md |
+| URI                                               | Content                                      |
+| ------------------------------------------------- | -------------------------------------------- |
+| `trt://platform/gold`                             | GOLD.md (product spec, source of truth)      |
+| `trt://platform/agents`                           | AGENTS.md (operating manual)                 |
+| `trt://platform/readme`                           | README.md                                    |
 | `trt://platform/docs/{engine,rag,deployment,mcp}` | docs/*.md (template, listable + completable) |
-| `trt://kb/documents` | Live corpus catalog (JSON) |
-| `trt://kb/status` | Live retrieval-stack status (JSON) |
+| `trt://kb/documents`                              | Live corpus catalog (JSON)                   |
+| `trt://kb/status`                                 | Live retrieval-stack status (JSON)           |
 
 ### Prompts
 
-| Prompt | Args | Purpose |
-|---|---|---|
+| Prompt                | Args       | Purpose                                                                                       |
+| --------------------- | ---------- | --------------------------------------------------------------------------------------------- |
 | `trt_knowledge_query` | `question` | Grounded-answer template: forces `search_all` → cite → GOLD §2 boundary → verbatim disclaimer |
 
 ## 4. Configuration (env)
 
-| Var | Default | Purpose |
-|---|---|---|
-| `KB_DB_PATH` | `/var/lib/trt/kb/knowledge.db` | Layer 1 SQLite KB |
-| `GRAPH_QUERY_URL` | `http://127.0.0.1:8001` | Layer 2 graph query service |
-| `TRT_REPO_ROOT` | auto (package-relative) | For platform doc resources |
-| `MCP_HTTP_HOST` | `127.0.0.1` | HTTP bind address |
-| `MCP_HTTP_PORT` | `8002` | HTTP port |
-| `MCP_AUTH_TOKEN` | _(empty)_ | Bearer token for HTTP; **required before non-loopback binding** |
+| Var               | Default                        | Purpose                                                         |
+| ----------------- | ------------------------------ | --------------------------------------------------------------- |
+| `KB_DB_PATH`      | `/var/lib/trt/kb/knowledge.db` | Layer 1 SQLite KB                                               |
+| `GRAPH_QUERY_URL` | `http://127.0.0.1:8001`        | Layer 2 graph query service                                     |
+| `TRT_REPO_ROOT`   | auto (package-relative)        | For platform doc resources                                      |
+| `MCP_HTTP_HOST`   | `127.0.0.1`                    | HTTP bind address                                               |
+| `MCP_HTTP_PORT`   | `8002`                         | HTTP port                                                       |
+| `MCP_AUTH_TOKEN`  | _(empty)_                      | Bearer token for HTTP; **required before non-loopback binding** |
 
 ## 5. Transports & client setup
 
 ### stdio — local models/IDEs
+
 ```bash
 pnpm --filter @trt/mcp start
 ```
+
 Claude Desktop / Cursor / Cline (`mcpServers` JSON):
+
 ```json
 {
   "mcpServers": {
     "trt-knowledge": {
-      "command": "/opt/trt/node_modules/.bin/tsx",
+      "command": "/opt/trt/packages/mcp/node_modules/.bin/tsx",
       "args": ["/opt/trt/packages/mcp/src/stdio.ts"],
-      "env": { "KB_DB_PATH": "/var/lib/trt/kb/knowledge.db", "GRAPH_QUERY_URL": "http://127.0.0.1:8001" }
+      "env": {
+        "KB_DB_PATH": "/var/lib/trt/kb/knowledge.db",
+        "GRAPH_QUERY_URL": "http://127.0.0.1:8001"
+      }
     }
   }
 }
 ```
 
 ### Streamable HTTP — network agents (deployment path)
+
 ```bash
 pnpm --filter @trt/mcp start:http      # http://127.0.0.1:8002/mcp  (+ GET /health)
 ```
+
 Any MCP client that speaks Streamable HTTP points at
 `http://127.0.0.1:8002/mcp` (add `Authorization: Bearer $MCP_AUTH_TOKEN` when
 a token is set). The server is **stateless** (`sessionIdGenerator: undefined`)
@@ -126,11 +134,11 @@ a token is set). The server is **stateless** (`sessionIdGenerator: undefined`)
 
 ```bash
 cd /opt/trt && git pull && pnpm install
-pm2 start "node_modules/.bin/tsx packages/mcp/src/http.ts" --name trt-mcp --cwd /opt/trt
+pm2 start "packages/mcp/node_modules/.bin/tsx packages/mcp/src/http.ts" --name trt-mcp --cwd /opt/trt
 pm2 save
 # verify
 curl -s http://127.0.0.1:8002/health
-node_modules/.bin/tsx scripts/mcp-smoke.ts http://127.0.0.1:8002/mcp
+packages/mcp/node_modules/.bin/tsx scripts/mcp-smoke.ts http://127.0.0.1:8002/mcp
 ```
 
 Defaults need **zero extra env** on the LXC (KB path, graph URL, repo root all
@@ -140,24 +148,24 @@ bind `0.0.0.0` unauthenticated.
 
 ## 7. Testing
 
-| Layer | File | Covers |
-|---|---|---|
-| Unit | `src/tools.test.ts` | Handlers vs. a real temp KB + mocked graph service |
-| Guardrail | `src/safety.test.ts` | §2.5 verbatim disclaimer; instructions/descriptions/prompt pass `enforceGuardrails` |
-| Protocol | `src/protocol.test.ts` | In-memory MCP client: tools/list/call, resources/list/read (incl. template), prompts/get, schema validation |
-| Smoke | `scripts/mcp-smoke.ts` | Live HTTP deployment: initialize → list → KB + graph queries |
+| Layer     | File                   | Covers                                                                                                      |
+| --------- | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Unit      | `src/tools.test.ts`    | Handlers vs. a real temp KB + mocked graph service                                                          |
+| Guardrail | `src/safety.test.ts`   | §2.5 verbatim disclaimer; instructions/descriptions/prompt pass `enforceGuardrails`                         |
+| Protocol  | `src/protocol.test.ts` | In-memory MCP client: tools/list/call, resources/list/read (incl. template), prompts/get, schema validation |
+| Smoke     | `scripts/mcp-smoke.ts` | Live HTTP deployment: initialize → list → KB + graph queries                                                |
 
 Run: `pnpm --filter @trt/mcp test` (plus `@trt/engine` / `@trt/kb` suites for
 the shared-code changes).
 
 ## 8. Maintenance
 
-| Task | Action |
-|---|---|
+| Task            | Action                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------- |
 | New corpus docs | Drop into `/var/lib/trt/corpus/`, run `scripts/build-kb.ts` — MCP picks them up automatically |
-| Graph rebuild | Existing `scripts/ingest_*.py` pipeline — MCP reads the same service |
-| Add a tool | Handler in `src/tools.ts` + registration; add a guardrail test if the description changes |
-| Rotate exposure | Set/rotate `MCP_AUTH_TOKEN`, `pm2 restart trt-mcp --update-env` |
+| Graph rebuild   | Existing `scripts/ingest_*.py` pipeline — MCP reads the same service                          |
+| Add a tool      | Handler in `src/tools.ts` + registration; add a guardrail test if the description changes     |
+| Rotate exposure | Set/rotate `MCP_AUTH_TOKEN`, `pm2 restart trt-mcp --update-env`                               |
 
 ## 9. Roadmap (explicit non-goals for v1)
 

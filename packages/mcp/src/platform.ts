@@ -33,9 +33,17 @@ export function platformServices(): Array<{ service: string; port: number | null
   return [
     { service: 'web (Next.js, pm2 "trt")', port: 3000, role: 'patient/clinician UI + API' },
     { service: 'postgres', port: 5432, role: 'patient data (RLS; never exposed via MCP)' },
-    { service: 'graph query service (pm2 "trt-graph")', port: 8001, role: 'Layer 2 graph retrieval (embedder + Neo4j)' },
+    {
+      service: 'graph query service (pm2 "trt-graph")',
+      port: 8001,
+      role: 'Layer 2 graph retrieval (embedder + Neo4j)',
+    },
     { service: 'neo4j (bolt)', port: 7687, role: 'Graphiti knowledge-graph store' },
-    { service: 'graphiti MCP (optional)', port: 8000, role: 'upstream Graphiti MCP (not the primary query path)' },
+    {
+      service: 'graphiti MCP (optional)',
+      port: 8000,
+      role: 'upstream Graphiti MCP (not the primary query path)',
+    },
     { service: 'falkordb (optional)', port: 6379, role: 'alternative graph backend' },
     { service: 'trt-mcp (this server)', port: null, role: 'MCP retrieval surface for AI models' },
   ];

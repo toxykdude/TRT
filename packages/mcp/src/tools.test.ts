@@ -20,7 +20,10 @@ function payloadOf(res: { content: Array<{ text: string }> }): Record<string, un
 }
 
 function stubGraphDown() {
-  vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new Error('ECONNREFUSED'))));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Promise.reject(new Error('ECONNREFUSED'))),
+  );
 }
 
 beforeAll(async () => {
@@ -95,7 +98,11 @@ describe('search_knowledge_graph (mocked service)', () => {
         return new Response(
           JSON.stringify({
             results: [
-              { fact: 'Aromatizing steroids (Drug): ELEVATES → blood pressure', source: 'knowledge-graph', score: 0.88 },
+              {
+                fact: 'Aromatizing steroids (Drug): ELEVATES → blood pressure',
+                source: 'knowledge-graph',
+                score: 0.88,
+              },
             ],
           }),
         );
