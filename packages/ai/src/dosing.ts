@@ -53,6 +53,20 @@ export type DosingRecommendation = {
   notes?: string;
   /** ancillary support (AIs, hCG, SERMs) recommended alongside this compound */
   ancillarySupport?: AncillarySupport[];
+  /**
+   * Stable protocol identifier (presentation-layer i18n hook). The UI maps this
+   * key to localized indication/notes (and protocol-specific dosing overrides)
+   * via the `DosingProtocols` next-intl namespace. Additive only; does NOT enter
+   * the deterministic report hash (dosing is excluded from the hash).
+   */
+  protocolKey: string;
+  /**
+   * Optional ICU interpolation values for the localized indication/notes/dose.
+   * The UI passes these to `DosingProtocols.{protocolKey}.*` messages. Typical
+   * keys: `value` (biomarker reading), `noteKey` (select branch for conditional
+   * notes/dose), `panels` (JSON string of missing-panel groups). Additive only.
+   */
+  indicationParams?: Record<string, string | number>;
 };
 
 export type AncillarySupport = {
@@ -340,6 +354,8 @@ export function generateDosingRecommendations(options: {
       notes: totalT < 264
         ? 'Total testosterone below laboratory reference low — TRT indicated. Start at lower end of range, reassess at 12 weeks.'
         : 'Total testosterone in borderline/low range — consider TRT if symptoms correlate.',
+      protocolKey: 'trt_base',
+      indicationParams: { value: totalT, noteKey: totalT < 264 ? 'below_ref' : 'borderline' },
     });
   }
 
@@ -373,6 +389,11 @@ export function generateDosingRecommendations(options: {
         : estradiol > 35
           ? 'Estradiol at upper range — Anastrozole at low dose sufficient.'
           : 'Estradiol mildly elevated — monitor, consider low-dose Anastrozole.',
+      protocolKey: 'e2_high',
+      indicationParams: {
+        value: estradiol,
+        noteKey: estradiol > 50 ? 'high' : estradiol > 35 ? 'upper' : 'mild',
+      },
     });
   }
 
@@ -391,6 +412,7 @@ export function generateDosingRecommendations(options: {
       ragSourceIds: ['protocol-e2-mgmt-002'],
       priority: 'standard',
       notes: 'If not already on an AI, no need to start. If on AI, consider dose reduction.',
+      protocolKey: 'e2_low',
     });
   }
 
@@ -423,6 +445,8 @@ export function generateDosingRecommendations(options: {
       notes: hematocrit > 54
         ? 'Hematocrit above upper reference — consider phlebotomy if >55%. Use lower TRT dose initially.'
         : 'Hematocrit at upper range — monitor closely with TRT. Lower starting dose recommended.',
+      protocolKey: 'hct_high',
+      indicationParams: { value: hematocrit, noteKey: hematocrit > 54 ? 'high' : 'upper' },
     });
   }
 
@@ -443,6 +467,8 @@ export function generateDosingRecommendations(options: {
       ragSourceIds: ['protocol-shbg-mgmt-001'],
       priority: 'standard',
       notes: 'High SHBG binds testosterone, reducing free bioavailable T. Higher TRT dose may be needed.',
+      protocolKey: 'shbg_high',
+      indicationParams: { value: shbg },
     });
   }
 
@@ -474,6 +500,7 @@ export function generateDosingRecommendations(options: {
       ],
       priority: 'alternative',
       notes: 'Nandrolone is 19-nor — less aromatization than T. Monitor prolactin. May need hCG support.',
+      protocolKey: 'nandrolone',
     });
   }
 
@@ -498,6 +525,7 @@ export function generateDosingRecommendations(options: {
       ragSourceIds: ['protocol-boldenone-001'],
       priority: 'alternative',
       notes: 'Boldenone has moderate lipid impact. Monitor LDL/HDL ratio. Less suppressive than Tren.',
+      protocolKey: 'boldenone',
     });
   }
 
@@ -516,6 +544,7 @@ export function generateDosingRecommendations(options: {
       ragSourceIds: ['protocol-hcg-001'],
       priority: 'standard',
       notes: 'hCG mimics LH — maintains Leydig cell function. Essential if fertility is a goal.',
+      protocolKey: 'hcg_support',
     });
   }
 
@@ -533,6 +562,7 @@ export function generateDosingRecommendations(options: {
       ragSourceIds: ['protocol-clomiphene-001'],
       priority: 'alternative',
       notes: 'SERM — blocks estrogen at pituitary, ↑ LH/FSH, ↑ endogenous T. Use 4–12 weeks post-TRT.',
+      protocolKey: 'clomiphene',
     });
   }
 
@@ -553,6 +583,7 @@ export function generateDosingRecommendations(options: {
       ragSourceIds: ['protocol-clen-001'],
       priority: 'alternative',
       notes: '2 weeks on / 2 weeks off to prevent receptor downregulation. Start low (20 mcg), titrate.',
+      protocolKey: 'clenbuterol',
     });
   }
 
@@ -578,6 +609,8 @@ export function generateDosingRecommendations(options: {
       ragSourceIds: ['protocol-panel-001'],
       priority: 'clinical_priority',
       notes: 'Full hormone panel (LH, FSH, prolactin), metabolic panel (A1C, glucose), lipid panel needed for optimal dosing.',
+      protocolKey: 'panel_completion',
+      indicationParams: { panels: JSON.stringify(missingPanels) },
     });
   }
 

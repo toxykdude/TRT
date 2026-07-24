@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import { useTranslations } from 'next-intl';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { resolveCompoundName, resolveDosingField } from '@/lib/dosing-i18n';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -168,6 +169,7 @@ export function ChartCard({
 // ── 1. Biomarker Trend Chart (multi-line) ─────────────────────────────────────
 
 export function BiomarkerTrendChart({ trends, keys }: { trends: TrendItem[]; keys: string[] }) {
+  const biomarkersT = useTranslations('Biomarkers');
   // Build chart data from trend points, keyed by date
   const dateMap = new Map<string, Record<string, number | null>>();
   const series: { key: string; name: string; color: string }[] = [];
@@ -176,7 +178,8 @@ export function BiomarkerTrendChart({ trends, keys }: { trends: TrendItem[]; key
   keys.forEach((key, i) => {
     const trend = trends.find((t) => t.biomarkerKey === key);
     if (!trend) return;
-    series.push({ key, name: trend.biomarkerName, color: colorMap[i % colorMap.length]! });
+    const name = biomarkersT.has(key) ? biomarkersT(key) : trend.biomarkerName;
+    series.push({ key, name, color: colorMap[i % colorMap.length]! });
     trend.points.forEach((p) => {
       const date = p.date ? new Date(p.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'N/A';
       if (!dateMap.has(date)) dateMap.set(date, {});
@@ -220,6 +223,7 @@ export function BiomarkerTrendChart({ trends, keys }: { trends: TrendItem[]; key
 
 export function RangeComparisonChart({ classified, keys }: { classified: ClassifiedItem[]; keys: string[] }) {
   const t = useTranslations('Charts');
+  const biomarkersT = useTranslations('Biomarkers');
   // Show latest value vs refLow/refHigh for each biomarker
   const latest = new Map<string, ClassifiedItem>();
   for (const c of classified) {
@@ -233,8 +237,9 @@ export function RangeComparisonChart({ classified, keys }: { classified: Classif
     .map((k) => {
       const c = latest.get(k);
       if (!c || c.valueNumeric == null) return null;
+      const label = biomarkersT.has(k) ? biomarkersT(k) : c.biomarkerName;
       return {
-        name: c.biomarkerName.length > 15 ? c.biomarkerName.slice(0, 12) + '…' : c.biomarkerName,
+        name: label.length > 15 ? label.slice(0, 12) + '…' : label,
         value: c.valueNumeric,
         refLow: c.refLow ?? 0,
         refHigh: c.refHigh ?? 0,
@@ -361,6 +366,8 @@ export function HormoneAreaChart({ trends, biomarkerKey }: { trends: TrendItem[]
 
 type DosingRec = {
   compound: string;
+  compoundKey: string;
+  protocolKey: string;
   dose: string;
   frequency: string;
   route: string;
@@ -370,6 +377,7 @@ type DosingRec = {
   ragSourceIds: string[];
   priority: 'clinical_priority' | 'standard' | 'alternative';
   notes?: string;
+  indicationParams?: Record<string, string | number>;
 };
 
 const PRIORITY_BAR = {
@@ -380,6 +388,8 @@ const PRIORITY_BAR = {
 
 export function DosingTable({ recommendations }: { recommendations: DosingRec[] }) {
   const t = useTranslations('Charts');
+  const compoundsT = useTranslations('Compounds');
+  const protocolsT = useTranslations('DosingProtocols');
   if (recommendations.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center text-sm text-gray-400">
@@ -407,9 +417,9 @@ export function DosingTable({ recommendations }: { recommendations: DosingRec[] 
             return (
               <tr key={i} className="border-b last:border-0">
                 <td className="py-3 pr-4 text-gray-400">{String(i + 1).padStart(2, '0')}</td>
-                <td className="py-3 pr-4 font-medium text-gray-900 dark:text-white">{rec.compound}</td>
-                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{rec.dose}</td>
-                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{rec.frequency}</td>
+                <td className="py-3 pr-4 font-medium text-gray-900 dark:text-white">{resolveCompoundName(rec, compoundsT, protocolsT)}</td>
+                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{resolveDosingField(rec, 'dose', compoundsT, protocolsT)}</td>
+                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{resolveDosingField(rec, 'frequency', compoundsT, protocolsT)}</td>
                 <td className="py-3 pr-4">
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-20 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
@@ -440,6 +450,7 @@ export function DosingTable({ recommendations }: { recommendations: DosingRec[] 
 
 export function CategoryCoverageChart({ classified }: { classified: ClassifiedItem[] }) {
   const t = useTranslations('Charts');
+  const categoriesT = useTranslations('Categories');
   const categoryMap = new Map<string, { normal: number; abnormal: number; total: number }>();
 
   for (const c of classified) {
@@ -452,7 +463,7 @@ export function CategoryCoverageChart({ classified }: { classified: ClassifiedIt
   }
 
   const data = Array.from(categoryMap.entries()).map(([cat, vals]) => ({
-    name: cat.charAt(0).toUpperCase() + cat.slice(1),
+    name: categoriesT.has(cat) ? categoriesT(cat) : cat.charAt(0).toUpperCase() + cat.slice(1),
     normal: vals.normal,
     abnormal: vals.abnormal,
   }));

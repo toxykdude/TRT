@@ -102,8 +102,37 @@ export async function POST() {
   });
 
   // ── Step 3: Save report with dosing + chart data ───────────────────────────
+
+  // Attach RangeStatus to each finding's evidence so the UI can recover the
+  // direction (below/above) of out-of-range hits when reassembling the localized
+  // narrative. The engine's evidence() helper omits status, so we add it here on
+  // the apps side for DISPLAY ONLY. The deterministic hash was already computed
+  // by the engine over the canonical findings and is not affected by this.
+  const statusByKeyDate = new Map<string, string>();
+  const statusByKey = new Map<string, string>();
+  for (const c of [...report.classified].sort((a, b) =>
+    (b.collectedAt ?? '').localeCompare(a.collectedAt ?? ''),
+  )) {
+    statusByKeyDate.set(`${c.biomarkerKey}|${c.collectedAt ?? ''}`, c.status);
+    if (!statusByKey.has(c.biomarkerKey)) statusByKey.set(c.biomarkerKey, c.status);
+  }
+  const findingsForDisplay = report.findings.map((f) => ({
+    ...f,
+    evidence: f.evidence.map((ev) => ({
+      ...ev,
+      status:
+        statusByKeyDate.get(`${ev.biomarkerKey}|${ev.date ?? ''}`) ??
+        statusByKey.get(ev.biomarkerKey) ??
+        null,
+    })),
+  }));
+
   const sectionsWithDosing = {
     ...report.sections,
+    // Structured sources the UI reassembles the localized narrative from
+    // (GOLD §6). The English prose above is kept intact for the audit trail.
+    findings: findingsForDisplay,
+    coverageGaps: report.coverageGaps,
     dosingRecommendations: dosingRecommendations,
     // Chart data for the dashboard visualizations
     chartData: {

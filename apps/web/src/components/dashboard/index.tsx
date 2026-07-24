@@ -32,9 +32,18 @@ import {
   CHART_COLORS,
   type ChartData,
 } from './charts';
+import { resolveCompoundName, resolveDosingField, resolveIndication, resolveNotes } from '@/lib/dosing-i18n';
+import {
+  assembleLocalizedNarrative,
+  type ReportSectionsLike,
+  type FindingLite,
+  type CoverageGapLite,
+} from '@/lib/report-i18n';
 
 type DosingRec = {
   compound: string;
+  compoundKey: string;
+  protocolKey: string;
   dose: string;
   frequency: string;
   route: string;
@@ -44,6 +53,7 @@ type DosingRec = {
   ragSourceIds: string[];
   priority: 'clinical_priority' | 'standard' | 'alternative';
   notes?: string;
+  indicationParams?: Record<string, string | number>;
 };
 
 type ReportData = {
@@ -64,6 +74,8 @@ type ReportData = {
   knowledgeGraphFacts: string[];
   dosingRecommendations?: DosingRec[];
   chartData?: ChartData;
+  findings?: FindingLite[];
+  coverageGaps?: CoverageGapLite[];
 };
 
 export function Dashboard({
@@ -73,12 +85,28 @@ export function Dashboard({
 }) {
   const t = useTranslations('Report');
   const statusT = useTranslations('Status');
+  const findingsT = useTranslations('Findings');
+  const trendT = useTranslations('Trend');
+  const biomarkersT = useTranslations('Biomarkers');
+  const categoriesT = useTranslations('Categories');
   const s = report.sections;
   const dosing = s.dosingRecommendations || [];
   const chart = s.chartData;
   const classified = chart?.classified || [];
   const trends = chart?.trends || [];
   const meta = chart?.meta;
+
+  // Reassemble the report narrative in the active locale from the structured
+  // data (classified/trends/findings/coverageGaps). Legacy reports without that
+  // structured data fall back to the stored English prose inside the helper.
+  const narr = assembleLocalizedNarrative(s as ReportSectionsLike, {
+    report: t,
+    findings: findingsT,
+    status: statusT,
+    trend: trendT,
+    biomarkers: biomarkersT,
+    categories: categoriesT,
+  });
 
   // Helper: latest value for a biomarker
   const latestVal = (key: string) => {
@@ -241,8 +269,8 @@ export function Dashboard({
 
         {/* Red Flags */}
         <TabsContent value="flags" className="space-y-3">
-          {s.redFlags?.length > 0 ? (
-            s.redFlags.map((flag, i) => (
+          {narr.redFlags.length > 0 ? (
+            narr.redFlags.map((flag, i) => (
               <Card key={i} className="border-red-500/30 bg-red-500/5">
                 <CardContent className="flex items-start gap-3 py-4">
                   <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
@@ -258,14 +286,14 @@ export function Dashboard({
         {/* Trend Text */}
         <TabsContent value="trends" className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            <TextCard title={t('txtHormone')} body={s.hormoneTrends} />
-            <TextCard title={t('txtCbc')} body={s.cbcTrends} />
-            <TextCard title={t('txtEstradiol')} body={s.estradiolTrends} />
-            <TextCard title={t('txtShbg')} body={s.shbgTrends} />
-            <TextCard title={t('txtThyroid')} body={s.thyroidTrends} />
-            <TextCard title={t('txtMetabolic')} body={s.metabolicHealth} />
-            <TextCard title={t('txtCardio')} body={s.cardiovascularRiskFactors} />
-            <TextCard title={t('txtLifestyle')} body={s.lifestyleFactors} />
+            <TextCard title={t('txtHormone')} body={narr.hormoneTrends} />
+            <TextCard title={t('txtCbc')} body={narr.cbcTrends} />
+            <TextCard title={t('txtEstradiol')} body={narr.estradiolTrends} />
+            <TextCard title={t('txtShbg')} body={narr.shbgTrends} />
+            <TextCard title={t('txtThyroid')} body={narr.thyroidTrends} />
+            <TextCard title={t('txtMetabolic')} body={narr.metabolicHealth} />
+            <TextCard title={t('txtCardio')} body={narr.cardiovascularRiskFactors} />
+            <TextCard title={t('txtLifestyle')} body={narr.lifestyleFactors} />
           </div>
         </TabsContent>
 
@@ -305,14 +333,14 @@ export function Dashboard({
         <TabsContent value="summary" className="space-y-4">
           <Card>
             <CardHeader><CardTitle className="text-base">{t('execSummary')}</CardTitle></CardHeader>
-            <CardContent><p className="text-sm leading-relaxed text-muted-foreground">{s.executiveSummary}</p></CardContent>
+            <CardContent><p className="text-sm leading-relaxed text-muted-foreground">{narr.executiveSummary}</p></CardContent>
           </Card>
-          {s.questionsForPhysician?.length > 0 && (
+          {narr.questionsForPhysician.length > 0 && (
             <Card>
               <CardHeader><CardTitle className="text-base">{t('questionsTitle')}</CardTitle></CardHeader>
               <CardContent>
                 <ol className="list-decimal space-y-1 pl-5 text-sm">
-                  {s.questionsForPhysician.map((q, i) => <li key={i}>{q}</li>)}
+                  {narr.questionsForPhysician.map((q, i) => <li key={i}>{q}</li>)}
                 </ol>
               </CardContent>
             </Card>
@@ -327,6 +355,10 @@ export function Dashboard({
 
 function DosingDetailCard({ rec }: { rec: DosingRec }) {
   const t = useTranslations('Report');
+  const compoundsT = useTranslations('Compounds');
+  const protocolsT = useTranslations('DosingProtocols');
+  const biomarkersT = useTranslations('Biomarkers');
+  const categoriesT = useTranslations('Categories');
   const priorityMap = {
     clinical_priority: { labelKey: 'badgePriority' as const, cls: 'bg-red-500/10 text-red-600 border-red-500/20' },
     standard: { labelKey: 'badgeStandard' as const, cls: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
@@ -340,27 +372,27 @@ function DosingDetailCard({ rec }: { rec: DosingRec }) {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               {rec.route === 'oral' ? <Pill className="h-4 w-4 text-blue-500" /> : <Syringe className="h-4 w-4 text-blue-500" />}
-              {rec.compound}
+              {resolveCompoundName(rec, compoundsT, protocolsT)}
             </CardTitle>
-            <CardDescription>{rec.indication}</CardDescription>
+            <CardDescription>{resolveIndication(rec, biomarkersT, categoriesT, protocolsT)}</CardDescription>
           </div>
           <Badge variant="outline" className={p.cls}>{t(p.labelKey)}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div><span className="text-muted-foreground">{t('detailDose')} </span><span className="font-semibold">{rec.dose}</span></div>
-          <div><span className="text-muted-foreground">{t('detailFreq')} </span><span className="font-semibold">{rec.frequency}</span></div>
-          <div><span className="text-muted-foreground">{t('detailRoute')} </span><span className="font-semibold">{rec.route}</span></div>
-          <div><span className="text-muted-foreground">{t('detailCycle')} </span><span className="font-semibold">{rec.cycleLength}</span></div>
+          <div><span className="text-muted-foreground">{t('detailDose')} </span><span className="font-semibold">{resolveDosingField(rec, 'dose', compoundsT, protocolsT)}</span></div>
+          <div><span className="text-muted-foreground">{t('detailFreq')} </span><span className="font-semibold">{resolveDosingField(rec, 'frequency', compoundsT, protocolsT)}</span></div>
+          <div><span className="text-muted-foreground">{t('detailRoute')} </span><span className="font-semibold">{resolveDosingField(rec, 'route', compoundsT, protocolsT)}</span></div>
+          <div><span className="text-muted-foreground">{t('detailCycle')} </span><span className="font-semibold">{resolveDosingField(rec, 'cycleLength', compoundsT, protocolsT)}</span></div>
         </div>
         <div className="rounded-lg bg-muted/50 px-3 py-2">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="text-sm font-medium">{rec.expectedBiomarkerShift}</span>
+            <span className="text-sm font-medium">{resolveDosingField(rec, 'expectedShift', compoundsT, protocolsT)}</span>
           </div>
         </div>
-        {rec.notes && <p className="text-xs text-muted-foreground italic">{rec.notes}</p>}
+        {rec.notes && <p className="text-xs text-muted-foreground italic">{resolveNotes(rec, protocolsT)}</p>}
         {rec.ragSourceIds?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {rec.ragSourceIds.slice(0, 4).map((src, i) => (

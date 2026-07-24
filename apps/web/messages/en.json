@@ -278,7 +278,38 @@
     "detailDose": "Dose:",
     "detailFreq": "Freq:",
     "detailRoute": "Route:",
-    "detailCycle": "Cycle:"
+    "detailCycle": "Cycle:",
+    "categoryTrendLine": "{biomarker}: latest {valueUnit} ({status}), trend {trend}.",
+    "insufficientData": "Insufficient data to characterize this section.",
+    "outOfRange": "{biomarker} ({valueUnit}) is {dir, select, below {below} above {above} other {outside}} the reference range{refSuffix}.",
+    "lhClausePresent": "LH ({lhValueUnit}) helps contextualize whether this is primary or secondary in origin — a distinction for your clinician to make.",
+    "lhClauseAbsent": "No LH value is on record to contextualize this; consider discussing with your clinician.",
+    "execSummaryBody": "This report summarizes {classified, plural, one {# lab value} other {# lab values}}{hasDates, select, true { collected between {start} and {end}} other {}}. {hasRed, select, true {{redFlags, plural, one {# value warrants} other {# values warrant}} prompt clinician review. } other {}}{abnormal, plural, one {# value is} other {# values are}} outside, and {borderline, plural, one {# is} other {# are}} at the edge of, the reference range. This summary is educational and organizational; it does not diagnose or prescribe. Discuss all findings with your healthcare provider.",
+    "followUpQuestion": "How would you like to follow up?",
+    "noRedFlagsFollowUp": "No values crossed the prompt-review thresholds; what routine follow-up cadence do you recommend?",
+    "considerDiscussing": "Consider discussing {category}: {biomarker} with your clinician.",
+    "noPanelGaps": "No expected-panel gaps detected.",
+    "lifestyleFactors": "Sleep duration, exercise frequency, alcohol use, and body composition influence hormone and metabolic markers. Tracking these consistently over time improves the interpretation of trends.",
+    "guidelineReference1": "Endocrine Society Clinical Practice Guideline on Testosterone Therapy in Adult Men with Androgen Deficiency Syndromes.",
+    "guidelineReference2": "AACE/ACE clinical guidance on hypogonadism and male sexual health (refer to current published editions for exact citations)."
+  },
+  "Findings": {
+    "RF-HEMATOCRIT-HIGH": "Hematocrit is recorded at {valueUnit}, at or above 54%. This warrants prompt clinician review (a common discussion point in TRT contexts).",
+    "RF-HEMOGLOBIN-HIGH": "Hemoglobin is recorded at {valueUnit}, markedly elevated. Prompt clinician review is warranted.",
+    "RF-PSA-ELEVATED": "PSA is recorded at {valueUnit}, at or above 4.0 ng/mL. Prompt clinician review is warranted.",
+    "RF-PSA-SIGNIFICANT": "PSA is recorded at {valueUnit}, ≥ 10.0 ng/mL. Prompt clinician review is strongly advised.",
+    "RF-ALT-HIGH": "ALT is recorded at {valueUnit}, markedly elevated. Prompt clinician review is warranted to assess liver function.",
+    "RF-AST-HIGH": "AST is recorded at {valueUnit}, markedly elevated. Prompt clinician review is warranted to assess liver function.",
+    "RF-EGFR-LOW": "eGFR is recorded at {valueUnit}, reduced. Prompt clinician review is warranted to assess kidney function.",
+    "RF-TRIGLYCERIDES-HIGH": "Triglycerides are recorded at {valueUnit}, markedly elevated. Prompt clinician review is warranted.",
+    "RF-GLUCOSE-HIGH": "Glucose is recorded at {valueUnit}, markedly elevated. Prompt clinician review is warranted.",
+    "PT-LOW-T": "Recorded testosterone value(s) sit in the lower portion of or below the reference range: {hits}. {lhClause} This is an observation, not a diagnosis.",
+    "PT-HEMATOCRIT-RISE": "Hematocrit is trending up (latest {valueUnit}). Rising hematocrit is a pattern worth monitoring with your clinician.",
+    "PT-SHBG-LOW": "SHBG ({valueUnit}) is low; lower SHBG can raise the free hormone fraction. Worth discussing with your clinician when interpreting free testosterone.",
+    "PT-E2-HIGH": "Estradiol ({valueUnit}) is above the reference range. A discussion point for your clinician, particularly in the context of any symptoms.",
+    "PT-ATHEROGENIC-LIPIDS": "An atherogenic lipid pattern is present (multiple lipid values outside the reference range): {hits}. Worth discussing cardiovascular follow-up with your clinician.",
+    "PT-RENAL": "Kidney-function markers are outside the reference range: {hits}. Worth discussing with your clinician.",
+    "PT-METABOLIC": "Metabolic markers are elevated relative to reference: {hits}. Worth discussing metabolic health follow-up with your clinician."
   },
   "Charts": {
     "ref": "Ref: {low} – {high}",
@@ -379,5 +410,259 @@
     "EXTRACTED": "Extracted",
     "REVIEW_NEEDED": "Review needed",
     "FAILED": "Failed"
+  },
+  "Biomarkers": {
+    "total_testosterone": "Total testosterone",
+    "free_testosterone": "Free testosterone",
+    "lh": "LH",
+    "fsh": "FSH",
+    "estradiol_sensitive": "Estradiol (sensitive)",
+    "prolactin": "Prolactin",
+    "free_t3": "Free T3",
+    "free_t4": "Free T4",
+    "tsh": "TSH",
+    "reverse_t3": "Reverse T3",
+    "dhea_s": "DHEA-S",
+    "cortisol_am": "Cortisol (AM)",
+    "igf_1": "IGF-1",
+    "hemoglobin": "Hemoglobin",
+    "hematocrit": "Hematocrit",
+    "rbc": "RBC",
+    "wbc": "WBC",
+    "platelets": "Platelets",
+    "alt": "ALT",
+    "ast": "AST",
+    "creatinine": "Creatinine",
+    "egfr": "eGFR",
+    "bun": "BUN",
+    "hdl": "HDL",
+    "ldl": "LDL",
+    "triglycerides": "Triglycerides",
+    "total_cholesterol": "Total cholesterol",
+    "a1c": "Hemoglobin A1C",
+    "glucose": "Glucose",
+    "insulin": "Insulin",
+    "hscrp": "hs-CRP",
+    "shbg": "SHBG",
+    "psa": "PSA",
+    "vitamin_d": "Vitamin D",
+    "body_fat_pct": "Body fat (%)",
+    "body_composition": "Body composition"
+  },
+  "Categories": {
+    "hormone": "Hormone",
+    "cbc": "CBC",
+    "thyroid": "Thyroid",
+    "cmp": "Metabolic panel",
+    "lipid": "Lipids",
+    "metabolic": "Metabolic",
+    "inflammation": "Inflammation",
+    "other": "Other"
+  },
+  "Trend": {
+    "UP": "Up",
+    "DOWN": "Down",
+    "FLAT": "Flat",
+    "INSUFFICIENT": "Insufficient"
+  },
+  "Compounds": {
+    "testosterone_cypionate": {
+      "name": "Testosterone Cypionate",
+      "dose": "100–200 mg",
+      "frequency": "every 7 days",
+      "route": "intramuscular",
+      "cycleLength": "ongoing (12+ week assessment)",
+      "expectedShift": "+150–300 ng/dL total testosterone"
+    },
+    "testosterone_enanthate": {
+      "name": "Testosterone Enanthate",
+      "dose": "100–200 mg",
+      "frequency": "every 7 days",
+      "route": "intramuscular",
+      "cycleLength": "ongoing (12+ week assessment)",
+      "expectedShift": "+150–300 ng/dL total testosterone"
+    },
+    "testosterone_propionate": {
+      "name": "Testosterone Propionate",
+      "dose": "50–100 mg",
+      "frequency": "every 3–4 days",
+      "route": "intramuscular",
+      "cycleLength": "ongoing (12+ week assessment)",
+      "expectedShift": "+100–200 ng/dL total testosterone"
+    },
+    "nandrolone_decanoate": {
+      "name": "Nandrolone Decanoate",
+      "dose": "100–200 mg",
+      "frequency": "every 10–14 days",
+      "route": "intramuscular",
+      "cycleLength": "12–16 weeks",
+      "expectedShift": "+50–100 ng/dL testosterone, improved body comp"
+    },
+    "trenbolone_acetate": {
+      "name": "Trenbolone Acetate",
+      "dose": "50–100 mg",
+      "frequency": "every other day",
+      "route": "intramuscular",
+      "cycleLength": "8–12 weeks",
+      "expectedShift": "+100–200 ng/dL testosterone, fat loss + muscle retention"
+    },
+    "boldenone_undecylenate": {
+      "name": "Boldenone Undecylenate",
+      "dose": "200–400 mg",
+      "frequency": "every 10–14 days",
+      "route": "intramuscular",
+      "cycleLength": "10–14 weeks",
+      "expectedShift": "+100–200 ng/dL testosterone, lean mass gains"
+    },
+    "masteron_propionate": {
+      "name": "Masteron Propionate",
+      "dose": "50–100 mg",
+      "frequency": "every other day",
+      "route": "intramuscular",
+      "cycleLength": "8–10 weeks",
+      "expectedShift": "anti-estrogenic, improved muscle hardness"
+    },
+    "primobolan_enanthate": {
+      "name": "Primobolan (Methenolone Enanthate)",
+      "dose": "100–200 mg",
+      "frequency": "every 7–10 days",
+      "route": "intramuscular",
+      "cycleLength": "8–12 weeks",
+      "expectedShift": "lean mass preservation, low androgenic side effects"
+    },
+    "oxandrolone": {
+      "name": "Oxandrolone",
+      "dose": "20–50 mg",
+      "frequency": "daily (split AM/PM)",
+      "route": "oral",
+      "cycleLength": "6–8 weeks",
+      "expectedShift": "+5–10% lean mass, fat loss, strength gains"
+    },
+    "dianabol": {
+      "name": "Dianabol (Methandienone)",
+      "dose": "20–40 mg",
+      "frequency": "daily (split AM/PM)",
+      "route": "oral",
+      "cycleLength": "4–6 weeks",
+      "expectedShift": "rapid strength + mass gains, water retention"
+    },
+    "anastrozole": {
+      "name": "Anastrozole",
+      "dose": "0.25–0.5 mg",
+      "frequency": "every 3–4 days or as needed",
+      "route": "oral",
+      "cycleLength": "ongoing with TRT",
+      "expectedShift": "↓ estradiol by 20–50 pg/mL"
+    },
+    "letrozole": {
+      "name": "Letrozole",
+      "dose": "0.25–0.5 mg",
+      "frequency": "every 3–4 days or as needed",
+      "route": "oral",
+      "cycleLength": "ongoing with TRT",
+      "expectedShift": "↓ estradiol by 30–60 pg/mL (more potent than AI)"
+    },
+    "exemestane": {
+      "name": "Exemestane",
+      "dose": "12.5 mg",
+      "frequency": "2–3x per week",
+      "route": "oral",
+      "cycleLength": "ongoing with TRT",
+      "expectedShift": "↓ estradiol by 20–40 pg/mL (steroidal AI)"
+    },
+    "hcg": {
+      "name": "hCG (Human Chorionic Gonadotropin)",
+      "dose": "250–500 IU",
+      "frequency": "2–3x per week",
+      "route": "subcutaneous/intramuscular",
+      "cycleLength": "ongoing with TRT",
+      "expectedShift": "↑ intratesticular testosterone, testicular volume preservation"
+    },
+    "clomiphene": {
+      "name": "Clomiphene (Clomid)",
+      "dose": "25–50 mg",
+      "frequency": "daily or every other day",
+      "route": "oral",
+      "cycleLength": "4–12 weeks (PCT or natural TRT)",
+      "expectedShift": "↑ LH/FSH, ↑ endogenous testosterone"
+    },
+    "tamoxifen": {
+      "name": "Tamoxifen (Nolvadex)",
+      "dose": "10–20 mg",
+      "frequency": "daily or every other day",
+      "route": "oral",
+      "cycleLength": "4–8 weeks (PCT)",
+      "expectedShift": "↑ LH/FSH, ↑ endogenous testosterone, anti-estrogenic"
+    },
+    "clenbuterol": {
+      "name": "Clenbuterol",
+      "dose": "20–40 mcg",
+      "frequency": "daily (2 weeks on, 2 weeks off — up-titrate)",
+      "route": "oral",
+      "cycleLength": "4–6 weeks",
+      "expectedShift": "↑ metabolic rate, fat oxidation"
+    }
+  },
+  "DosingProtocols": {
+    "trt_base": {
+      "indication": "Low total testosterone ({value} ng/dL) — below typical reference range",
+      "notes": "{noteKey, select, below_ref {Total testosterone below laboratory reference low — TRT indicated. Start at lower end of range, reassess at 12 weeks.} other {Total testosterone in borderline/low range — consider TRT if symptoms correlate.}}"
+    },
+    "e2_high": {
+      "indication": "Elevated estradiol ({value} pg/mL) — aromatization of testosterone",
+      "notes": "{noteKey, select, high {Estradiol significantly elevated — consider Letrozole (more potent AI).} upper {Estradiol at upper range — Anastrozole at low dose sufficient.} other {Estradiol mildly elevated — monitor, consider low-dose Anastrozole.}}"
+    },
+    "e2_low": {
+      "indication": "Estradiol low — consider reducing AI dose",
+      "notes": "If not already on an AI, no need to start. If on AI, consider dose reduction.",
+      "dose": "0.25 mg",
+      "frequency": "2x per week",
+      "route": "oral",
+      "cycleLength": "ongoing with TRT",
+      "expectedShift": "↑ estradiol by 5–15 pg/mL"
+    },
+    "hct_high": {
+      "indication": "Elevated hematocrit ({value}%) — monitor for polycythemia",
+      "notes": "{noteKey, select, high {Hematocrit above upper reference — consider phlebotomy if >55%. Use lower TRT dose initially.} other {Hematocrit at upper range — monitor closely with TRT. Lower starting dose recommended.}}",
+      "dose": "{noteKey, select, high {100 mg} other {100–150 mg}}",
+      "cycleLength": "ongoing (reassess HCT at 8–12 weeks)",
+      "expectedShift": "Hematocrit may increase 2–5% over 8–12 weeks"
+    },
+    "shbg_high": {
+      "indication": "High SHBG ({value} nmol/L) — reduces free testosterone availability",
+      "notes": "High SHBG binds testosterone, reducing free bioavailable T. Higher TRT dose may be needed.",
+      "dose": "150–200 mg",
+      "expectedShift": "↑ free testosterone by 15–30 pg/mL"
+    },
+    "nandrolone": {
+      "indication": "Normal total T but low free T or downward trend — Nandrolone may improve body composition with less aromatization",
+      "notes": "Nandrolone is 19-nor — less aromatization than T. Monitor prolactin. May need hCG support."
+    },
+    "boldenone": {
+      "indication": "Good testosterone + lipid imbalance — Boldenone for lean mass with moderate lipid impact",
+      "notes": "Boldenone has moderate lipid impact. Monitor LDL/HDL ratio. Less suppressive than Tren."
+    },
+    "hcg_support": {
+      "indication": "Testicular volume preservation + intratesticular testosterone during TRT",
+      "notes": "hCG mimics LH — maintains Leydig cell function. Essential if fertility is a goal."
+    },
+    "clomiphene": {
+      "indication": "Post-TRT recovery or natural T stimulation alternative",
+      "notes": "SERM — blocks estrogen at pituitary, ↑ LH/FSH, ↑ endogenous T. Use 4–12 weeks post-TRT."
+    },
+    "clenbuterol": {
+      "indication": "Fat loss phase — beta-2 agonist increases metabolic rate",
+      "notes": "2 weeks on / 2 weeks off to prevent receptor downregulation. Start low (20 mcg), titrate."
+    },
+    "panel_completion": {
+      "name": "Panel Completion",
+      "indication": "Missing panels: {panels}",
+      "notes": "Full hormone panel (LH, FSH, prolactin), metabolic panel (A1C, glucose), lipid panel needed for optimal dosing.",
+      "dose": "TBD",
+      "frequency": "per lab schedule",
+      "route": "blood draw",
+      "cycleLength": "as needed",
+      "expectedShift": "Complete biomarker picture for accurate dosing"
+    }
   }
 }

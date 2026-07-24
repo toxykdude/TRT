@@ -13,9 +13,12 @@ import {
   Target,
   Stethoscope,
 } from 'lucide-react';
+import { resolveCompoundName, resolveDosingField, resolveIndication, resolveNotes } from '@/lib/dosing-i18n';
 
 type DosingRecommendation = {
   compound: string;
+  compoundKey: string;
+  protocolKey: string;
   dose: string;
   frequency: string;
   route: string;
@@ -25,6 +28,7 @@ type DosingRecommendation = {
   ragSourceIds: string[];
   priority: 'clinical_priority' | 'standard' | 'alternative';
   notes?: string;
+  indicationParams?: Record<string, string | number>;
 };
 
 const priorityConfig = {
@@ -53,6 +57,10 @@ const priorityConfig = {
 
 export function DosingRecommendations({ recommendations }: { recommendations: DosingRecommendation[] }) {
   const t = useTranslations('Dosing');
+  const compoundsT = useTranslations('Compounds');
+  const protocolsT = useTranslations('DosingProtocols');
+  const biomarkersT = useTranslations('Biomarkers');
+  const categoriesT = useTranslations('Categories');
   if (!recommendations || recommendations.length === 0) return null;
 
   return (
@@ -76,7 +84,7 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <CardTitle className="text-lg">{rec.compound}</CardTitle>
+                      <CardTitle className="text-lg">{resolveCompoundName(rec, compoundsT, protocolsT)}</CardTitle>
                       <Badge variant="outline" className={`${config.bg} ${config.border} text-xs`}>
                         <Icon className="mr-1 h-3 w-3" />
                         {t(config.labelKey)}
@@ -87,7 +95,7 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
                         </Badge>
                       )}
                     </div>
-                    <CardDescription>{rec.indication}</CardDescription>
+                    <CardDescription>{resolveIndication(rec, biomarkersT, categoriesT, protocolsT)}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -95,10 +103,10 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
               <CardContent className="space-y-4">
                 {/* Dosing details grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <DetailItem icon={Pill} label={t('detailDose')} value={rec.dose} />
-                  <DetailItem icon={Calendar} label={t('detailFrequency')} value={rec.frequency} />
-                  <DetailItem icon={Syringe} label={t('detailRoute')} value={rec.route} />
-                  <DetailItem icon={Activity} label={t('detailCycle')} value={rec.cycleLength} />
+                  <DetailItem icon={Pill} label={t('detailDose')} value={resolveDosingField(rec, 'dose', compoundsT, protocolsT)} />
+                  <DetailItem icon={Calendar} label={t('detailFrequency')} value={resolveDosingField(rec, 'frequency', compoundsT, protocolsT)} />
+                  <DetailItem icon={Syringe} label={t('detailRoute')} value={resolveDosingField(rec, 'route', compoundsT, protocolsT)} />
+                  <DetailItem icon={Activity} label={t('detailCycle')} value={resolveDosingField(rec, 'cycleLength', compoundsT, protocolsT)} />
                 </div>
 
                 {/* Expected biomarker shift */}
@@ -107,7 +115,7 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
                     <Target className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                     <div>
                       <span className="text-xs font-medium text-muted-foreground">{t('expectedShift')}</span>
-                      <p className="text-sm font-medium">{rec.expectedBiomarkerShift}</p>
+                      <p className="text-sm font-medium">{resolveDosingField(rec, 'expectedShift', compoundsT, protocolsT)}</p>
                     </div>
                   </div>
                 </div>
@@ -117,7 +125,7 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
                   <div className="rounded-md border bg-background/30 px-3 py-2">
                     <div className="flex items-start gap-2">
                       <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                      <p className="text-sm text-muted-foreground">{rec.notes}</p>
+                      <p className="text-sm text-muted-foreground">{resolveNotes(rec, protocolsT)}</p>
                     </div>
                   </div>
                 )}

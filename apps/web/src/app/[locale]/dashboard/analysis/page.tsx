@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { SafetyBanner } from '@/components/safety-banner';
 import { BiomarkerChart } from '@/components/dashboard/biomarker-chart';
 import { buildMarkerViews, groupByCategory, type MarkerView } from '@/lib/analysis';
+import { assembleLocalizedNarrative, type ReportSectionsLike } from '@/lib/report-i18n';
 import { cn } from '@/lib/utils';
 import { Flag, Activity, AlertTriangle, Network, FlaskConical } from 'lucide-react';
 
@@ -25,6 +26,12 @@ export default async function AnalysisPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('Dashboard.Analysis');
+  const biomarkersT = await getTranslations('Biomarkers');
+  const categoriesT = await getTranslations('Categories');
+  const reportT = await getTranslations('Report');
+  const findingsT = await getTranslations('Findings');
+  const statusT = await getTranslations('Status');
+  const trendT = await getTranslations('Trend');
 
   const session = await auth();
   const db = prismaFor(session!.user.id);
@@ -45,11 +52,22 @@ export default async function AnalysisPage({
   const markers = buildMarkerViews(results as never);
   const categories = groupByCategory(markers);
   const latestReport = reports[0];
-  const sections = (latestReport?.sections ?? {}) as Record<string, unknown>;
-  const redFlags = (sections.redFlags as string[]) ?? [];
+  const sections = (latestReport?.sections ?? {}) as ReportSectionsLike;
+  // Reassemble red flags / questions / suggested tests in the active locale from
+  // the structured data. Legacy reports fall back to stored English inside the
+  // helper. Graph facts are source citations and stay verbatim.
+  const narr = assembleLocalizedNarrative(sections, {
+    report: reportT,
+    findings: findingsT,
+    status: statusT,
+    trend: trendT,
+    biomarkers: biomarkersT,
+    categories: categoriesT,
+  });
+  const redFlags = narr.redFlags;
   const graphFacts = (sections.knowledgeGraphFacts as string[]) ?? [];
-  const questions = (sections.questionsForPhysician as string[]) ?? [];
-  const additionalTests = (sections.suggestedAdditionalTests as string[]) ?? [];
+  const questions = narr.questionsForPhysician;
+  const additionalTests = narr.suggestedAdditionalTests;
 
   const normalCount = markers.filter((m) => m.status === 'NORMAL').length;
   const highCount = markers.filter((m) => m.status === 'HIGH').length;
@@ -125,13 +143,14 @@ export default async function AnalysisPage({
         <div className="space-y-6">
           {[...categories.entries()].map(([cat, ms]) => (
             <div key={cat}>
-              <h3 className="mb-3 text-sm font-medium capitalize text-muted-foreground">{cat}</h3>
+              <h3 className="mb-3 text-sm font-medium capitalize text-muted-foreground">{categoriesT.has(cat) ? categoriesT(cat) : cat}</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {ms.map((m) => {
                   const trendKey = TREND_KEY[m.trend];
+                  const localizedName = biomarkersT.has(m.key) ? biomarkersT(m.key) : m.name;
                   const name = trendKey
-                    ? `${m.name} (${t(trendKey as never)})`
-                    : m.name;
+                    ? `${localizedName} (${t(trendKey as never)})`
+                    : localizedName;
                   return (
                     <BiomarkerChart
                       key={m.key}
