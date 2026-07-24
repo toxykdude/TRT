@@ -103,6 +103,7 @@
       "patients": "Patients",
       "labs": "Labs",
       "reports": "Reports",
+      "medications": "Medications",
       "symptoms": "Symptoms",
       "timeline": "Timeline",
       "analytics": "Analytics",
@@ -207,8 +208,13 @@
       "goToLabs": "Go to Labs"
     },
     "Medications": {
-      "title": "Add a medication",
+      "title": "Medications",
       "subtitle": "Record medications you take or have taken (GOLD §5.11).",
+      "listTitle": "Your medications",
+      "listDesc": "Your recorded medication history. Dose is kept as a private historical record and is not shown here.",
+      "emptyList": "No medications recorded yet. Add one below.",
+      "ongoing": "ongoing",
+      "addTitle": "Add a medication",
       "name": "Name",
       "namePlaceholder": "e.g. Testosterone Cypionate",
       "nameRequired": "Name is required.",
@@ -227,6 +233,9 @@
     "Symptoms": {
       "title": "Symptoms",
       "subtitle": "Track how you feel over time (GOLD §5.10).",
+      "listTitle": "Your symptom log",
+      "listDesc": "Entries you have recorded, most recent first.",
+      "emptyList": "No symptoms logged yet. Add one below.",
       "trackingTitle": "Symptom tracking — {count, plural, one {# entry recorded} other {# entries recorded}}",
       "trackingWhat": "The schema and storage are ready (0–10 scoring across energy, mood, libido, sleep, and more). Data entry and trend charts are part of the next pass.",
       "trackingNext": "A daily check-in form and per-symptom trend charts overlaid with your labs.",

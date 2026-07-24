@@ -103,6 +103,7 @@
       "patients": "Pacientes",
       "labs": "Laboratorios",
       "reports": "Informes",
+      "medications": "Medicación",
       "symptoms": "Síntomas",
       "timeline": "Línea de tiempo",
       "analytics": "Métricas",
@@ -207,8 +208,13 @@
       "goToLabs": "Ir a Laboratorios"
     },
     "Medications": {
-      "title": "Agregar un medicamento",
+      "title": "Medicación",
       "subtitle": "Registre los medicamentos que toma o ha tomado (GOLD §5.11).",
+      "listTitle": "Sus medicamentos",
+      "listDesc": "Su historial de medicamentos registrado. La dosis se guarda como registro histórico privado y no se muestra aquí.",
+      "emptyList": "Aún no hay medicamentos registrados. Agregue uno a continuación.",
+      "ongoing": "en curso",
+      "addTitle": "Agregar un medicamento",
       "name": "Nombre",
       "namePlaceholder": "p. ej. Testosterona Cipionato",
       "nameRequired": "El nombre es obligatorio.",
@@ -227,6 +233,9 @@
     "Symptoms": {
       "title": "Síntomas",
       "subtitle": "Registre cómo se siente a lo largo del tiempo (GOLD §5.10).",
+      "listTitle": "Su registro de síntomas",
+      "listDesc": "Entradas que ha registrado, de la más reciente a la más antigua.",
+      "emptyList": "Aún no hay síntomas registrados. Agregue uno a continuación.",
       "trackingTitle": "Seguimiento de síntomas — {count, plural, one {# entrada registrada} other {# entradas registradas}}",
       "trackingWhat": "El esquema y el almacenamiento están listos (puntuación de 0 a 10 en energía, estado de ánimo, libido, sueño y más). El ingreso de datos y los gráficos de tendencia forman parte de la próxima etapa.",
       "trackingNext": "Un formulario de control diario y gráficos de tendencia por síntoma superpuestos con sus laboratorios.",
