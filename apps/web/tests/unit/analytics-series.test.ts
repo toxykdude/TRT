@@ -17,7 +17,7 @@
  * reaching the payload fails the scan test.
  */
 import { describe, it, expect } from 'vitest';
-import { GuardrailViolationError } from '@trt/guardrails';
+import { GuardrailViolationError, assertConsumerSafe } from '@trt/guardrails';
 import {
   stripMedicationToTiming,
   serializeForConsumer,
@@ -71,9 +71,59 @@ describe('serializeForConsumer — assertConsumerSafe backstop (S-TC-BLOCK, SRV-
     symptoms: [{ date: '2026-01-01', symptom: 'mood', score: 7 }],
   };
 
-  it('passes through a timing-only series unchanged', () => {
-    const out = serializeForConsumer(cleanSeries);
-    expect(out).toEqual(cleanSeries);
+  it('returns a cleaned timing-only series with NO omissions', () => {
+    const out = serializeForConsumer(cleanSeries as never);
+    expect(out.series).toEqual(cleanSeries);
+    expect(out.omissions).toEqual([]);
+  });
+
+  it('OMITS (does NOT throw) a medication whose NAME trips the dosing scan', () => {
+    // A real TRT product name that carries a concentration — the COMMON case.
+    // Before this fix, assertConsumerSafe JSON-scanned the whole series incl.
+    // the name and threw → the analytics page 500'd for that user.
+    const series = {
+      biomarkers: [],
+      medications: [
+        { name: 'Testosterone Cypionate 200mg/ml', startDate: '2026-01-01', endDate: null },
+      ],
+      symptoms: [],
+    };
+    const out = serializeForConsumer(series as never);
+    // The dirty-named med never reaches the consumer payload.
+    expect(out.series.medications).toEqual([]);
+    // …but it is recorded for human review (audit), with the offending name.
+    expect(out.omissions).toEqual([
+      { name: 'Testosterone Cypionate 200mg/ml', reason: 'dosing-pattern-in-name' },
+    ]);
+  });
+
+  it('keeps clean meds and omits ONLY the dirty-named one (mixed)', () => {
+    const series = {
+      biomarkers: [],
+      medications: [
+        { name: 'Anastrozole', startDate: '2026-01-01', endDate: null },
+        { name: 'Testosterone 200mg/ml', startDate: '2026-02-01', endDate: null },
+      ],
+      symptoms: [],
+    };
+    const out = serializeForConsumer(series as never);
+    expect(out.series.medications.map((m) => m.name)).toEqual(['Anastrozole']);
+    expect(out.omissions).toHaveLength(1);
+    expect(out.omissions[0]).toEqual({
+      name: 'Testosterone 200mg/ml',
+      reason: 'dosing-pattern-in-name',
+    });
+  });
+
+  it('the cleaned series itself passes assertConsumerSafe (defense-in-depth)', () => {
+    const out = serializeForConsumer({
+      biomarkers: [],
+      medications: [
+        { name: 'Testosterone 200mg/ml', startDate: '2026-01-01', endDate: null },
+      ],
+      symptoms: [],
+    } as never);
+    expect(() => assertConsumerSafe(out.series)).not.toThrow();
   });
 
   it('THROWS GuardrailViolationError when a medication leaks a dosing value', () => {

@@ -205,7 +205,8 @@
       "rangeAll": "Todo el tiempo",
       "emptyTitle": "Aún no hay resultados confirmados",
       "emptyWhat": "Sube un informe de laboratorio y confirma los valores extraídos para ver tus gráficos de tendencia interactivos con superposición de medicamentos y síntomas.",
-      "goToLabs": "Ir a Laboratorios"
+      "goToLabs": "Ir a Laboratorios",
+      "medsOmittedNotice": "{count} medicación oculta para revisión"
     },
     "Medications": {
       "title": "Medicación",

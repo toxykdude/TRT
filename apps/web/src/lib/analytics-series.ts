@@ -16,7 +16,12 @@
  * trend + range math, and reads labs / medications / symptoms all scoped to the
  * session `ownerId` (prismaFor is BYPASSRLS — tenancy is app-layer, spec TC-7).
  */
-import { assertConsumerSafe } from '@trt/guardrails';
+import {
+  assertConsumerSafe,
+  scanForDosing,
+  GuardrailViolationError,
+  type GuardrailFinding,
+} from '@trt/guardrails';
 import { buildMarkerViews, type MarkerView } from '@/lib/analysis';
 import type { PrismaClient } from '@trt/db';
 
@@ -39,6 +44,31 @@ export type AnalyticsSeries = {
   biomarkers: MarkerView[];
   medications: TimingOnlyMed[];
   symptoms: SymptomPoint[];
+};
+
+/**
+ * Dosing fields that must NEVER appear on a consumer medication overlay. Their
+ * PRESENCE (a leaked key) is an unrecoverable structural violation — it means
+ * the by-construction `select` was bypassed, so `serializeForConsumer` THROWS.
+ * (Contrast: a dosing pattern in the legit `name` VALUE is handled gracefully.)
+ */
+const FORBIDDEN_MED_FIELDS = ['dose', 'frequency', 'route', 'reason', 'clinician'] as const;
+
+/** Why a medication was omitted from a consumer payload. */
+export type OmissionReason = 'dosing-pattern-in-name';
+
+/** A medication removed from a consumer payload + the reason (for audit). */
+export type Omission = {
+  name: string;
+  reason: OmissionReason;
+};
+
+/** Result of {@link serializeForConsumer}: a cleaned series + review omissions. */
+export type ConsumerSafeSeries = {
+  /** The consumer-safe series (dirty-named meds removed). */
+  series: AnalyticsSeries;
+  /** Medications omitted for human review (never rendered to the consumer). */
+  omissions: Omission[];
 };
 
 export type AnalyticsRange = '3m' | '6m' | '1y' | 'all';
@@ -73,14 +103,71 @@ export function stripMedicationToTiming(m: {
 }
 
 /**
- * Serialize the analytics series for a consumer payload, FAIL-CLOSED.
- * Runs `assertConsumerSafe` (GOLD §2 / SRV-2): if any dosing/scheduling content
- * is detectable in the serialized payload it throws `GuardrailViolationError`.
- * This is the scan backstop behind the by-construction select.
+ * Assert that NO consumer medication carries a forbidden dosing FIELD. This is
+ * the must-BLOCK safety floor (S-TC-BLOCK / SRV-2): a leaked
+ * dose/frequency/route/reason/clinician KEY is a structural regression that
+ * throws, never degrades gracefully.
  */
-export function serializeForConsumer(series: AnalyticsSeries): AnalyticsSeries {
-  assertConsumerSafe(series);
-  return series;
+function assertNoForbiddenMedFields(series: AnalyticsSeries): void {
+  for (const med of series.medications) {
+    for (const key of Object.keys(med)) {
+      if ((FORBIDDEN_MED_FIELDS as readonly string[]).includes(key)) {
+        const finding: GuardrailFinding = {
+          ruleId: 'analytics:forbidden-med-field',
+          category: 'dosing',
+          match: `${key} field on a consumer medication overlay`,
+          index: 0,
+        };
+        throw new GuardrailViolationError([finding]);
+      }
+    }
+  }
+}
+
+/**
+ * Serialize the analytics series for a consumer payload, FAIL-CLOSED, with
+ * graceful per-medication degradation (GOLD §2.3 / spec SRV-2, TC-4).
+ *
+ * Two distinct safety rules, deliberately separated:
+ *
+ *   1. MUST-BLOCK (throw) — a forbidden FIELD (dose/frequency/route/reason/
+ *      clinician) on a medication is an unrecoverable structural leak: the
+ *      by-construction `select` was bypassed. Throw `GuardrailViolationError`
+ *      exactly as before. This is the non-negotiable safety floor.
+ *
+ *   2. GRACEFUL OMIT — a medication NAME that itself trips the dosing scan
+ *      (e.g. a real TRT product name like "Testosterone Cypionate 200mg/ml",
+ *      which carries a concentration) is REMOVED from the consumer overlay and
+ *      recorded in `omissions` for human review. The remaining medications and
+ *      ALL biomarker/symptom data render normally — the page does NOT 500.
+ *
+ * After the partition, `assertConsumerSafe` runs once more on the CLEANED series
+ * as the canonical fail-closed backstop — it still THROWS if dosing prose hides
+ * in a biomarker/symptom field (by design; only medication NAMES degrade).
+ *
+ * This lib stays pure/DB-free: audit rows for the omissions are written by the
+ * analytics PAGE (it owns the `db` + ownerId), never here.
+ */
+export function serializeForConsumer(series: AnalyticsSeries): ConsumerSafeSeries {
+  // Step 1 — must-BLOCK: a forbidden dosing FIELD is unrecoverable. Throw.
+  assertNoForbiddenMedFields(series);
+
+  // Step 2 — graceful per-medication degradation by name scan.
+  const omissions: Omission[] = [];
+  const safeMeds: TimingOnlyMed[] = [];
+  for (const med of series.medications) {
+    if (scanForDosing(med.name).length > 0) {
+      omissions.push({ name: med.name, reason: 'dosing-pattern-in-name' });
+    } else {
+      safeMeds.push(med);
+    }
+  }
+  const cleaned: AnalyticsSeries = { ...series, medications: safeMeds };
+
+  // Step 3 — defense-in-depth: final fail-closed scan on the clean payload.
+  assertConsumerSafe(cleaned);
+
+  return { series: cleaned, omissions };
 }
 
 /** The `since` cutoff Date for a range preset, or null for no window. */

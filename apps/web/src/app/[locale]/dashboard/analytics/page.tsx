@@ -54,8 +54,28 @@ export default async function AnalyticsPage({
   ]);
 
   // SRV-2 / fail-closed: scan the consumer payload before it reaches the chart.
-  // Throws GuardrailViolationError if any dosing content is present (§2.3).
-  const safeSeries = serializeForConsumer(series);
+  // A forbidden dosing FIELD still throws (must-BLOCK); a medication NAME that
+  // trips the scan is omitted gracefully + audited (AGENTS §6) so the page never
+  // 500s for a user whose med is named with a concentration (e.g. "… 200mg/ml").
+  const { series: safeSeries, omissions } = serializeForConsumer(series);
+  // Audit each omission for human review (ownerId-scoped). The offending name
+  // lives ONLY in this audit row (server-side) — never on the consumer surface.
+  // Non-fatal: safety is guaranteed by the omission in the pure lib, so an audit
+  // write failure must NEVER re-brick the page (that would undo this fix).
+  for (const om of omissions) {
+    try {
+      await db.auditLog.create({
+        data: {
+          userId: ownerId,
+          action: 'guardrail_omit',
+          entity: 'medication',
+          detail: { reason: om.reason, name: om.name },
+        },
+      });
+    } catch {
+      // Best-effort audit; the consumer payload is already safe (med omitted).
+    }
+  }
   const categories = groupByCategory(safeSeries.biomarkers);
   const hasCharts = safeSeries.biomarkers.length > 0;
 
@@ -106,6 +126,12 @@ export default async function AnalyticsPage({
           </Button>
         ))}
       </div>
+
+      {omissions.length > 0 && (
+        <p role="note" className="text-xs text-muted-foreground">
+          {t('medsOmittedNotice', { count: omissions.length })}
+        </p>
+      )}
 
       {hasCharts ? (
         <div className="space-y-6">

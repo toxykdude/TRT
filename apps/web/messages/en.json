@@ -205,7 +205,8 @@
       "rangeAll": "All time",
       "emptyTitle": "No confirmed results yet",
       "emptyWhat": "Upload a lab report and confirm the extracted values to see your interactive trend charts with medication and symptom overlays.",
-      "goToLabs": "Go to Labs"
+      "goToLabs": "Go to Labs",
+      "medsOmittedNotice": "{count} medication hidden for review"
     },
     "Medications": {
       "title": "Medications",
