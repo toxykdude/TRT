@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -28,29 +29,30 @@ type DosingRecommendation = {
 
 const priorityConfig = {
   clinical_priority: {
-    label: 'Clinical Priority',
+    labelKey: 'labelPriority',
     color: 'destructive',
     bg: 'bg-destructive/10',
     border: 'border-destructive/30',
     icon: Shield,
   },
   standard: {
-    label: 'Standard',
+    labelKey: 'labelStandard',
     color: 'secondary',
     bg: 'bg-secondary/10',
     border: 'border-secondary/30',
     icon: Target,
   },
   alternative: {
-    label: 'Alternative',
+    labelKey: 'labelAlternative',
     color: 'outline',
     bg: 'bg-muted/10',
     border: 'border-muted/30',
     icon: Stethoscope,
   },
-};
+} as const;
 
 export function DosingRecommendations({ recommendations }: { recommendations: DosingRecommendation[] }) {
+  const t = useTranslations('Dosing');
   if (!recommendations || recommendations.length === 0) return null;
 
   return (
@@ -58,12 +60,9 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
       <div>
         <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Pill className="h-5 w-5 text-primary" />
-          Dosing Recommendations
+          {t('title')}
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Exact steroid + ancillary dosages based on your lab results and clinical protocols.{' '}
-          The physician validates every recommendation.
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">{t('desc')}</p>
       </div>
 
       <div className="space-y-4">
@@ -80,11 +79,11 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
                       <CardTitle className="text-lg">{rec.compound}</CardTitle>
                       <Badge variant="outline" className={`${config.bg} ${config.border} text-xs`}>
                         <Icon className="mr-1 h-3 w-3" />
-                        {config.label}
+                        {t(config.labelKey)}
                       </Badge>
                       {rec.ragSourceIds.length > 0 && (
                         <Badge variant="outline" className="text-xs">
-                          {rec.ragSourceIds.length} sources
+                          {t('sourcesCount', { count: rec.ragSourceIds.length })}
                         </Badge>
                       )}
                     </div>
@@ -96,26 +95,10 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
               <CardContent className="space-y-4">
                 {/* Dosing details grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <DetailItem
-                    icon={Pill}
-                    label="Dose"
-                    value={rec.dose}
-                  />
-                  <DetailItem
-                    icon={Calendar}
-                    label="Frequency"
-                    value={rec.frequency}
-                  />
-                  <DetailItem
-                    icon={Syringe}
-                    label="Route"
-                    value={rec.route}
-                  />
-                  <DetailItem
-                    icon={Activity}
-                    label="Cycle Length"
-                    value={rec.cycleLength}
-                  />
+                  <DetailItem icon={Pill} label={t('detailDose')} value={rec.dose} />
+                  <DetailItem icon={Calendar} label={t('detailFrequency')} value={rec.frequency} />
+                  <DetailItem icon={Syringe} label={t('detailRoute')} value={rec.route} />
+                  <DetailItem icon={Activity} label={t('detailCycle')} value={rec.cycleLength} />
                 </div>
 
                 {/* Expected biomarker shift */}
@@ -123,7 +106,7 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
                   <div className="flex items-start gap-2">
                     <Target className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <span className="text-xs font-medium text-muted-foreground">Expected biomarker shift:</span>
+                      <span className="text-xs font-medium text-muted-foreground">{t('expectedShift')}</span>
                       <p className="text-sm font-medium">{rec.expectedBiomarkerShift}</p>
                     </div>
                   </div>
@@ -142,7 +125,7 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
                 {/* RAG sources */}
                 {rec.ragSourceIds.length > 0 && (
                   <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Sources:</span>
+                    <span className="text-xs text-muted-foreground">{t('sources')}</span>
                     {rec.ragSourceIds.map((source, j) => (
                       <Badge key={j} variant="secondary" className="text-[10px]">
                         {source}
@@ -159,10 +142,7 @@ export function DosingRecommendations({ recommendations }: { recommendations: Do
       {/* Summary note */}
       <Card className="bg-muted/30 border-dashed">
         <CardContent className="pt-6 pb-4">
-          <p className="text-xs text-muted-foreground text-center">
-            These are recommendations based on retrieved clinical protocols (Graphiti RAG).{' '}
-            The physician validates every dose, frequency, and cycle length before prescribing.
-          </p>
+          <p className="text-xs text-muted-foreground text-center">{t('summaryNote')}</p>
         </CardContent>
       </Card>
     </div>

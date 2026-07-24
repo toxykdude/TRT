@@ -14,6 +14,8 @@ import {
   BookOpen,
   Network,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -69,6 +71,8 @@ export function Dashboard({
 }: {
   report: { sections: ReportData; generatedAt: string; generatedBy: string; redFlags: string[] };
 }) {
+  const t = useTranslations('Report');
+  const statusT = useTranslations('Status');
   const s = report.sections;
   const dosing = s.dosingRecommendations || [];
   const chart = s.chartData;
@@ -96,7 +100,6 @@ export function Dashboard({
   };
 
   const clinicalPriority = dosing.filter((d) => d.priority === 'clinical_priority').length;
-  const abnormalCount = classified.filter((c) => c.status === 'LOW' || c.status === 'HIGH').length;
 
   return (
     <div className="space-y-6">
@@ -104,12 +107,12 @@ export function Dashboard({
       <div className="flex items-center justify-between">
         <div>
           <Button variant="ghost" size="sm" asChild className="mb-1 -ml-2">
-            <a href="/dashboard/reports"><ArrowLeft className="mr-1 h-4 w-4" /> Reports</a>
+            <Link href="/dashboard/reports"><ArrowLeft className="mr-1 h-4 w-4" /> {t('backToReports')}</Link>
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Clinical Report</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">
-            Generated {report.generatedAt} · {report.generatedBy}
-            {meta && ` · ${meta.resultCount} results · ${meta.findingCount} findings`}
+            {t('generatedAt', { date: report.generatedAt, by: report.generatedBy })}
+            {meta && ` · ${t('resultCount', { count: meta.resultCount })} · ${t('findingCount', { count: meta.findingCount })}`}
           </p>
         </div>
       </div>
@@ -117,49 +120,49 @@ export function Dashboard({
       {/* ── Row 1: KPI Stat Tiles + Trend Chart ─────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Stat tiles (2/3 width) */}
-        <ChartCard title="Lab Summary" subtitle="Key biomarkers from latest results" className="lg:col-span-2">
+        <ChartCard title={t('labSummary')} subtitle={t('labSummarySub')} className="lg:col-span-2">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatTile
-              label="Total T"
+              label={t('statTotalT')}
               value={totalT?.valueNumeric ?? '—'}
               unit="ng/dL"
               icon={TestTube}
               color={totalT?.status === 'LOW' ? 'red' : totalT?.status === 'HIGH' ? 'orange' : 'green'}
-              caption={totalT ? `${totalT.status.replace(/_/g, ' ').toLowerCase()}` : 'no data'}
+              caption={totalT ? statusT(totalT.status) : t('noData')}
               trend={trendDir('total_testosterone')}
             />
             <StatTile
-              label="Estradiol"
+              label={t('statEstradiol')}
               value={estradiol?.valueNumeric ?? '—'}
               unit="pg/mL"
               icon={Droplet}
               color={estradiol?.status === 'HIGH' ? 'purple' : 'blue'}
-              caption={estradiol ? `${estradiol.status.replace(/_/g, ' ').toLowerCase()}` : 'no data'}
+              caption={estradiol ? statusT(estradiol.status) : t('noData')}
               trend={trendDir('estradiol_sensitive')}
             />
             <StatTile
-              label="Hematocrit"
+              label={t('statHematocrit')}
               value={hematocrit?.valueNumeric ?? '—'}
               unit="%"
               icon={HeartPulse}
               color={hematocrit?.status === 'HIGH' ? 'red' : 'green'}
-              caption={hematocrit ? `${hematocrit.status.replace(/_/g, ' ').toLowerCase()}` : 'no data'}
+              caption={hematocrit ? statusT(hematocrit.status) : t('noData')}
               trend={trendDir('hematocrit')}
             />
             <StatTile
-              label="Free T"
+              label={t('statFreeT')}
               value={freeT?.valueNumeric ?? '—'}
               unit="pg/mL"
               icon={Activity}
               color={freeT?.status === 'LOW' ? 'orange' : 'green'}
-              caption={freeT ? `${freeT.status.replace(/_/g, ' ').toLowerCase()}` : 'no data'}
+              caption={freeT ? statusT(freeT.status) : t('noData')}
               trend={trendDir('free_testosterone')}
             />
           </div>
         </ChartCard>
 
         {/* Trend chart (1/3 width) */}
-        <ChartCard title="Biomarker Trends" subtitle="Key hormones over time">
+        <ChartCard title={t('trendsTitle')} subtitle={t('trendsSub')}>
           <BiomarkerTrendChart
             trends={trends}
             keys={['total_testosterone', 'estradiol_sensitive', 'hematocrit', 'shbg']}
@@ -169,18 +172,18 @@ export function Dashboard({
 
       {/* ── Row 2: Three equal chart cards ──────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <ChartCard title="Reference Ranges" subtitle="Your values vs lab reference">
+        <ChartCard title={t('refRangesTitle')} subtitle={t('refRangesSub')}>
           <RangeComparisonChart
             classified={classified}
             keys={['total_testosterone', 'free_testosterone', 'estradiol_sensitive', 'hematocrit', 'shbg']}
           />
         </ChartCard>
 
-        <ChartCard title="Biomarker Status" subtitle="Distribution across all markers">
+        <ChartCard title={t('statusTitle')} subtitle={t('statusSub')}>
           <StatusDonutChart classified={classified} />
         </ChartCard>
 
-        <ChartCard title="Panel Coverage" subtitle="Normal vs out-of-range by category">
+        <ChartCard title={t('coverageTitle')} subtitle={t('coverageSub')}>
           <CategoryCoverageChart classified={classified} />
         </ChartCard>
       </div>
@@ -188,27 +191,27 @@ export function Dashboard({
       {/* ── Row 3: Dosing + Hormone detail charts ───────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-3">
         <ChartCard
-          title="Dosing Recommendations"
-          subtitle={`${dosing.length} protocols · ${clinicalPriority} clinical priority`}
+          title={t('dosingTitle')}
+          subtitle={t('dosingSub', { protocols: dosing.length, priority: clinicalPriority })}
           className="lg:col-span-2"
         >
           <DosingTable recommendations={dosing} />
         </ChartCard>
 
-        <ChartCard title="Total Testosterone" subtitle="Historical trend">
+        <ChartCard title={t('hormoneTotalT')} subtitle={t('historicalTrend')}>
           <HormoneAreaChart trends={trends} biomarkerKey="total_testosterone" />
         </ChartCard>
       </div>
 
       {/* ── Row 4: Individual biomarker charts ──────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <ChartCard title="Estradiol" subtitle="Historical trend">
+        <ChartCard title={t('hormoneEstradiol')} subtitle={t('historicalTrend')}>
           <HormoneAreaChart trends={trends} biomarkerKey="estradiol_sensitive" />
         </ChartCard>
-        <ChartCard title="Hematocrit" subtitle="Historical trend">
+        <ChartCard title={t('hormoneHematocrit')} subtitle={t('historicalTrend')}>
           <HormoneAreaChart trends={trends} biomarkerKey="hematocrit" />
         </ChartCard>
-        <ChartCard title="SHBG" subtitle="Historical trend">
+        <ChartCard title={t('hormoneShbg')} subtitle={t('historicalTrend')}>
           <HormoneAreaChart trends={trends} biomarkerKey="shbg" />
         </ChartCard>
       </div>
@@ -216,11 +219,11 @@ export function Dashboard({
       {/* ── Row 5: Tabs for text sections ───────────────────────────────────── */}
       <Tabs defaultValue="dosing" className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
-          <TabsTrigger value="dosing">Dosing Detail</TabsTrigger>
-          <TabsTrigger value="flags">Red Flags</TabsTrigger>
-          <TabsTrigger value="trends">Trend Text</TabsTrigger>
-          <TabsTrigger value="refs">References</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="dosing">{t('tabDosing')}</TabsTrigger>
+          <TabsTrigger value="flags">{t('tabFlags')}</TabsTrigger>
+          <TabsTrigger value="trends">{t('tabTrends')}</TabsTrigger>
+          <TabsTrigger value="refs">{t('tabRefs')}</TabsTrigger>
+          <TabsTrigger value="summary">{t('tabSummary')}</TabsTrigger>
         </TabsList>
 
         {/* Dosing Detail */}
@@ -232,7 +235,7 @@ export function Dashboard({
               ))}
             </div>
           ) : (
-            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No dosing recommendations</CardContent></Card>
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">{t('noDosing')}</CardContent></Card>
           )}
         </TabsContent>
 
@@ -248,21 +251,21 @@ export function Dashboard({
               </Card>
             ))
           ) : (
-            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No red flags detected</CardContent></Card>
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">{t('noFlags')}</CardContent></Card>
           )}
         </TabsContent>
 
         {/* Trend Text */}
         <TabsContent value="trends" className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
-            <TextCard title="Hormone Trends" body={s.hormoneTrends} />
-            <TextCard title="CBC Trends" body={s.cbcTrends} />
-            <TextCard title="Estradiol Trends" body={s.estradiolTrends} />
-            <TextCard title="SHBG Trends" body={s.shbgTrends} />
-            <TextCard title="Thyroid" body={s.thyroidTrends} />
-            <TextCard title="Metabolic Health" body={s.metabolicHealth} />
-            <TextCard title="Cardiovascular Risk" body={s.cardiovascularRiskFactors} />
-            <TextCard title="Lifestyle Factors" body={s.lifestyleFactors} />
+            <TextCard title={t('txtHormone')} body={s.hormoneTrends} />
+            <TextCard title={t('txtCbc')} body={s.cbcTrends} />
+            <TextCard title={t('txtEstradiol')} body={s.estradiolTrends} />
+            <TextCard title={t('txtShbg')} body={s.shbgTrends} />
+            <TextCard title={t('txtThyroid')} body={s.thyroidTrends} />
+            <TextCard title={t('txtMetabolic')} body={s.metabolicHealth} />
+            <TextCard title={t('txtCardio')} body={s.cardiovascularRiskFactors} />
+            <TextCard title={t('txtLifestyle')} body={s.lifestyleFactors} />
           </div>
         </TabsContent>
 
@@ -271,7 +274,7 @@ export function Dashboard({
           {s.knowledgeBaseReferences?.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><BookOpen className="h-4 w-4" /> KB References ({s.knowledgeBaseReferences.length})</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base"><BookOpen className="h-4 w-4" /> {t('kbRefs', { count: s.knowledgeBaseReferences.length })}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
@@ -285,7 +288,7 @@ export function Dashboard({
           {s.knowledgeGraphFacts?.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><Network className="h-4 w-4" /> Graph Facts ({s.knowledgeGraphFacts.length})</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base"><Network className="h-4 w-4" /> {t('graphFacts', { count: s.knowledgeGraphFacts.length })}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1">
@@ -301,12 +304,12 @@ export function Dashboard({
         {/* Summary */}
         <TabsContent value="summary" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Executive Summary</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('execSummary')}</CardTitle></CardHeader>
             <CardContent><p className="text-sm leading-relaxed text-muted-foreground">{s.executiveSummary}</p></CardContent>
           </Card>
           {s.questionsForPhysician?.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">Questions for your physician</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t('questionsTitle')}</CardTitle></CardHeader>
               <CardContent>
                 <ol className="list-decimal space-y-1 pl-5 text-sm">
                   {s.questionsForPhysician.map((q, i) => <li key={i}>{q}</li>)}
@@ -323,10 +326,11 @@ export function Dashboard({
 // ── Helper components ─────────────────────────────────────────────────────────
 
 function DosingDetailCard({ rec }: { rec: DosingRec }) {
+  const t = useTranslations('Report');
   const priorityMap = {
-    clinical_priority: { label: 'Priority', cls: 'bg-red-500/10 text-red-600 border-red-500/20' },
-    standard: { label: 'Standard', cls: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-    alternative: { label: 'Alternative', cls: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+    clinical_priority: { labelKey: 'badgePriority' as const, cls: 'bg-red-500/10 text-red-600 border-red-500/20' },
+    standard: { labelKey: 'badgeStandard' as const, cls: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+    alternative: { labelKey: 'badgeAlternative' as const, cls: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
   };
   const p = priorityMap[rec.priority];
   return (
@@ -340,15 +344,15 @@ function DosingDetailCard({ rec }: { rec: DosingRec }) {
             </CardTitle>
             <CardDescription>{rec.indication}</CardDescription>
           </div>
-          <Badge variant="outline" className={p.cls}>{p.label}</Badge>
+          <Badge variant="outline" className={p.cls}>{t(p.labelKey)}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div><span className="text-muted-foreground">Dose: </span><span className="font-semibold">{rec.dose}</span></div>
-          <div><span className="text-muted-foreground">Freq: </span><span className="font-semibold">{rec.frequency}</span></div>
-          <div><span className="text-muted-foreground">Route: </span><span className="font-semibold">{rec.route}</span></div>
-          <div><span className="text-muted-foreground">Cycle: </span><span className="font-semibold">{rec.cycleLength}</span></div>
+          <div><span className="text-muted-foreground">{t('detailDose')} </span><span className="font-semibold">{rec.dose}</span></div>
+          <div><span className="text-muted-foreground">{t('detailFreq')} </span><span className="font-semibold">{rec.frequency}</span></div>
+          <div><span className="text-muted-foreground">{t('detailRoute')} </span><span className="font-semibold">{rec.route}</span></div>
+          <div><span className="text-muted-foreground">{t('detailCycle')} </span><span className="font-semibold">{rec.cycleLength}</span></div>
         </div>
         <div className="rounded-lg bg-muted/50 px-3 py-2">
           <div className="flex items-center gap-2">

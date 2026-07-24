@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,29 +37,30 @@ function d(v: Date | null | undefined): string {
   return new Date(v).toISOString().slice(0, 10);
 }
 
-const NUM_FIELDS: { key: keyof Patient; label: string }[] = [
-  { key: 'heightCm', label: 'Height (cm)' },
-  { key: 'weightKg', label: 'Weight (kg)' },
-  { key: 'bodyFatPct', label: 'Body fat (%)' },
-  { key: 'waistCm', label: 'Waist (cm)' },
-  { key: 'bloodPressureSystolic', label: 'BP systolic' },
-  { key: 'bloodPressureDiastolic', label: 'BP diastolic' },
-  { key: 'restingHeartRate', label: 'Resting HR' },
-  { key: 'sleepHoursPerNight', label: 'Sleep (h/night)' },
+const NUM_FIELDS: { key: keyof Patient; labelKey: string }[] = [
+  { key: 'heightCm', labelKey: 'heightCm' },
+  { key: 'weightKg', labelKey: 'weightKg' },
+  { key: 'bodyFatPct', labelKey: 'bodyFatPct' },
+  { key: 'waistCm', labelKey: 'waistCm' },
+  { key: 'bloodPressureSystolic', labelKey: 'bloodPressureSystolic' },
+  { key: 'bloodPressureDiastolic', labelKey: 'bloodPressureDiastolic' },
+  { key: 'restingHeartRate', labelKey: 'restingHeartRate' },
+  { key: 'sleepHoursPerNight', labelKey: 'sleepHoursPerNight' },
 ];
 
-const TEXT_FIELDS: { key: keyof Patient; label: string }[] = [
-  { key: 'exerciseFrequency', label: 'Exercise frequency' },
-  { key: 'alcoholUse', label: 'Alcohol use' },
-  { key: 'smokingStatus', label: 'Smoking status' },
-  { key: 'medicalConditions', label: 'Medical conditions' },
-  { key: 'supplements', label: 'Supplements' },
-  { key: 'goals', label: 'Goals' },
-  { key: 'familyHistory', label: 'Family history' },
+const TEXT_FIELDS: { key: keyof Patient; labelKey: string }[] = [
+  { key: 'exerciseFrequency', labelKey: 'exerciseFrequency' },
+  { key: 'alcoholUse', labelKey: 'alcoholUse' },
+  { key: 'smokingStatus', labelKey: 'smokingStatus' },
+  { key: 'medicalConditions', labelKey: 'medicalConditions' },
+  { key: 'supplements', labelKey: 'supplements' },
+  { key: 'goals', labelKey: 'goals' },
+  { key: 'familyHistory', labelKey: 'familyHistory' },
 ];
 
 export function ProfileForm({ patient }: { patient: Patient }) {
   const router = useRouter();
+  const t = useTranslations('ProfileForm');
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -94,19 +96,19 @@ export function ProfileForm({ patient }: { patient: Patient }) {
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Label htmlFor="dateOfBirth">Date of birth</Label>
+          <Label htmlFor="dateOfBirth">{t('dateOfBirth')}</Label>
           <Input id="dateOfBirth" name="dateOfBirth" type="date" defaultValue={d(patient.dateOfBirth)} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="sex">Sex</Label>
-          <Input id="sex" name="sex" defaultValue={patient.sex ?? ''} placeholder="male / female / intersex" />
+          <Label htmlFor="sex">{t('sex')}</Label>
+          <Input id="sex" name="sex" defaultValue={patient.sex ?? ''} placeholder={t('sexPlaceholder')} />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {NUM_FIELDS.map((field) => (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key as string}>{field.label}</Label>
+            <Label htmlFor={field.key as string}>{t(field.labelKey as never)}</Label>
             <Input
               id={field.key as string}
               name={field.key as string}
@@ -121,7 +123,7 @@ export function ProfileForm({ patient }: { patient: Patient }) {
       <div className="grid gap-4 sm:grid-cols-2">
         {TEXT_FIELDS.map((field) => (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key as string}>{field.label}</Label>
+            <Label htmlFor={field.key as string}>{t(field.labelKey as never)}</Label>
             <Input id={field.key as string} name={field.key as string} defaultValue={(patient[field.key] as string) ?? ''} />
           </div>
         ))}
@@ -130,9 +132,9 @@ export function ProfileForm({ patient }: { patient: Patient }) {
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={saving}>
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Save profile
+          {t('saveProfile')}
         </Button>
-        {done && <span className="text-sm text-muted-foreground">Saved.</span>}
+        {done && <span className="text-sm text-muted-foreground">{t('saved')}</span>}
       </div>
     </form>
   );

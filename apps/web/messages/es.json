@@ -1,0 +1,383 @@
+{
+  "Common": {
+    "getStarted": "Comenzar",
+    "signIn": "Iniciar sesión"
+  },
+  "Nav": {
+    "primaryLabel": "Principal",
+    "overview": "Resumen",
+    "technology": "Tecnología",
+    "research": "Investigación"
+  },
+  "Hero": {
+    "trustSignal": "Basado en evidencia · Revisado por clínicos · No es una herramienta de prescripción",
+    "title1": "Revolucionando",
+    "title2": "Inteligencia",
+    "title3": "Hormonal",
+    "subtitle": "Entender su salud hormonal es difícil. Lo estamos haciendo más fácil. TRT Insights convierte los informes de laboratorio dispersos en información clínica estructurada: la próxima frontera de la medicina de precisión.",
+    "haveAccount": "Ya tengo una cuenta"
+  },
+  "Overview": {
+    "label": "Resumen",
+    "clinicianView": "Vista clínica",
+    "patientStatement": "TRT Insights está cambiando radicalmente la forma en que las personas comprenden su propia terapia hormonal: cada laboratorio, cada tendencia, cada síntoma, por fin en <highlight>una línea de tiempo clínica</highlight>.",
+    "patientNote": "Cargue su historial una vez. Normalizamos cada biomarcador frente a su rango de referencia específico de laboratorio, para que llegue a cada consulta preparado.",
+    "clinicianStatement": "TRT Insights está acortando drásticamente el camino desde los datos crudos de laboratorio hasta la conversación clínica: valores normalizados, cálculo de tendencias y <highlight>resúmenes listos para el médico</highlight> en segundos.",
+    "clinicianNote": "Un motor de reglas determinista (no una caja negra) produce cada clasificación de referencia, de modo que lo que revise es reproducible y auditable."
+  },
+  "Technology": {
+    "demoCaption": "Datos de demostración ilustrativos; no constituyen asesoramiento médico.",
+    "badge": "Aplicaciones tecnológicas",
+    "title": "El panorama endocrino: implicaciones para la salud",
+    "body": "Las hormonas influyen en casi todas las dimensiones de la salud: energía, composición corporal, estado de ánimo, cognición y longevidad. Sin embargo, los datos se encuentran dispersos entre archivos PDF, portales y hojas de cálculo. TRT Insights combina la extracción basada en IA con un motor de reglas determinista para normalizar cada biomarcador, seguir su evolución frente al rango de referencia específico del laboratorio y destacar las tendancias que importan. Las implicaciones son globales: pacientes mejor preparados, clínicos mejor informados y un estándar más alto para el cuidado hormonal de precisión.",
+    "capabilities": [
+      "Extracción mediante IA a partir de PDF de laboratorio; los valores inciertos se marcan para revisión",
+      "Rangos de referencia por laboratorio y normalización de unidades, nunca rangos globales",
+      "Motor de reglas clínicas determinista: resultados reproducibles y auditables"
+    ],
+    "explore": "Explorar la plataforma",
+    "mockup": {
+      "title": "Tendencia hormonal",
+      "normalized": "Normalizado",
+      "referenceRange": "rango de referencia",
+      "testosteroneName": "Testosterona total",
+      "estradiolName": "Estradiol (E2)",
+      "hematocritName": "Hematocrito",
+      "inRange": "En rango",
+      "watch": "Vigilar"
+    }
+  },
+  "Research": {
+    "eyebrow": "La importancia de la evidencia",
+    "title": "La próxima frontera de la medicina de precisión"
+  },
+  "Footer": {
+    "copyright": "© {year} TRT Insights · Apoyo para decisiones clínicas, no un dispositivo médico."
+  },
+  "Auth": {
+    "Layout": {
+      "quote": "Una vista estructurada y longitudinal de sus laboratorios, para que el tiempo con su médico se destine a tomar decisiones y no a descifrar archivos PDF."
+    },
+    "Login": {
+      "title": "Bienvenido de nuevo",
+      "subtitle": "Inicie sesión en su cuenta.",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "submit": "Iniciar sesión",
+      "or": "o",
+      "google": "Continuar con Google",
+      "noAccount": "¿No tiene una cuenta?",
+      "createOne": "Crear una"
+    },
+    "Register": {
+      "title": "Cree su cuenta",
+      "subtitle": "Comience a organizar su historial de laboratorio.",
+      "name": "Nombre",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "passwordHint": "Al menos 8 caracteres.",
+      "submit": "Crear cuenta",
+      "haveAccount": "¿Ya tiene una cuenta?",
+      "signIn": "Iniciar sesión"
+    },
+    "Forgot": {
+      "title": "Restablezca su contraseña",
+      "body": "Los correos de restablecimiento de contraseña aún no están habilitados en esta versión. Contacte a su administrador para restablecerla, o cree una cuenta nueva.",
+      "email": "Correo electrónico",
+      "submit": "Enviar enlace de restablecimiento (próximamente)",
+      "backToSignIn": "Volver a iniciar sesión"
+    }
+  },
+  "Safety": {
+    "disclaimer": "Este software proporciona únicamente apoyo educativo y organizativo. No diagnostica afecciones médicas ni prescribe tratamientos. Todas las decisiones sobre el tratamiento deben ser tomadas por un profesional de la salud cualificado."
+  },
+  "Dashboard": {
+    "brand": "TRT Insights",
+    "signOut": "Cerrar sesión",
+    "toggleNav": "Abrir o cerrar navegación",
+    "roadmap": "Hoja de ruta",
+    "review": "Revisar",
+    "Nav": {
+      "overview": "Resumen",
+      "analysis": "Análisis",
+      "patients": "Pacientes",
+      "labs": "Laboratorios",
+      "reports": "Informes",
+      "symptoms": "Síntomas",
+      "timeline": "Línea de tiempo",
+      "analytics": "Métricas",
+      "settings": "Ajustes"
+    },
+    "Overview": {
+      "welcomeBack": "Bienvenido de nuevo",
+      "welcomeBackName": "Bienvenido de nuevo, {name}",
+      "subtitle": "Un resumen de sus datos de salud registrados.",
+      "labReports": "Informes de laboratorio",
+      "uploadedFiles": "archivos cargados",
+      "biomarkerValues": "Valores de biomarcadores",
+      "mostRecent": "los más recientes se muestran a continuación",
+      "yourAnalysis": "Su análisis",
+      "viewAnalysis": "Ver análisis completo",
+      "recentValues": "Valores recientes de biomarcadores",
+      "recentValuesDesc": "Los últimos resultados extraídos. Los rangos de referencia son específicos de cada laboratorio y se muestran solo como referencia.",
+      "noResults": "Aún no hay resultados. Cargue un informe de laboratorio para comenzar.",
+      "goToLabs": "Ir a Laboratorios",
+      "thBiomarker": "Biomarcador",
+      "thValue": "Valor",
+      "thRange": "Rango",
+      "thFlag": "Indicador",
+      "thCollected": "Fecha de toma"
+    },
+    "Labs": {
+      "title": "Laboratorios",
+      "subtitle": "Cargue informes de laboratorio. La extracción es automática, pero siempre se somete a su revisión.",
+      "uploadTitle": "Cargar informes de laboratorio",
+      "uploadDesc": "PDF, JPG, PNG o HEIC. Arrastre y suelte o seleccione un archivo.",
+      "yourReports": "Sus informes de laboratorio",
+      "reportCount": "{count, plural, one {# informe en archivo} other {# informes en archivo}}",
+      "or": "O",
+      "viewResults": "ver todos los resultados →"
+    },
+    "LabsResults": {
+      "title": "Resultados de laboratorio",
+      "subtitle": "Todos los valores registrados, clasificados según sus rangos de referencia específicos de cada laboratorio.",
+      "backToLabs": "← Volver a laboratorios",
+      "noResults": "Aún no hay resultados. Cargue un laboratorio o ingrese los valores manualmente.",
+      "rangeLabel": "Rango",
+      "valueCount": "{count, plural, one {# valor} other {# valores}}"
+    },
+    "Timeline": {
+      "title": "Línea de tiempo",
+      "subtitle": "Cada evento registrado, en orden cronológico (GOLD §5.8).",
+      "activityTitle": "Línea de tiempo de actividad",
+      "eventCount": "{count, plural, one {# evento} other {# eventos}}",
+      "noEvents": "Aún no hay eventos. Cargue un laboratorio o agregue un medicamento para completar su línea de tiempo.",
+      "typeLab": "Laboratorio",
+      "typeMedication": "Medicamento"
+    },
+    "Analysis": {
+      "title": "Análisis completo",
+      "summary": "{analyzed, plural, one {# biomarcador analizado} other {# biomarcadores analizados}} · {outOfRange, plural, one {# fuera de rango} other {# fuera de rango}}",
+      "viewFullReport": "Ver informe completo",
+      "priorityReview": "Revisión prioritaria ({count})",
+      "inRange": "En rango",
+      "aboveRange": "Por encima del rango",
+      "belowRange": "Por debajo del rango",
+      "borderline": "Limítrofe",
+      "noResults": "Aún no hay resultados. Cargue o ingrese sus resultados para ver el análisis.",
+      "addYourLabs": "Agregar sus laboratorios",
+      "clinicalContext": "Contexto clínico de la base de conocimientos",
+      "clinicalContextDesc": "Relaciones entre entidades médicas relevantes para sus resultados, extraídas de la literatura clínica.",
+      "discussionPoints": "Puntos de debate para su clínico",
+      "suggestedTests": "Análisis adicionales sugeridos",
+      "suggestedTestsDesc": "Para discutir cuando los datos estén incompletos.",
+      "trendRising": "en ascenso",
+      "trendFalling": "en descenso",
+      "trendStable": "estable"
+    },
+    "Reports": {
+      "title": "Informes",
+      "subtitle": "Resúmenes clínicos estructurados para su proveedor de salud.",
+      "generateTitle": "Generar un informe clínico",
+      "generateDesc": "Genera un resumen basado en guías a partir de sus laboratorios registrados. Solo con fines educativos; no diagnostica ni prescribe (GOLD §5.13).",
+      "uploadFirst": "Primero cargue y extraiga un laboratorio.",
+      "generateButton": "Generar informe ({count, plural, one {# valor} other {# valores}})",
+      "noReportsTitle": "Aún no hay informes",
+      "noReportsWhat": "Los informes generados aparecen aquí. Resumen sus tendencias y enumeran los indicadores de alerta y las preguntas para discutir con su clínico.",
+      "noReportsNext": "La exportación a PDF/Word y los gráficos de tendencia forman parte de la próxima etapa.",
+      "recentReports": "Informes recientes",
+      "reportLabel": "Informe · {date}",
+      "redFlags": "{count, plural, one {# indicador de alerta} other {# indicadores de alerta}}"
+    },
+    "Analytics": {
+      "title": "Métricas",
+      "subtitle": "Recuentos y cobertura de sus registros.",
+      "labReports": "Informes de laboratorio",
+      "biomarkerValues": "Valores de biomarcadores",
+      "distinctMarkers": "Biomarcadores distintos",
+      "chartsTitle": "Gráficos de tendencia interactivos — próximamente",
+      "chartsWhat": "Los gráficos de línea por biomarcador con superposición de rangos de referencia, medicamentos y síntomas (GOLD §5.9) forman parte de la próxima etapa.",
+      "chartsNext": "Gráficos potenciados por Recharts con hover, zoom y comparación por rango de fechas."
+    },
+    "Symptoms": {
+      "title": "Síntomas",
+      "subtitle": "Registre cómo se siente a lo largo del tiempo (GOLD §5.10).",
+      "trackingTitle": "Seguimiento de síntomas — {count, plural, one {# entrada registrada} other {# entradas registradas}}",
+      "trackingWhat": "El esquema y el almacenamiento están listos (puntuación de 0 a 10 en energía, estado de ánimo, libido, sueño y más). El ingreso de datos y los gráficos de tendencia forman parte de la próxima etapa.",
+      "trackingNext": "Un formulario de control diario y gráficos de tendencia por síntoma superpuestos con sus laboratorios."
+    },
+    "Patients": {
+      "title": "Perfil del paciente",
+      "subtitle": "Sus datos de referencia. Se usan únicamente para dar contexto a sus laboratorios.",
+      "profileTitle": "Perfil",
+      "profileDesc": "Datos demográficos, signos vitales, estilo de vida y antecedentes (GOLD §5.4).",
+      "noProfile": "Aún no hay perfil."
+    },
+    "Settings": {
+      "title": "Ajustes",
+      "subtitle": "Cuenta, apariencia y controles de datos.",
+      "appearanceTitle": "Apariencia",
+      "appearanceDesc": "Cambie entre modo claro y oscuro.",
+      "accountTitle": "Cuenta",
+      "accountDesc": "Sesión iniciada como {email}. {count, plural, one {# acción auditada registrada} other {# acciones auditadas registradas}}.",
+      "exportTitle": "Exportación y eliminación de datos — próximamente",
+      "exportWhat": "El derecho al olvido y la exportación completa de datos (GOLD §8) forman parte de la próxima etapa. Hasta entonces, contacte a su administrador para exportar o eliminar sus datos.",
+      "exportNext": "Exportación JSON con un clic y eliminación verificada de cuenta que purga todos los datos del paciente."
+    }
+  },
+  "Report": {
+    "backToReports": "Informes",
+    "title": "Informe clínico",
+    "generatedAt": "Generado {date} · {by}",
+    "resultCount": "{count, plural, one {# resultado} other {# resultados}}",
+    "findingCount": "{count, plural, one {# hallazgo} other {# hallazgos}}",
+    "labSummary": "Resumen de laboratorio",
+    "labSummarySub": "Biomarcadores clave de los últimos resultados",
+    "statTotalT": "Testosterona total",
+    "statEstradiol": "Estradiol",
+    "statHematocrit": "Hematocrito",
+    "statFreeT": "Testosterona libre",
+    "noData": "sin datos",
+    "trendsTitle": "Tendencias de biomarcadores",
+    "trendsSub": "Hormonas clave a lo largo del tiempo",
+    "refRangesTitle": "Rangos de referencia",
+    "refRangesSub": "Sus valores frente al rango del laboratorio",
+    "statusTitle": "Estado de biomarcadores",
+    "statusSub": "Distribución en todos los marcadores",
+    "coverageTitle": "Cobertura del panel",
+    "coverageSub": "Normal vs. fuera de rango por categoría",
+    "dosingTitle": "Recomendaciones de dosificación",
+    "dosingSub": "{protocols, plural, one {# protocolo} other {# protocolos}} · {priority, plural, one {# prioridad clínica} other {# prioridades clínicas}}",
+    "hormoneTotalT": "Testosterona total",
+    "hormoneEstradiol": "Estradiol",
+    "hormoneHematocrit": "Hematocrito",
+    "hormoneShbg": "SHBG",
+    "historicalTrend": "Tendencia histórica",
+    "tabDosing": "Detalle de dosificación",
+    "tabFlags": "Indicadores de alerta",
+    "tabTrends": "Texto de tendencias",
+    "tabRefs": "Referencias",
+    "tabSummary": "Resumen",
+    "noDosing": "No hay recomendaciones de dosificación",
+    "noFlags": "No se detectaron indicadores de alerta",
+    "txtHormone": "Tendencias hormonales",
+    "txtCbc": "Tendencias de hemograma",
+    "txtEstradiol": "Tendencias de estradiol",
+    "txtShbg": "Tendencias de SHBG",
+    "txtThyroid": "Tiroides",
+    "txtMetabolic": "Salud metabólica",
+    "txtCardio": "Riesgo cardiovascular",
+    "txtLifestyle": "Factores de estilo de vida",
+    "kbRefs": "Referencias de la base de conocimientos ({count})",
+    "graphFacts": "Hechos del grafo ({count})",
+    "execSummary": "Resumen ejecutivo",
+    "questionsTitle": "Preguntas para su médico",
+    "badgePriority": "Prioridad",
+    "badgeStandard": "Estándar",
+    "badgeAlternative": "Alternativa",
+    "detailDose": "Dosis:",
+    "detailFreq": "Frec.:",
+    "detailRoute": "Vía:",
+    "detailCycle": "Ciclo:"
+  },
+  "Charts": {
+    "ref": "Ref: {low} – {high}",
+    "thNumber": "#",
+    "thCompound": "Compuesto",
+    "thDose": "Dosis",
+    "thFrequency": "Frecuencia",
+    "thPriority": "Prioridad",
+    "priorityLabel": "Prioridad",
+    "standardLabel": "Estándar",
+    "altLabel": "Alt.",
+    "yourValue": "Su valor",
+    "refLowLabel": "Ref. mín",
+    "refHighLabel": "Ref. máx",
+    "normal": "Normal",
+    "outOfRange": "Fuera de rango",
+    "insufficientData": "Datos insuficientes para el gráfico",
+    "noDosing": "No hay recomendaciones de dosificación"
+  },
+  "Dosing": {
+    "title": "Recomendaciones de dosificación",
+    "desc": "Dosificaciones exactas de esteroides y coadyuvantes según sus resultados de laboratorio y protocolos clínicos. El médico valida cada recomendación.",
+    "labelPriority": "Prioridad clínica",
+    "labelStandard": "Estándar",
+    "labelAlternative": "Alternativa",
+    "sourcesCount": "{count, plural, one {# fuente} other {# fuentes}}",
+    "detailDose": "Dosis",
+    "detailFrequency": "Frecuencia",
+    "detailRoute": "Vía",
+    "detailCycle": "Duración del ciclo",
+    "expectedShift": "Cambio esperado en biomarcadores:",
+    "sources": "Fuentes:",
+    "summaryNote": "Estas son recomendaciones basadas en protocolos clínicos recuperados (Graphiti RAG). El médico valida cada dosis, frecuencia y duración del ciclo antes de recetar."
+  },
+  "ManualEntry": {
+    "enterManually": "Ingresar valores manualmente",
+    "title": "Ingreso manual",
+    "collectedDate": "Fecha de toma",
+    "laboratory": "Laboratorio (opcional)",
+    "labPlaceholder": "p. ej. Quest",
+    "biomarkerKey": "Clave del biomarcador",
+    "value": "Valor",
+    "unit": "Unidad",
+    "low": "Mín",
+    "high": "Máx",
+    "addRow": "Agregar fila",
+    "save": "Guardar {count, plural, one {# valor} other {# valores}}",
+    "addAtLeastOne": "Agregue al menos un valor."
+  },
+  "ProfileForm": {
+    "heightCm": "Altura (cm)",
+    "weightKg": "Peso (kg)",
+    "bodyFatPct": "Grasa corporal (%)",
+    "waistCm": "Cintura (cm)",
+    "bloodPressureSystolic": "PA sistólica",
+    "bloodPressureDiastolic": "PA diastólica",
+    "restingHeartRate": "FC en reposo",
+    "sleepHoursPerNight": "Sueño (h/noche)",
+    "exerciseFrequency": "Frecuencia de ejercicio",
+    "alcoholUse": "Consumo de alcohol",
+    "smokingStatus": "Tabaquismo",
+    "medicalConditions": "Condiciones médicas",
+    "supplements": "Suplementos",
+    "goals": "Objetivos",
+    "familyHistory": "Antecedentes familiares",
+    "dateOfBirth": "Fecha de nacimiento",
+    "sex": "Sexo",
+    "sexPlaceholder": "masculino / femenino / intersexual",
+    "saveProfile": "Guardar perfil",
+    "saved": "Guardado."
+  },
+  "Upload": {
+    "dropHere": "Arrastre y suelte los archivos de laboratorio aquí o haga clic para seleccionar",
+    "formats": "PDF, JPG, PNG, HEIC · cargas ilimitadas",
+    "uploadButton": "Cargar {count, plural, one {# archivo} other {# archivos}}"
+  },
+  "LabsList": {
+    "empty": "Aún no hay informes de laboratorio cargados. Suelte un archivo arriba para comenzar.",
+    "uploaded": "Cargado {date}",
+    "valueCount": "{count, plural, one {# valor} other {# valores}}",
+    "extract": "Extraer"
+  },
+  "GenerateReport": {
+    "failed": "Error"
+  },
+  "Status": {
+    "LOW": "Debajo del rango",
+    "BORDERLINE_LOW": "Límite inferior",
+    "NORMAL": "Dentro del rango",
+    "BORDERLINE_HIGH": "Límite superior",
+    "HIGH": "Por encima del rango",
+    "NON_NUMERIC": "No numérico",
+    "NO_RANGE": "Sin rango de referencia"
+  },
+  "LabStatus": {
+    "UPLOADED": "Cargado",
+    "EXTRACTING": "Extrayendo",
+    "EXTRACTED": "Extraído",
+    "REVIEW_NEEDED": "Requiere revisión",
+    "FAILED": "Fallido"
+  }
+}

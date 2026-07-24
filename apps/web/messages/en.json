@@ -1,0 +1,383 @@
+{
+  "Common": {
+    "getStarted": "Get started",
+    "signIn": "Sign in"
+  },
+  "Nav": {
+    "primaryLabel": "Primary",
+    "overview": "Overview",
+    "technology": "Technology",
+    "research": "Research"
+  },
+  "Hero": {
+    "trustSignal": "Evidence-based · Clinician-reviewed · Not a prescribing tool",
+    "title1": "Revolutionizing",
+    "title2": "Hormone",
+    "title3": "Intelligence",
+    "subtitle": "Understanding your hormone health is hard. We’re making it easier. TRT Insights turns scattered lab reports into structured clinical insight — the next frontier of precision medicine.",
+    "haveAccount": "I already have an account"
+  },
+  "Overview": {
+    "label": "Overview",
+    "clinicianView": "Clinician view",
+    "patientStatement": "TRT Insights is dramatically changing how people understand their own hormone therapy — every lab, every trend, every symptom, finally on <highlight>one clinical timeline</highlight>.",
+    "patientNote": "Upload your history once. We normalize every biomarker against its lab-specific reference range, so you walk into every appointment prepared.",
+    "clinicianStatement": "TRT Insights is dramatically shortening the path from raw lab data to clinical conversation — normalized values, trend math, and <highlight>physician-ready summaries</highlight> in seconds.",
+    "clinicianNote": "A deterministic rules engine — not a black box — produces every baseline classification, so what you review is reproducible and auditable."
+  },
+  "Technology": {
+    "demoCaption": "Illustrative demo data — not medical advice.",
+    "badge": "Technology applications",
+    "title": "The Endocrine Picture: Implications for Health",
+    "body": "Hormones influence nearly every dimension of health — energy, body composition, mood, cognition, longevity. Yet the data lives scattered across PDFs, portals, and spreadsheets. TRT Insights pairs AI-powered extraction with a deterministic rules engine to normalize every biomarker, track it against its lab-specific reference range, and surface the trends that matter. The implications are global: better-prepared patients, better-informed clinicians, and a higher standard for precision hormone care.",
+    "capabilities": [
+      "AI extraction from lab PDFs — uncertain values flagged for review",
+      "Per-lab reference ranges and unit normalization, never global ranges",
+      "Deterministic clinical rules engine — reproducible, auditable output"
+    ],
+    "explore": "Explore the platform",
+    "mockup": {
+      "title": "Hormone trend",
+      "normalized": "Normalized",
+      "referenceRange": "reference range",
+      "testosteroneName": "Total Testosterone",
+      "estradiolName": "Estradiol (E2)",
+      "hematocritName": "Hematocrit",
+      "inRange": "In range",
+      "watch": "Watch"
+    }
+  },
+  "Research": {
+    "eyebrow": "The importance of evidence",
+    "title": "The next frontier of precision medicine"
+  },
+  "Footer": {
+    "copyright": "© {year} TRT Insights · Clinical decision support, not a medical device."
+  },
+  "Auth": {
+    "Layout": {
+      "quote": "A structured, longitudinal view of your labs — so the time with your doctor goes to decisions, not deciphering PDFs."
+    },
+    "Login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your account.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "or": "or",
+      "google": "Continue with Google",
+      "noAccount": "Don't have an account?",
+      "createOne": "Create one"
+    },
+    "Register": {
+      "title": "Create your account",
+      "subtitle": "Start organizing your lab history.",
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "passwordHint": "At least 8 characters.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "Forgot": {
+      "title": "Reset your password",
+      "body": "Password reset emails aren't enabled yet in this build. Contact your administrator to reset, or create a new account.",
+      "email": "Email",
+      "submit": "Send reset link (coming soon)",
+      "backToSignIn": "Back to sign in"
+    }
+  },
+  "Safety": {
+    "disclaimer": "This software provides educational and organizational support only. It does not diagnose medical conditions or prescribe treatment. All treatment decisions must be made by a qualified healthcare professional."
+  },
+  "Dashboard": {
+    "brand": "TRT Insights",
+    "signOut": "Sign out",
+    "toggleNav": "Toggle navigation",
+    "roadmap": "Roadmap",
+    "review": "review",
+    "Nav": {
+      "overview": "Dashboard",
+      "analysis": "Analysis",
+      "patients": "Patients",
+      "labs": "Labs",
+      "reports": "Reports",
+      "symptoms": "Symptoms",
+      "timeline": "Timeline",
+      "analytics": "Analytics",
+      "settings": "Settings"
+    },
+    "Overview": {
+      "welcomeBack": "Welcome back",
+      "welcomeBackName": "Welcome back, {name}",
+      "subtitle": "An overview of your recorded health data.",
+      "labReports": "Lab reports",
+      "uploadedFiles": "uploaded files",
+      "biomarkerValues": "Biomarker values",
+      "mostRecent": "most recent shown below",
+      "yourAnalysis": "Your analysis",
+      "viewAnalysis": "View comprehensive analysis",
+      "recentValues": "Recent biomarker values",
+      "recentValuesDesc": "The latest extracted results. Reference ranges are per-lab and shown for context only.",
+      "noResults": "No lab results yet. Upload a lab report to get started.",
+      "goToLabs": "Go to Labs",
+      "thBiomarker": "Biomarker",
+      "thValue": "Value",
+      "thRange": "Range",
+      "thFlag": "Flag",
+      "thCollected": "Collected"
+    },
+    "Labs": {
+      "title": "Labs",
+      "subtitle": "Upload lab reports. Extraction is automatic but always surfaces for your review.",
+      "uploadTitle": "Upload lab reports",
+      "uploadDesc": "PDF, JPG, PNG, or HEIC. Drag & drop or browse.",
+      "yourReports": "Your lab reports",
+      "reportCount": "{count, plural, one {# report on file} other {# reports on file}}",
+      "or": "Or",
+      "viewResults": "view all results →"
+    },
+    "LabsResults": {
+      "title": "Lab results",
+      "subtitle": "All recorded values, classified against their per-lab reference ranges.",
+      "backToLabs": "← Back to labs",
+      "noResults": "No results yet. Upload a lab or add values manually.",
+      "rangeLabel": "Range",
+      "valueCount": "{count, plural, one {# value} other {# values}}"
+    },
+    "Timeline": {
+      "title": "Timeline",
+      "subtitle": "Every recorded event, in chronological order (GOLD §5.8).",
+      "activityTitle": "Activity timeline",
+      "eventCount": "{count, plural, one {# event} other {# events}}",
+      "noEvents": "No events yet. Upload a lab or add a medication to populate your timeline.",
+      "typeLab": "Lab",
+      "typeMedication": "Medication"
+    },
+    "Analysis": {
+      "title": "Comprehensive Analysis",
+      "summary": "{analyzed, plural, one {# biomarker analyzed} other {# biomarkers analyzed}} · {outOfRange, plural, one {# out of range} other {# out of range}}",
+      "viewFullReport": "View full report",
+      "priorityReview": "Priority review ({count})",
+      "inRange": "In range",
+      "aboveRange": "Above range",
+      "belowRange": "Below range",
+      "borderline": "Borderline",
+      "noResults": "No lab results yet. Upload or enter your results to see the analysis.",
+      "addYourLabs": "Add your labs",
+      "clinicalContext": "Clinical context from the knowledge base",
+      "clinicalContextDesc": "Medical entity relationships relevant to your results, from the clinical literature.",
+      "discussionPoints": "Discussion points for your clinician",
+      "suggestedTests": "Suggested additional tests",
+      "suggestedTestsDesc": "For discussion when data are incomplete.",
+      "trendRising": "rising",
+      "trendFalling": "falling",
+      "trendStable": "stable"
+    },
+    "Reports": {
+      "title": "Reports",
+      "subtitle": "Structured clinical summaries for your healthcare provider.",
+      "generateTitle": "Generate a clinical report",
+      "generateDesc": "Produces a guideline-informed summary from your recorded labs. Educational only — it does not diagnose or prescribe (GOLD §5.13).",
+      "uploadFirst": "Upload and extract a lab first.",
+      "generateButton": "Generate report ({count, plural, one {# value} other {# values}})",
+      "noReportsTitle": "No reports yet",
+      "noReportsWhat": "Generated reports appear here. They summarize your trends and list red flags and questions to discuss with your clinician.",
+      "noReportsNext": "PDF/Word export and trend charts are part of the next pass.",
+      "recentReports": "Recent reports",
+      "reportLabel": "Report · {date}",
+      "redFlags": "{count, plural, one {# red flag} other {# red flags}}"
+    },
+    "Analytics": {
+      "title": "Analytics",
+      "subtitle": "Counts and coverage across your records.",
+      "labReports": "Lab reports",
+      "biomarkerValues": "Biomarker values",
+      "distinctMarkers": "Distinct biomarkers",
+      "chartsTitle": "Interactive trend charts — coming next",
+      "chartsWhat": "Per-biomarker line charts with reference-range overlays, medication overlays, and symptom overlays (GOLD §5.9) are part of the next pass.",
+      "chartsNext": "Recharts-powered charts with hover, zoom, and date-range compare."
+    },
+    "Symptoms": {
+      "title": "Symptoms",
+      "subtitle": "Track how you feel over time (GOLD §5.10).",
+      "trackingTitle": "Symptom tracking — {count, plural, one {# entry recorded} other {# entries recorded}}",
+      "trackingWhat": "The schema and storage are ready (0–10 scoring across energy, mood, libido, sleep, and more). Data entry and trend charts are part of the next pass.",
+      "trackingNext": "A daily check-in form and per-symptom trend charts overlaid with your labs."
+    },
+    "Patients": {
+      "title": "Patient profile",
+      "subtitle": "Your baseline data. Used only to give context to your labs.",
+      "profileTitle": "Profile",
+      "profileDesc": "Demographics, vitals, lifestyle, and history (GOLD §5.4).",
+      "noProfile": "No profile yet."
+    },
+    "Settings": {
+      "title": "Settings",
+      "subtitle": "Account, appearance, and data controls.",
+      "appearanceTitle": "Appearance",
+      "appearanceDesc": "Switch between light and dark mode.",
+      "accountTitle": "Account",
+      "accountDesc": "Signed in as {email}. {count, plural, one {# audited action on record} other {# audited actions on record}}.",
+      "exportTitle": "Data export & deletion — coming next",
+      "exportWhat": "Right-to-be-forgotten and full data export (GOLD §8) are part of the next pass. Until then, contact your administrator to export or delete your data.",
+      "exportNext": "One-click JSON export and verified account deletion that purges all patient data."
+    }
+  },
+  "Report": {
+    "backToReports": "Reports",
+    "title": "Clinical Report",
+    "generatedAt": "Generated {date} · {by}",
+    "resultCount": "{count, plural, one {# result} other {# results}}",
+    "findingCount": "{count, plural, one {# finding} other {# findings}}",
+    "labSummary": "Lab Summary",
+    "labSummarySub": "Key biomarkers from latest results",
+    "statTotalT": "Total T",
+    "statEstradiol": "Estradiol",
+    "statHematocrit": "Hematocrit",
+    "statFreeT": "Free T",
+    "noData": "no data",
+    "trendsTitle": "Biomarker Trends",
+    "trendsSub": "Key hormones over time",
+    "refRangesTitle": "Reference Ranges",
+    "refRangesSub": "Your values vs lab reference",
+    "statusTitle": "Biomarker Status",
+    "statusSub": "Distribution across all markers",
+    "coverageTitle": "Panel Coverage",
+    "coverageSub": "Normal vs out-of-range by category",
+    "dosingTitle": "Dosing Recommendations",
+    "dosingSub": "{protocols, plural, one {# protocol} other {# protocols}} · {priority, plural, one {# clinical priority} other {# clinical priority}}",
+    "hormoneTotalT": "Total Testosterone",
+    "hormoneEstradiol": "Estradiol",
+    "hormoneHematocrit": "Hematocrit",
+    "hormoneShbg": "SHBG",
+    "historicalTrend": "Historical trend",
+    "tabDosing": "Dosing Detail",
+    "tabFlags": "Red Flags",
+    "tabTrends": "Trend Text",
+    "tabRefs": "References",
+    "tabSummary": "Summary",
+    "noDosing": "No dosing recommendations",
+    "noFlags": "No red flags detected",
+    "txtHormone": "Hormone Trends",
+    "txtCbc": "CBC Trends",
+    "txtEstradiol": "Estradiol Trends",
+    "txtShbg": "SHBG Trends",
+    "txtThyroid": "Thyroid",
+    "txtMetabolic": "Metabolic Health",
+    "txtCardio": "Cardiovascular Risk",
+    "txtLifestyle": "Lifestyle Factors",
+    "kbRefs": "KB References ({count})",
+    "graphFacts": "Graph Facts ({count})",
+    "execSummary": "Executive Summary",
+    "questionsTitle": "Questions for your physician",
+    "badgePriority": "Priority",
+    "badgeStandard": "Standard",
+    "badgeAlternative": "Alternative",
+    "detailDose": "Dose:",
+    "detailFreq": "Freq:",
+    "detailRoute": "Route:",
+    "detailCycle": "Cycle:"
+  },
+  "Charts": {
+    "ref": "Ref: {low} – {high}",
+    "thNumber": "#",
+    "thCompound": "Compound",
+    "thDose": "Dose",
+    "thFrequency": "Frequency",
+    "thPriority": "Priority",
+    "priorityLabel": "Priority",
+    "standardLabel": "Standard",
+    "altLabel": "Alt",
+    "yourValue": "Your Value",
+    "refLowLabel": "Ref Low",
+    "refHighLabel": "Ref High",
+    "normal": "Normal",
+    "outOfRange": "Out of Range",
+    "insufficientData": "Insufficient data for chart",
+    "noDosing": "No dosing recommendations"
+  },
+  "Dosing": {
+    "title": "Dosing Recommendations",
+    "desc": "Exact steroid + ancillary dosages based on your lab results and clinical protocols. The physician validates every recommendation.",
+    "labelPriority": "Clinical Priority",
+    "labelStandard": "Standard",
+    "labelAlternative": "Alternative",
+    "sourcesCount": "{count, plural, one {# source} other {# sources}}",
+    "detailDose": "Dose",
+    "detailFrequency": "Frequency",
+    "detailRoute": "Route",
+    "detailCycle": "Cycle Length",
+    "expectedShift": "Expected biomarker shift:",
+    "sources": "Sources:",
+    "summaryNote": "These are recommendations based on retrieved clinical protocols (Graphiti RAG). The physician validates every dose, frequency, and cycle length before prescribing."
+  },
+  "ManualEntry": {
+    "enterManually": "Enter values manually",
+    "title": "Manual entry",
+    "collectedDate": "Collected date",
+    "laboratory": "Laboratory (optional)",
+    "labPlaceholder": "e.g. Quest",
+    "biomarkerKey": "Biomarker key",
+    "value": "Value",
+    "unit": "Unit",
+    "low": "Low",
+    "high": "High",
+    "addRow": "Add row",
+    "save": "Save {count, plural, one {# value} other {# values}}",
+    "addAtLeastOne": "Add at least one value."
+  },
+  "ProfileForm": {
+    "heightCm": "Height (cm)",
+    "weightKg": "Weight (kg)",
+    "bodyFatPct": "Body fat (%)",
+    "waistCm": "Waist (cm)",
+    "bloodPressureSystolic": "BP systolic",
+    "bloodPressureDiastolic": "BP diastolic",
+    "restingHeartRate": "Resting HR",
+    "sleepHoursPerNight": "Sleep (h/night)",
+    "exerciseFrequency": "Exercise frequency",
+    "alcoholUse": "Alcohol use",
+    "smokingStatus": "Smoking status",
+    "medicalConditions": "Medical conditions",
+    "supplements": "Supplements",
+    "goals": "Goals",
+    "familyHistory": "Family history",
+    "dateOfBirth": "Date of birth",
+    "sex": "Sex",
+    "sexPlaceholder": "male / female / intersex",
+    "saveProfile": "Save profile",
+    "saved": "Saved."
+  },
+  "Upload": {
+    "dropHere": "Drag & drop lab files here, or click to browse",
+    "formats": "PDF, JPG, PNG, HEIC · unlimited uploads",
+    "uploadButton": "Upload {count, plural, one {# file} other {# files}}"
+  },
+  "LabsList": {
+    "empty": "No lab reports uploaded yet. Drop a file above to begin.",
+    "uploaded": "Uploaded {date}",
+    "valueCount": "{count, plural, one {# value} other {# values}}",
+    "extract": "Extract"
+  },
+  "GenerateReport": {
+    "failed": "Failed"
+  },
+  "Status": {
+    "LOW": "Below range",
+    "BORDERLINE_LOW": "Borderline low",
+    "NORMAL": "In range",
+    "BORDERLINE_HIGH": "Borderline high",
+    "HIGH": "Above range",
+    "NON_NUMERIC": "Non-numeric",
+    "NO_RANGE": "No reference range"
+  },
+  "LabStatus": {
+    "UPLOADED": "Uploaded",
+    "EXTRACTING": "Extracting",
+    "EXTRACTED": "Extracted",
+    "REVIEW_NEEDED": "Review needed",
+    "FAILED": "Failed"
+  }
+}

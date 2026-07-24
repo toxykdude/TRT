@@ -18,6 +18,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
+import { useTranslations } from 'next-intl';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -218,6 +219,7 @@ export function BiomarkerTrendChart({ trends, keys }: { trends: TrendItem[]; key
 // ── 2. Reference Range Comparison (grouped bar) ───────────────────────────────
 
 export function RangeComparisonChart({ classified, keys }: { classified: ClassifiedItem[]; keys: string[] }) {
+  const t = useTranslations('Charts');
   // Show latest value vs refLow/refHigh for each biomarker
   const latest = new Map<string, ClassifiedItem>();
   for (const c of classified) {
@@ -253,12 +255,12 @@ export function RangeComparisonChart({ classified, keys }: { classified: Classif
         <Tooltip
           contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
           formatter={(v: number, name: string) => {
-            if (name === 'value') return [v, 'Your Value'];
-            if (name === 'refLow') return [v, 'Ref Low'];
-            return [v, 'Ref High'];
+            if (name === 'value') return [v, t('yourValue')];
+            if (name === 'refLow') return [v, t('refLowLabel')];
+            return [v, t('refHighLabel')];
           }}
         />
-        <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} formatter={(v) => (v === 'value' ? 'Your Value' : v === 'refLow' ? 'Ref Low' : 'Ref High')} />
+        <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} formatter={(v) => (v === 'value' ? t('yourValue') : v === 'refLow' ? t('refLowLabel') : t('refHighLabel'))} />
         <Bar dataKey="refLow" fill={CHART_COLORS.yellow} radius={[4, 4, 0, 0]} barSize={20} />
         <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={20}>
           {data.map((d, i) => (
@@ -274,6 +276,7 @@ export function RangeComparisonChart({ classified, keys }: { classified: Classif
 // ── 3. Status Distribution Donut ──────────────────────────────────────────────
 
 export function StatusDonutChart({ classified }: { classified: ClassifiedItem[] }) {
+  const statusT = useTranslations('Status');
   const counts = new Map<string, number>();
   for (const c of classified) {
     counts.set(c.status, (counts.get(c.status) || 0) + 1);
@@ -281,7 +284,7 @@ export function StatusDonutChart({ classified }: { classified: ClassifiedItem[] 
 
   const data = Array.from(counts.entries())
     .map(([status, count]) => ({
-      name: status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
+      name: statusT(status),
       value: count,
       color: STATUS_COLORS[status] || CHART_COLORS.blue,
     }))
@@ -376,10 +379,11 @@ const PRIORITY_BAR = {
 };
 
 export function DosingTable({ recommendations }: { recommendations: DosingRec[] }) {
+  const t = useTranslations('Charts');
   if (recommendations.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center text-sm text-gray-400">
-        No dosing recommendations
+        {t('noDosing')}
       </div>
     );
   }
@@ -389,11 +393,11 @@ export function DosingTable({ recommendations }: { recommendations: DosingRec[] 
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-xs text-gray-500">
-            <th className="pb-3 pr-4 font-medium">#</th>
-            <th className="pb-3 pr-4 font-medium">Compound</th>
-            <th className="pb-3 pr-4 font-medium">Dose</th>
-            <th className="pb-3 pr-4 font-medium">Frequency</th>
-            <th className="pb-3 pr-4 font-medium">Priority</th>
+            <th className="pb-3 pr-4 font-medium">{t('thNumber')}</th>
+            <th className="pb-3 pr-4 font-medium">{t('thCompound')}</th>
+            <th className="pb-3 pr-4 font-medium">{t('thDose')}</th>
+            <th className="pb-3 pr-4 font-medium">{t('thFrequency')}</th>
+            <th className="pb-3 pr-4 font-medium">{t('thPriority')}</th>
           </tr>
         </thead>
         <tbody>
@@ -415,7 +419,11 @@ export function DosingTable({ recommendations }: { recommendations: DosingRec[] 
                       className="rounded-full px-2 py-0.5 text-xs font-medium"
                       style={{ backgroundColor: `${color}15`, color }}
                     >
-                      {rec.priority === 'clinical_priority' ? 'Priority' : rec.priority === 'standard' ? 'Standard' : 'Alt'}
+                      {rec.priority === 'clinical_priority'
+                        ? t('priorityLabel')
+                        : rec.priority === 'standard'
+                          ? t('standardLabel')
+                          : t('altLabel')}
                     </span>
                   </div>
                 </td>
@@ -431,6 +439,7 @@ export function DosingTable({ recommendations }: { recommendations: DosingRec[] 
 // ── 6. Category Coverage Stacked Bar ──────────────────────────────────────────
 
 export function CategoryCoverageChart({ classified }: { classified: ClassifiedItem[] }) {
+  const t = useTranslations('Charts');
   const categoryMap = new Map<string, { normal: number; abnormal: number; total: number }>();
 
   for (const c of classified) {
@@ -458,8 +467,8 @@ export function CategoryCoverageChart({ classified }: { classified: ClassifiedIt
         <YAxis tick={{ fontSize: 11, fill: '#737791' }} axisLine={false} tickLine={false} />
         <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
         <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="normal" stackId="a" fill={CHART_COLORS.green} radius={[0, 0, 0, 0]} barSize={30} name="Normal" />
-        <Bar dataKey="abnormal" stackId="a" fill={CHART_COLORS.red} radius={[4, 4, 0, 0]} barSize={30} name="Out of Range" />
+        <Bar dataKey="normal" stackId="a" fill={CHART_COLORS.green} radius={[0, 0, 0, 0]} barSize={30} name={t('normal')} />
+        <Bar dataKey="abnormal" stackId="a" fill={CHART_COLORS.red} radius={[4, 4, 0, 0]} barSize={30} name={t('outOfRange')} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -468,9 +477,10 @@ export function CategoryCoverageChart({ classified }: { classified: ClassifiedIt
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 function EmptyChart() {
+  const t = useTranslations('Charts');
   return (
     <div className="flex h-48 items-center justify-center">
-      <p className="text-sm text-gray-400">Insufficient data for chart</p>
+      <p className="text-sm text-gray-400">{t('insufficientData')}</p>
     </div>
   );
 }

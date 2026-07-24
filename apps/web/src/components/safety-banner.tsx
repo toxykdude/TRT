@@ -1,4 +1,7 @@
-import { SAFETY_DISCLAIMER, cn } from '@/lib/utils';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 
 /**
  * The clinical disclaimer. Kept on every clinical surface (legal protection);
@@ -16,11 +19,13 @@ export function SafetyBanner({
   variant?: 'banner' | 'footer' | 'compact';
   className?: string;
 }) {
+  const t = useTranslations('Safety');
+
   if (variant === 'compact') {
-    return <p className={cn('text-[11px] leading-tight text-muted-foreground', className)}>{SAFETY_DISCLAIMER}</p>;
+    return <p className={cn('text-[11px] leading-tight text-muted-foreground', className)}>{t('disclaimer')}</p>;
   }
   if (variant === 'footer') {
-    return <p className={cn('text-xs text-muted-foreground/70', className)}>{SAFETY_DISCLAIMER}</p>;
+    return <p className={cn('text-xs text-muted-foreground/70', className)}>{t('disclaimer')}</p>;
   }
   // banner: subtle, not alarming
   return (
@@ -30,7 +35,7 @@ export function SafetyBanner({
         className,
       )}
     >
-      {SAFETY_DISCLAIMER}
+      {t('disclaimer')}
     </p>
   );
 }

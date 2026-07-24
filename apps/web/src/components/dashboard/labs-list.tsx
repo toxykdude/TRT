@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,9 @@ const STATUS_STYLE: Record<string, string> = {
 
 export function LabsList({ reports }: { reports: LabReportRow[] }) {
   const [busy, setBusy] = useState<string | null>(null);
+  const t = useTranslations('LabsList');
+  const tCommon = useTranslations('Dashboard');
+  const labStatusT = useTranslations('LabStatus');
 
   const extract = async (id: string) => {
     setBusy(id);
@@ -46,9 +50,7 @@ export function LabsList({ reports }: { reports: LabReportRow[] }) {
 
   if (reports.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        No lab reports uploaded yet. Drop a file above to begin.
-      </p>
+      <p className="py-8 text-center text-sm text-muted-foreground">{t('empty')}</p>
     );
   }
 
@@ -59,18 +61,18 @@ export function LabsList({ reports }: { reports: LabReportRow[] }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{r.fileName}</p>
             <p className="text-xs text-muted-foreground">
-              {r.laboratory ? `${r.laboratory} · ` : ''}Uploaded {r.uploadedAt} · {r.resultCount} value
-              {r.resultCount === 1 ? '' : 's'}
+              {r.laboratory ? `${r.laboratory} · ` : ''}
+              {t('uploaded', { date: r.uploadedAt })} · {t('valueCount', { count: r.resultCount })}
             </p>
           </div>
 
           <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', STATUS_STYLE[r.status])}>
-            {r.status.replace('_', ' ').toLowerCase()}
+            {labStatusT(r.status)}
           </span>
 
           {r.reviewNeeded && (
             <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
-              <AlertCircle className="h-3 w-3" /> review
+              <AlertCircle className="h-3 w-3" /> {tCommon('review')}
             </span>
           )}
 
@@ -81,7 +83,7 @@ export function LabsList({ reports }: { reports: LabReportRow[] }) {
               ) : (
                 <Sparkles className="mr-1 h-3 w-3" />
               )}
-              Extract
+              {t('extract')}
             </Button>
           )}
         </li>

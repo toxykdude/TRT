@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 /**
@@ -17,16 +20,16 @@ const CHART_POINTS: ReadonlyArray<readonly [number, number]> = [
 type RowTone = 'mint' | 'amber';
 
 const ROWS: ReadonlyArray<{
-  name: string;
+  nameKey: 'testosteroneName' | 'estradiolName' | 'hematocritName';
+  statusKey: 'inRange' | 'watch';
   value: string;
   /** marker position across the range track, % */
   pct: number;
-  status: string;
   tone: RowTone;
 }> = [
-  { name: 'Total Testosterone', value: '642 ng/dL', pct: 62, status: 'In range', tone: 'mint' },
-  { name: 'Estradiol (E2)', value: '38 pg/mL', pct: 44, status: 'In range', tone: 'mint' },
-  { name: 'Hematocrit', value: '51.2 %', pct: 88, status: 'Watch', tone: 'amber' },
+  { nameKey: 'testosteroneName', statusKey: 'inRange', value: '642 ng/dL', pct: 62, tone: 'mint' },
+  { nameKey: 'estradiolName', statusKey: 'inRange', value: '38 pg/mL', pct: 44, tone: 'mint' },
+  { nameKey: 'hematocritName', statusKey: 'watch', value: '51.2 %', pct: 88, tone: 'amber' },
 ];
 
 const TONE_CLASS: Record<RowTone, { dot: string; bar: string }> = {
@@ -35,6 +38,8 @@ const TONE_CLASS: Record<RowTone, { dot: string; bar: string }> = {
 };
 
 export function ProductMockup() {
+  const t = useTranslations('Technology.mockup');
+
   return (
     <div className="relative">
       {/* soft halo behind the device frame */}
@@ -51,11 +56,11 @@ export function ProductMockup() {
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-mint" />
               <p className="text-sm font-semibold text-charcoal dark:text-foreground">
-                Hormone trend
+                {t('title')}
               </p>
             </div>
             <span className="rounded-full border border-mint/40 bg-mint/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-mint-dark dark:text-mint">
-              Normalized
+              {t('normalized')}
             </span>
           </div>
 
@@ -71,7 +76,7 @@ export function ProductMockup() {
             <line x1="0" y1="42" x2="320" y2="42" stroke="#00E6A1" strokeOpacity="0.35" strokeDasharray="4 4" />
             <line x1="0" y1="94" x2="320" y2="94" stroke="#00E6A1" strokeOpacity="0.35" strokeDasharray="4 4" />
             <text x="8" y="38" fontSize="9" fill="#6B7280">
-              reference range
+              {t('referenceRange')}
             </text>
             <path
               d="M0 122 C 30 116, 48 92, 78 98 S 128 66, 158 74 S 228 38, 258 46 S 300 34, 320 30 L 320 150 L 0 150 Z"
@@ -93,12 +98,12 @@ export function ProductMockup() {
           <ul className="mt-4 space-y-2.5">
             {ROWS.map((row) => (
               <li
-                key={row.name}
+                key={row.nameKey}
                 className="rounded-xl border border-black/5 bg-gray-50 px-3.5 py-3 dark:border-white/5 dark:bg-white/5"
               >
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-medium text-gray-700 dark:text-foreground/80">
-                    {row.name}
+                    {t(row.nameKey)}
                   </p>
                   <div className="flex items-center gap-1.5">
                     <span className={cn('h-1.5 w-1.5 rounded-full', TONE_CLASS[row.tone].dot)} />
@@ -113,6 +118,9 @@ export function ProductMockup() {
                     style={{ width: `${row.pct}%` }}
                   />
                 </div>
+                <p className="mt-1.5 text-[11px] font-medium text-gray-500 dark:text-muted-foreground">
+                  {t(row.statusKey)}
+                </p>
               </li>
             ))}
           </ul>

@@ -1,10 +1,14 @@
-import Link from 'next/link';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
+import { LanguageToggle } from '@/components/language-toggle';
 
 /** Section anchors rendered over the dark hero — always light-on-dark. */
 const NAV_LINKS = [
-  { label: 'Overview', href: '#overview' },
-  { label: 'Technology', href: '#technology' },
-  { label: 'Research', href: '#research' },
+  { labelKey: 'overview', href: '#overview' },
+  { labelKey: 'technology', href: '#technology' },
+  { labelKey: 'research', href: '#research' },
 ] as const;
 
 /** Abstract geometric brand mark — teal → blue gradient (template placeholder). */
@@ -48,10 +52,13 @@ function LogoMark() {
  * fixed light-on-dark colors regardless of the active theme.
  */
 export function LandingNav() {
+  const t = useTranslations('Nav');
+  const tc = useTranslations('Common');
+
   return (
     <header className="absolute inset-x-0 top-0 z-20">
       <nav
-        aria-label="Primary"
+        aria-label={t('primaryLabel')}
         className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-6 sm:px-8"
       >
         <Link href="/" className="group flex shrink-0 items-center gap-2.5">
@@ -72,24 +79,25 @@ export function LandingNav() {
                   href={link.href}
                   className="rounded-sm text-sm font-medium text-gray-400 transition-colors duration-200 hover:text-mint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/60"
                 >
-                  {link.label}
+                  {t(link.labelKey)}
                 </a>
               </li>
             ))}
           </ul>
 
           <div className="flex items-center gap-4">
+            <LanguageToggle />
             <Link
               href="/login"
               className="hidden rounded-sm text-sm font-medium text-white/80 transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/60 sm:inline-block"
             >
-              Sign in
+              {tc('signIn')}
             </Link>
             <Link
               href="/register"
               className="rounded-full bg-mint px-4 py-2 text-sm font-bold text-charcoal transition-all duration-200 hover:scale-[1.04] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2 focus-visible:ring-offset-abyss"
             >
-              Get started
+              {tc('getStarted')}
             </Link>
           </div>
         </div>

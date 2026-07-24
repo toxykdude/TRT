@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/navigation';
 import { Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NAV } from './nav-items';
@@ -9,11 +9,13 @@ import { signOutAction } from '@/app/actions';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const tNav = useTranslations('Dashboard.Nav');
+  const t = useTranslations('Dashboard');
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r bg-card/40 backdrop-blur-xl lg:flex">
       <div className="flex items-center gap-2 px-6 py-6 font-semibold">
         <Activity className="h-5 w-5 text-primary" />
-        TRT Insights
+        {t('brand')}
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {NAV.map((item) => {
@@ -30,14 +32,14 @@ export function Sidebar() {
               )}
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              {tNav(item.labelKey)}
             </Link>
           );
         })}
       </nav>
       <div className="px-6 py-4">
         <form action={signOutAction}>
-          <button className="text-xs text-muted-foreground hover:text-foreground">Sign out</button>
+          <button className="text-xs text-muted-foreground hover:text-foreground">{t('signOut')}</button>
         </form>
       </div>
     </aside>

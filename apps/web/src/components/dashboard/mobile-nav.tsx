@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/navigation';
 import { Menu, X } from 'lucide-react';
 import { NAV } from './nav-items';
 import { cn } from '@/lib/utils';
@@ -10,12 +10,14 @@ import { cn } from '@/lib/utils';
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const tNav = useTranslations('Dashboard.Nav');
+  const t = useTranslations('Dashboard');
   return (
     <div className="lg:hidden">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex h-10 w-10 items-center justify-center rounded-md border"
-        aria-label="Toggle navigation"
+        aria-label={t('toggleNav')}
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
@@ -34,7 +36,7 @@ export function MobileNav() {
                 )}
               >
                 <item.icon className="h-4 w-4" />
-                {item.label}
+                {tNav(item.labelKey)}
               </Link>
             );
           })}

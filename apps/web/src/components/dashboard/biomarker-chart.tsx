@@ -11,6 +11,7 @@ import {
   ReferenceArea,
   ReferenceLine,
 } from 'recharts';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 type DataPoint = {
@@ -33,6 +34,7 @@ type Props = {
  * Reference range is shaded green; out-of-range points are red/amber.
  */
 export function BiomarkerChart({ biomarkerName, unit, data, refLow, refHigh, className }: Props) {
+  const t = useTranslations('Charts');
   const hasRange = refLow != null && refHigh != null;
   const allVals = [...data.map((d) => d.value).filter((v): v is number => v != null)];
   if (refLow != null) allVals.push(refLow);
@@ -51,7 +53,7 @@ export function BiomarkerChart({ biomarkerName, unit, data, refLow, refHigh, cla
         </div>
         {hasRange && (
           <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-            Ref: {refLow} – {refHigh}
+            {t('ref', { low: refLow, high: refHigh })}
           </span>
         )}
       </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { UploadCloud, File as FileIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ const ACCEPTED = '.pdf,.jpg,.jpeg,.png,.heic';
 
 export function UploadZone() {
   const router = useRouter();
+  const t = useTranslations('Upload');
   const [dragging, setDragging] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
@@ -68,8 +70,8 @@ export function UploadZone() {
         )}
       >
         <UploadCloud className="h-8 w-8 text-muted-foreground" />
-        <p className="text-sm font-medium">Drag & drop lab files here, or click to browse</p>
-        <p className="text-xs text-muted-foreground">PDF, JPG, PNG, HEIC · unlimited uploads</p>
+        <p className="text-sm font-medium">{t('dropHere')}</p>
+        <p className="text-xs text-muted-foreground">{t('formats')}</p>
         <input
           type="file"
           multiple
@@ -99,7 +101,7 @@ export function UploadZone() {
       {files.length > 0 && (
         <Button onClick={uploadAll} disabled={pending}>
           {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Upload {files.length} file{files.length > 1 ? 's' : ''}
+          {t('uploadButton', { count: files.length })}
         </Button>
       )}
     </div>
