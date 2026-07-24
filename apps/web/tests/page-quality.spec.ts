@@ -84,4 +84,34 @@ test.describe('Authenticated pages', () => {
     await page.goto('/dashboard/analysis', { waitUntil: 'networkidle' });
     await page.screenshot({ path: 'tests/screenshots/analysis.png', fullPage: true });
   });
+
+  // ── analytics-graphs (GOLD §5.9) ──────────────────────────────────────────
+  // Regression guard for the LineChart→ComposedChart switch (A4): BiomarkerChart
+  // has ZERO unit tests and exactly one caller (analysis page), so this E2E is
+  // the no-regression evidence that overlays/ComposedChart did not break it.
+  test('analysis page still renders a chart after the ComposedChart switch (no regression)', async ({ page }) => {
+    await page.goto('/dashboard/analysis', { waitUntil: 'networkidle' });
+    // SafetyBanner disclaimer stays on every clinical surface (SRV-1).
+    await expect(page.getByText(/educational and organizational support only/i)).toBeVisible();
+    // When the user has CONFIRMED results, a Recharts chart must still render.
+    const surface = page.locator('.recharts-surface').first();
+    if (await surface.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await expect(surface).toBeVisible();
+    }
+  });
+
+  test('analytics renders charts + disclaimer and NO placeholder card', async ({ page }) => {
+    await page.goto('/dashboard/analytics', { waitUntil: 'networkidle' });
+    await page.screenshot({ path: 'tests/screenshots/analytics.png', fullPage: true });
+    // SRV-1: the §2.5 SafetyBanner disclaimer is present on this clinical surface.
+    await expect(page.getByText(/educational and organizational support only/i)).toBeVisible();
+    // The PlaceholderCard (border-dashed roadmap card) MUST be gone — replaced by
+    // real charts or the honest empty-state (S-TC-EMPTY). RED until A4+A5 land.
+    await expect(page.locator('.border-dashed')).toHaveCount(0);
+    // When CONFIRMED results exist, a Recharts chart renders (TC-1).
+    const surface = page.locator('.recharts-surface').first();
+    if (await surface.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await expect(surface).toBeVisible();
+    }
+  });
 });

@@ -197,7 +197,14 @@
       "distinctMarkers": "Biomarcadores distintos",
       "chartsTitle": "Gráficos de tendencia interactivos — próximamente",
       "chartsWhat": "Los gráficos de línea por biomarcador con superposición de rangos de referencia, medicamentos y síntomas (GOLD §5.9) forman parte de la próxima etapa.",
-      "chartsNext": "Gráficos potenciados por Recharts con hover, zoom y comparación por rango de fechas."
+      "chartsNext": "Gráficos potenciados por Recharts con hover, zoom y comparación por rango de fechas.",
+      "range3m": "3 meses",
+      "range6m": "6 meses",
+      "range1y": "1 año",
+      "rangeAll": "Todo el tiempo",
+      "emptyTitle": "Aún no hay resultados confirmados",
+      "emptyWhat": "Sube un informe de laboratorio y confirma los valores extraídos para ver tus gráficos de tendencia interactivos con superposición de medicamentos y síntomas.",
+      "goToLabs": "Ir a Laboratorios"
     },
     "Symptoms": {
       "title": "Síntomas",

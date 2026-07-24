@@ -197,7 +197,14 @@
       "distinctMarkers": "Distinct biomarkers",
       "chartsTitle": "Interactive trend charts — coming next",
       "chartsWhat": "Per-biomarker line charts with reference-range overlays, medication overlays, and symptom overlays (GOLD §5.9) are part of the next pass.",
-      "chartsNext": "Recharts-powered charts with hover, zoom, and date-range compare."
+      "chartsNext": "Recharts-powered charts with hover, zoom, and date-range compare.",
+      "range3m": "3 months",
+      "range6m": "6 months",
+      "range1y": "1 year",
+      "rangeAll": "All time",
+      "emptyTitle": "No confirmed results yet",
+      "emptyWhat": "Upload a lab report and confirm the extracted values to see your interactive trend charts with medication and symptom overlays.",
+      "goToLabs": "Go to Labs"
     },
     "Symptoms": {
       "title": "Symptoms",

@@ -3,29 +3,61 @@ import { auth } from '@/lib/auth';
 import { prismaFor } from '@trt/db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SafetyBanner } from '@/components/safety-banner';
-import { PlaceholderCard } from '@/components/dashboard/placeholder-card';
+import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
+import { BiomarkerChart } from '@/components/dashboard/biomarker-chart';
+import { buildAnalyticsSeries, serializeForConsumer, type AnalyticsRange } from '@/lib/analytics-series';
+import { groupByCategory } from '@/lib/analysis';
+import { cn } from '@/lib/utils';
+import { FlaskConical } from 'lucide-react';
+
+const RANGES: AnalyticsRange[] = ['3m', '6m', '1y', 'all'];
+
+const RANGE_LABEL: Record<AnalyticsRange, string> = {
+  '3m': 'range3m',
+  '6m': 'range6m',
+  '1y': 'range1y',
+  all: 'rangeAll',
+};
+
+function parseRange(v: string | undefined): AnalyticsRange {
+  return v === '3m' || v === '6m' || v === '1y' ? v : 'all';
+}
 
 export default async function AnalyticsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ range?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('Dashboard.Analytics');
 
   const session = await auth();
-  const db = prismaFor(session!.user.id);
-  const [labs, results, byCategory] = await Promise.all([
-    db.labReport.count(),
-    // P0.2.b: only CONFIRMED values count toward analytics aggregates.
-    db.labResult.count({ where: { reviewStatus: 'CONFIRMED' } }),
+  const ownerId = session!.user.id;
+  const db = prismaFor(ownerId);
+  const range = parseRange((await searchParams).range);
+
+  // ownerId is the real tenancy gate (prismaFor is BYPASSRLS, TC-7). Every read
+  // — the stat aggregates AND buildAnalyticsSeries — filters where:{ ownerId }.
+  const [series, labs, results, byCategory] = await Promise.all([
+    buildAnalyticsSeries(db, ownerId, range),
+    db.labReport.count({ where: { ownerId } }),
+    db.labResult.count({ where: { ownerId, reviewStatus: 'CONFIRMED' } }),
     db.labResult.groupBy({
       by: ['biomarkerId'],
       _count: true,
-      where: { reviewStatus: 'CONFIRMED' },
+      where: { ownerId, reviewStatus: 'CONFIRMED' },
     }),
   ]);
+
+  // SRV-2 / fail-closed: scan the consumer payload before it reaches the chart.
+  // Throws GuardrailViolationError if any dosing content is present (§2.3).
+  const safeSeries = serializeForConsumer(series);
+  const categories = groupByCategory(safeSeries.biomarkers);
+  const hasCharts = safeSeries.biomarkers.length > 0;
 
   return (
     <div className="space-y-8">
@@ -60,11 +92,59 @@ export default async function AnalyticsPage({
           </CardContent>
         </Card>
       </div>
-      <PlaceholderCard
-        title={t('chartsTitle')}
-        what={t('chartsWhat')}
-        next={t('chartsNext')}
-      />
+
+      {/* Range preset chips (TC-6) — server-first via URL searchParam. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {RANGES.map((r) => (
+          <Button
+            key={r}
+            asChild
+            variant={r === range ? 'default' : 'outline'}
+            size="sm"
+          >
+            <Link href={`/dashboard/analytics?range=${r}`}>{t(RANGE_LABEL[r] as never)}</Link>
+          </Button>
+        ))}
+      </div>
+
+      {hasCharts ? (
+        <div className="space-y-6">
+          {[...categories.entries()].map(([cat, ms]) => (
+            <div key={cat}>
+              <h3 className="mb-3 text-sm font-medium capitalize text-muted-foreground">{cat}</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                {ms.map((m) => (
+                  <BiomarkerChart
+                    key={m.key}
+                    biomarkerName={m.name}
+                    unit={m.unit}
+                    data={m.points}
+                    refLow={m.refLow}
+                    refHigh={m.refHigh}
+                    // Timing-only medication overlay (TC-3); dose never reaches here.
+                    medications={safeSeries.medications}
+                    // Symptom magnitude dots (TC-5).
+                    symptoms={safeSeries.symptoms}
+                    brush
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        // Honest empty-state (S-TC-EMPTY): no fabricated chart.
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <FlaskConical className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-medium">{t('emptyTitle')}</p>
+            <p className="max-w-md text-xs text-muted-foreground">{t('emptyWhat')}</p>
+            <Button asChild>
+              <Link href="/dashboard/labs">{t('goToLabs')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
