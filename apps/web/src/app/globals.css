@@ -52,6 +52,13 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
+
+  /* Smooth anchor scrolling on the landing page (reduced-motion aware) */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 }
 
 @layer utilities {

@@ -37,6 +37,27 @@ const config: Config = {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        // Landing-page brand palette (BiomeSense-inspired redesign)
+        mint: {
+          DEFAULT: '#00E6A1', // primary accent — AA-safe on dark teal
+          dark: '#00785A', // deepened mint — AA-safe body text on white
+        },
+        abyss: '#011E1A', // hero/footer dark teal (gradient start)
+        pine: '#03362E', // hero forest green (gradient end)
+        charcoal: '#1A1A1A', // primary text on light sections
+      },
+      fontFamily: {
+        // Wire next/font's Inter variable (--font-sans, set in app/layout.tsx)
+        // into Tailwind's `font-sans` utility.
+        sans: [
+          'var(--font-sans)',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -51,9 +72,15 @@ const config: Config = {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
         },
+        // Gentle vertical drift for the hero's cellular particles
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-16px)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.6s ease-out forwards',
+        float: 'float 10s ease-in-out infinite',
       },
     },
   },
