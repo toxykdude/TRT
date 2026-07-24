@@ -11,10 +11,12 @@
  *
  * VISION CAPABILITY CAVEAT (GOLD §6.2): the configured model MUST support (a)
  * vision image input (we send each PDF page as a PNG data URL) AND (b)
- * `response_format: { type: "json_schema", strict: true }`. gpt-4o-mini meets
- * both. If you run Z.AI, set OPENAI_MODEL to a vision-capable model on that
- * endpoint and OPENAI_API_URL accordingly — a text-only model cannot read the
- * rendered pages and will produce empty/garbage output.
+ * `response_format: { type: "json_object" }` (the JSON shape is described in the
+ * system prompt and re-validated by the zod ExtractionSchema gate). gpt-4o-mini
+ * and Z.AI's glm-4.6v both meet these. If you run another endpoint, set
+ * OPENAI_MODEL to a vision-capable model there and OPENAI_API_URL accordingly —
+ * a text-only model cannot read the rendered pages and will produce
+ * empty/garbage output.
  */
 import OpenAI from 'openai';
 

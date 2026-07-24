@@ -3,8 +3,10 @@
  *
  * P0.2.a: REAL extraction. When OPENAI_API_KEY is set, `extractLab` routes to
  * `extractLabLive`, which renders the file to page images (poppler), sends them
- * to a vision model with a Structured Outputs (json_schema, strict) request,
- * and validates the response against `ExtractionSchema` (GOLD §6.2). When the
+ * to a vision model with a `response_format: { type: "json_object" }` request
+ * (Z.AI / OpenAI-compatible; the JSON SHAPE is described in the system prompt
+ * because json_object mode only guarantees valid JSON, not the shape), and
+ * validates the response against `ExtractionSchema` (GOLD §6.2). When the
  * key is unset, a deterministic stub is returned (dev/tests, clearly marked).
  *
  * GOLD §6: extraction TRANSCRIBES only what is printed — it never infers a
@@ -34,59 +36,39 @@ export type ExtractLabInput = {
  */
 export const EXTRACTION_CONFIDENCE_THRESHOLD = 0.85;
 
-// ── Structured Outputs JSON schema (strict) ──────────────────────────────────
-// Mirrors ExtractedBiomarkerSchema/ExtractionSchema. Strict mode requires every
-// property listed in `required` and additionalProperties:false; nullables use a
-// ["type","null"] union.
-const extractedBiomarkerJsonSchema = {
-  type: 'object',
-  properties: {
-    name: { type: 'string' },
-    canonicalCode: { type: ['string', 'null'] },
-    value: { type: 'string' },
-    unit: { type: ['string', 'null'] },
-    referenceLow: { type: ['string', 'null'] },
-    referenceHigh: { type: ['string', 'null'] },
-    collectedAt: { type: ['string', 'null'] },
-    confidence: { type: 'number' },
-    sourcePage: { type: ['integer', 'null'] },
-  },
-  required: [
-    'name',
-    'canonicalCode',
-    'value',
-    'unit',
-    'referenceLow',
-    'referenceHigh',
-    'collectedAt',
-    'confidence',
-    'sourcePage',
-  ],
-  additionalProperties: false,
-} as const;
-
-const extractionResponseSchema = {
-  type: 'object',
-  properties: {
-    labName: { type: ['string', 'null'] },
-    collectedAt: { type: ['string', 'null'] },
-    biomarkers: { type: 'array', items: extractedBiomarkerJsonSchema },
-  },
-  required: ['labName', 'collectedAt', 'biomarkers'],
-  additionalProperties: false,
-} as const;
-
+// ── System prompt schema contract (json_object mode) ─────────────────────────
+// Z.AI does not support OpenAI strict json_schema mode. We use json_object
+// mode (guarantees valid JSON) and describe the exact output shape here, in the
+// system message. The zod `ExtractionSchema` gate in extractLabLive is the hard
+// safety net: if the model ever drifts from this shape, we throw and NEVER
+// partial-write. The field names below mirror schemas.ts (single source of
+// truth for the validated shape); keep them in sync.
 const SYSTEM_PROMPT = [
   'You extract biomarker lab results from a lab report image.',
   'Transcribe EXACTLY what is printed — never infer, round, or fabricate a value.',
-  'For each biomarker return: the printed name, the value as printed (string),',
-  'the unit, the reference range low and high (as printed), the collection date',
-  'if present, your transcription confidence (0..1), and the 1-indexed source page.',
-  'For canonicalCode: set the machine key if you recognize it (snake_case, e.g.',
-  '"total_testosterone", "estradiol_sensitive", "shbg", "hematocrit"); otherwise null.',
   'Omit non-biomarker rows (patient demographics, techniques, signatures, totals).',
-  'Return ONLY the JSON matching the provided schema.',
-].join(' ');
+  '',
+  'OUTPUT FORMAT — return ONLY a single JSON object (no prose, no markdown fences).',
+  'The full response must be valid JSON and nothing else.',
+  'Top-level object fields:',
+  '- labName (string | null): the lab / reporting facility name.',
+  '- collectedAt (string | null): ISO date/time the sample was collected, if present.',
+  '- biomarkers (array): every biomarker result printed on the report.',
+  'Each biomarkers[] element is an object with EXACTLY these fields:',
+  '- name (string): the biomarker name exactly as printed.',
+  '- canonicalCode (string | null): snake_case machine key if you recognize it',
+  '  (e.g. "total_testosterone", "estradiol_sensitive", "shbg", "hematocrit"); else null.',
+  '- value (string): the result exactly as printed ("584.70", ">1000", "<0.5", "positive").',
+  '- unit (string | null): the printed unit (e.g. "ng/dL", "%").',
+  '- referenceLow (string | null): the printed lower reference bound.',
+  '- referenceHigh (string | null): the printed upper reference bound.',
+  '- collectedAt (string | null): per-row collection date if it differs from the',
+  '  report-level one; else null.',
+  '- confidence (number 0..1): your certainty the value was read correctly.',
+  '- sourcePage (number | null): 1-indexed page the value was read from, if known.',
+  'Use null for any field that is absent or unreadable; never invent a value.',
+  'Return ONLY the JSON object.',
+].join('\n');
 
 // ── Stub (deterministic, dev/tests) ──────────────────────────────────────────
 // Mirrors the jmc-sample.pdf golden values so the UI flow works with no key.
@@ -167,9 +149,10 @@ export class ExtractionSchemaError extends Error {
 }
 
 /**
- * Live extraction: render → vision model (Structured Outputs) → zod validate.
- * Throws ExtractionSchemaError on a schema violation (caller records FAILED,
- * never partial-writes). Returns the typed Extraction + run metadata.
+ * Live extraction: render → vision model (json_object mode, schema in prompt)
+ * → zod validate. Throws ExtractionSchemaError on a schema violation (caller
+ * records FAILED, never partial-writes). Returns the typed Extraction + run
+ * metadata.
  */
 export async function extractLabLive(
   input: ExtractLabInput,
@@ -182,7 +165,8 @@ export async function extractLabLive(
   const pages = await renderPages(input.filePath, input.mimeType);
   const imageInputs = toDataUrlInputs(pages);
 
-  // 2. Build the Structured Outputs request.
+  // 2. Build the request body. The JSON shape contract lives in the system
+  //    message (json_object mode guarantees valid JSON, not the shape).
   const userContent: Array<
     | { type: 'text'; text: string }
     | { type: 'image_url'; image_url: { url: string } }
@@ -194,21 +178,14 @@ export async function extractLabLive(
     })),
   ];
 
-  // 3. Call the model with strict json_schema response_format.
+  // 3. Call the model with json_object response_format (Z.AI-compatible).
   const completion = await client.chat.completions.create({
     model: modelId,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userContent },
     ],
-    response_format: {
-      type: 'json_schema',
-      json_schema: {
-        name: 'lab_extraction',
-        strict: true,
-        schema: extractionResponseSchema,
-      },
-    },
+    response_format: { type: 'json_object' },
   });
 
   const raw = completion.choices[0]?.message?.content ?? '';

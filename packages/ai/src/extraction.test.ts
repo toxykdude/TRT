@@ -11,7 +11,7 @@
  * Covers: stub routing, schema-violation → typed failure (no partial), normalize
  * (raw+normalized+flag), alias resolution (mapped/alias/unmapped), confidence
  * threshold → PENDING_REVIEW, ExtractionRun metadata, and the response_format
- * contract (json_schema, strict).
+ * contract (json_object, with the JSON shape described in the system prompt).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import path from 'node:path';
@@ -153,7 +153,7 @@ describe('extractLabLive — mocked vision call', () => {
     else delete process.env.OPENAI_API_URL;
   });
 
-  it('renders the file, calls the model with strict json_schema, parses a typed Extraction', async () => {
+  it('renders the file, calls the model with json_object response_format (schema in prompt), parses a typed Extraction', async () => {
     mocks.create.mockResolvedValueOnce(okResponse(SAMPLE_RESPONSE));
 
     const { extraction, run } = await extractLabLive({
@@ -164,15 +164,28 @@ describe('extractLabLive — mocked vision call', () => {
     expect(mocks.render).toHaveBeenCalledWith(GOLDEN_PDF, 'application/pdf');
     expect(mocks.create).toHaveBeenCalledTimes(1);
 
-    // Structured Outputs request: json_schema + strict.
+    // Z.AI / OpenAI-compatible structured output: json_object mode. The shape
+    // contract is carried by the system message (json_object guarantees valid
+    // JSON, NOT the shape); the zod gate (ExtractionSchema) is the safety net.
     const arg = mocks.create.mock.calls[0]![0] as {
       model?: string;
-      response_format?: { type: string; json_schema?: { name?: string; strict?: boolean } };
+      response_format?: { type: string; json_schema?: unknown; strict?: unknown };
       messages?: Array<{ role: string; content: unknown }>;
     };
     expect(arg.model).toBe('gpt-4o-mini');
-    expect(arg.response_format?.type).toBe('json_schema');
-    expect(arg.response_format?.json_schema?.strict).toBe(true);
+    expect(arg.response_format?.type).toBe('json_object');
+    expect(arg.response_format).not.toHaveProperty('json_schema');
+    expect(arg.response_format).not.toHaveProperty('strict');
+
+    // The schema field names MUST appear in the system prompt — this locks the
+    // schema-in-prompt contract so a refactor that drops the shape description
+    // fails the build.
+    const systemMsg = arg.messages?.find((m) => m.role === 'system');
+    const systemText = String(systemMsg?.content ?? '');
+    expect(systemText).toMatch(/\bJSON\b/); // required token for json_object mode
+    for (const field of ['labName', 'collectedAt', 'biomarkers', 'name', 'canonicalCode', 'value', 'unit', 'referenceLow', 'referenceHigh', 'confidence', 'sourcePage']) {
+      expect(systemText).toContain(field);
+    }
 
     // User content includes the page images as image_url entries.
     const userMsg = arg.messages?.find((m) => m.role === 'user');
