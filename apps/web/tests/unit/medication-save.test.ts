@@ -27,13 +27,22 @@ let mockDb: {
   patient: { findUnique: Spy };
   medication: { create: Spy };
   auditLog: { create: Spy };
+  $transaction: Spy;
 };
 
 function resetClient(patientPresent = true) {
+  // The create + auditLog spies are SHARED between the outer client and the tx
+  // passed into the $transaction callback — this is exactly what lets the tests
+  // assert "both writes went through the SAME transaction" (FIX-1).
+  const medication = { create: vi.fn(async () => ({ id: 'med-1' })) };
+  const auditLog = { create: vi.fn(async () => ({})) };
   mockDb = {
     patient: { findUnique: vi.fn(async () => (patientPresent ? { id: 'p1' } : null)) },
-    medication: { create: vi.fn(async () => ({ id: 'med-1' })) },
-    auditLog: { create: vi.fn(async () => ({})) },
+    medication,
+    auditLog,
+    $transaction: vi.fn(async (cb: (tx: unknown) => Promise<unknown>) =>
+      cb({ medication, auditLog }),
+    ),
   };
 }
 
@@ -144,5 +153,31 @@ describe('createMedication POST — audit + capture-only dose (S-ME-AUDIT, ME-2)
     expect(created.data.dose).toBe('200 mg weekly');
     expect(created.data.frequency).toBe('every 7 days');
     expect(created.data.route).toBe('intramuscular');
+  });
+});
+
+describe('createMedication POST — atomic create+audit transaction (FIX-1, AGENTS §6)', () => {
+  beforeEach(() => {
+    resetClient();
+    mocks.auth.mockReset();
+    mocks.auth.mockResolvedValue({ user: { id: 'u-session' } });
+  });
+
+  it('wraps BOTH medication.create and auditLog.create in a SINGLE transaction', async () => {
+    await POST(req({ name: 'Test Cyp', startDate: '2026-01-01' }));
+    // Exactly ONE transaction — never two separate non-atomic writes. If the
+    // audit write threw, the row would roll back instead of leaving a committed
+    // medication + missing audit (duplicate-on-retry hazard).
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+    // Both writes happened (and they were routed through the tx, not db directly).
+    expect(mockDb.medication.create).toHaveBeenCalledTimes(1);
+    expect(mockDb.auditLog.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the created id AFTER the transaction commits', async () => {
+    const res = await POST(req({ name: 'Test Cyp' }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body).toEqual({ ok: true, id: 'med-1' });
   });
 });

@@ -14,6 +14,7 @@
  * (vitest runs in the node env; no jsdom / React rendering needed).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GuardrailViolationError } from '@trt/guardrails';
 import { fetchMedicationsForConsumer } from '@/lib/medications-list';
 
 const findMany = vi.fn();
@@ -84,5 +85,33 @@ describe('fetchMedicationsForConsumer — dose never selected (SRV-3 / OQ#1)', (
       startDate: '2026-01-01T00:00:00.000Z',
       endDate: null,
     });
+  });
+});
+
+describe('fetchMedicationsForConsumer — assertConsumerSafe fail-closed backstop (FIX-3, AGENTS §1)', () => {
+  beforeEach(() => {
+    findMany.mockReset();
+  });
+
+  it('REJECTS a payload whose medication name carries a dosing pattern', async () => {
+    // Defense-in-depth: the timing-only select is the PRIMARY guard (dose is
+    // never selected), and assertConsumerSafe is the BACKSTOP. If a future
+    // regression somehow shipped dosing text to this consumer payload, the
+    // fail-closed scan must catch it (AGENTS §1) — never ship dose to consumers.
+    findMany.mockResolvedValue([
+      { id: 'm1', name: 'Testosterone Cypionate 200mg/ml', startDate: new Date('2026-01-01'), endDate: null },
+    ]);
+    await expect(fetchMedicationsForConsumer(db, 'u-session')).rejects.toThrow(
+      GuardrailViolationError,
+    );
+  });
+
+  it('is transparent for a clean payload (backstop does not alter safe data)', async () => {
+    findMany.mockResolvedValue([
+      { id: 'm1', name: 'Anastrozole', startDate: new Date('2026-01-01'), endDate: null },
+    ]);
+    const rows = await fetchMedicationsForConsumer(db, 'u-session');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.name).toBe('Anastrozole');
   });
 });

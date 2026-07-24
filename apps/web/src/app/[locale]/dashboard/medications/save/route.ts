@@ -35,23 +35,30 @@ export async function POST(req: NextRequest) {
 
   const str = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v : null);
 
-  const medication = await db.medication.create({
-    data: {
-      patientId: patient.id,
-      ownerId,
-      name,
-      route: str(body.route),
-      frequency: str(body.frequency),
-      startDate,
-      endDate,
-      reason: str(body.reason),
-      clinician: str(body.clinician),
-      dose: str(body.dose), // capture-only historical record (§5.11)
-    },
-  });
-
-  await db.auditLog.create({
-    data: { userId: ownerId, action: 'create', entity: 'medications', entityId: medication.id },
+  // Atomic create + audit (FIX-1, AGENTS §6 / RES-1): the medication row and its
+  // AuditLog are written in ONE transaction. If the audit write throws, the row
+  // rolls back — no committed medication with a missing audit, no duplicate on a
+  // user retry (mirrors labs/extract/route.ts). ownerId is still bound from the
+  // session above; client input is never trusted here.
+  const medication = await db.$transaction(async (tx) => {
+    const created = await tx.medication.create({
+      data: {
+        patientId: patient.id,
+        ownerId,
+        name,
+        route: str(body.route),
+        frequency: str(body.frequency),
+        startDate,
+        endDate,
+        reason: str(body.reason),
+        clinician: str(body.clinician),
+        dose: str(body.dose), // capture-only historical record (§5.11)
+      },
+    });
+    await tx.auditLog.create({
+      data: { userId: ownerId, action: 'create', entity: 'medications', entityId: created.id },
+    });
+    return created;
   });
 
   return NextResponse.json({ ok: true, id: medication.id });

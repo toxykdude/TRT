@@ -9,15 +9,17 @@
  * frequency/route/reason/clinician) is capture-and-store-only, "displayed
  * NOWHERE" consumer-bound. This helper enforces that BY CONSTRUCTION — the
  * `select` returns only {id, name, startDate, endDate}. `dose` is never
- * selected, so it can never reach the rendered list. The page does NOT route
- * this payload through `assertConsumerSafe` (that fail-closed gate guards the
- * analytics CHART payload); the defense here is the structural select, which is
- * the same two-layer philosophy (by-construction + by-scan) applied to a list.
+ * selected, so it can never reach the rendered list. As a fail-closed BACKSTOP
+ * (AGENTS §1), the mapped payload is routed through `assertConsumerSafe` before
+ * it is returned — the same two-layer philosophy (by-construction + by-scan)
+ * applied to the analytics chart payload, so a future regression that leaks
+ * dosing text can never ship to a consumer with no second net.
  *
  * Tenancy: `where: { ownerId }` on every read — `prismaFor` is BYPASSRLS, so
  * app-layer scoping is the real gate (spec TC-7 / AGENTS §6).
  */
 import type { PrismaClient } from '@trt/db';
+import { assertConsumerSafe } from '@trt/guardrails';
 
 /** A medication row reduced to identity + timing — no dosing field exists here. */
 export type MedicationListItem = {
@@ -55,10 +57,16 @@ export async function fetchMedicationsForConsumer(
     // Timing-only select — NO dose/frequency/route/reason/clinician (OQ#1).
     select: { id: true, name: true, startDate: true, endDate: true },
   });
-  return rows.map((r) => ({
+  const mapped = rows.map((r) => ({
     id: r.id,
     name: r.name,
     startDate: toIso(r.startDate),
     endDate: toIso(r.endDate),
   }));
+  // FIX-3 — fail-closed backstop (AGENTS §1): the timing-only select is the
+  // PRIMARY guard, but defense-in-depth requires a second net. If dosing text
+  // somehow reached this consumer payload, assertConsumerSafe throws rather
+  // than shipping it (mirrors the analytics serializeForConsumer scan).
+  assertConsumerSafe(mapped);
+  return mapped;
 }

@@ -8,13 +8,23 @@
  *   1. BY CONSTRUCTION — `stripMedicationToTiming` drops every non-timing
  *      field, and `buildAnalyticsSeries` reads meds with a `select` that omits
  *      them (S-TC-BLOCK).
- *   2. BY SCAN — `serializeForConsumer` runs `assertConsumerSafe` on the final
- *      payload and throws `GuardrailViolationError` if any dosing content leaks
- *      through (fail-closed defense-in-depth).
+ *   2. BY SCAN — `serializeForConsumer` guards the final payload with TWO
+ *      distinct rules:
+ *        a. MUST-BLOCK (throw) — a forbidden FIELD KEY (dose/frequency/route/
+ *           reason/clinician) on a medication is a structural regression:
+ *           `assertNoForbiddenMedFields` throws GuardrailViolationError
+ *           REGARDLESS of the value's content (see the `dose:'see chart'` case
+ *           below — content-independent; FIX-2).
+ *        b. GRACEFUL OMIT — a medication NAME that itself trips the dosing scan
+ *           (e.g. "Testosterone Cypionate 200mg/ml") is REMOVED from the
+ *           consumer overlay + recorded in `omissions` for audit; it does NOT
+ *           throw, so a concentration-bearing product name never bricks the
+ *           page. After the partition, `assertConsumerSafe` runs once more on
+ *           the CLEANED series as the canonical fail-closed backstop.
  *
- * The "must-BLOCK" tests below are RED the moment either layer is bypassed:
- * adding `dose` to the `select` fails the structural test, and a dosing value
- * reaching the payload fails the scan test.
+ * The "must-BLOCK" tests below are RED the moment the structural layer is
+ * bypassed: adding `dose` to the `select` fails the structural test, and a
+ * forbidden FIELD KEY reaching the payload fails the field-presence throw.
  */
 import { describe, it, expect } from 'vitest';
 import { GuardrailViolationError, assertConsumerSafe } from '@trt/guardrails';
@@ -136,6 +146,29 @@ describe('serializeForConsumer — assertConsumerSafe backstop (S-TC-BLOCK, SRV-
           endDate: null,
           // A dosing value that must never be on a consumer surface (§2.3).
           dose: '200 mg weekly',
+        },
+      ],
+      symptoms: [],
+    };
+    expect(() => serializeForConsumer(leaking as never)).toThrow(GuardrailViolationError);
+  });
+
+  it('THROWS on a forbidden FIELD KEY even when its value is NOT dosing text (FIX-2)', () => {
+    // The previous test used dose:'200 mg weekly' — a value that ALSO trips the
+    // content scan (assertConsumerSafe). That test cannot prove the
+    // field-PRESENCE guard (assertNoForbiddenMedFields) throws on its own: if
+    // that guard were removed, the scan would still catch it and the test would
+    // stay green. This case isolates the DISTINCT guarantee — a forbidden KEY
+    // throws REGARDLESS of its value. 'see chart' is inert text the scan won't
+    // flag as dosing, so the only thing that can throw here is the key check.
+    const leaking = {
+      biomarkers: [],
+      medications: [
+        {
+          name: 'Anastrozole',
+          startDate: '2026-01-01',
+          endDate: null,
+          dose: 'see chart', // forbidden KEY, inert (non-dosing) value
         },
       ],
       symptoms: [],

@@ -27,13 +27,22 @@ let mockDb: {
   patient: { findUnique: Spy };
   symptomEntry: { create: Spy };
   auditLog: { create: Spy };
+  $transaction: Spy;
 };
 
 function resetClient(patientPresent = true) {
+  // The create + auditLog spies are SHARED between the outer client and the tx
+  // passed into the $transaction callback — this lets the tests assert "both
+  // writes went through the SAME transaction" (FIX-1).
+  const symptomEntry = { create: vi.fn(async () => ({ id: 'se-1' })) };
+  const auditLog = { create: vi.fn(async () => ({})) };
   mockDb = {
     patient: { findUnique: vi.fn(async () => (patientPresent ? { id: 'p1' } : null)) },
-    symptomEntry: { create: vi.fn(async () => ({ id: 'se-1' })) },
-    auditLog: { create: vi.fn(async () => ({})) },
+    symptomEntry,
+    auditLog,
+    $transaction: vi.fn(async (cb: (tx: unknown) => Promise<unknown>) =>
+      cb({ symptomEntry, auditLog }),
+    ),
   };
 }
 
@@ -131,5 +140,30 @@ describe('createSymptomEntry POST — audit (S-SE-AUDIT)', () => {
       entity: 'symptom_entries',
       entityId: 'se-1',
     });
+  });
+});
+
+describe('createSymptomEntry POST — atomic create+audit transaction (FIX-1, AGENTS §6)', () => {
+  beforeEach(() => {
+    resetClient();
+    mocks.auth.mockReset();
+    mocks.auth.mockResolvedValue({ user: { id: 'u-session' } });
+  });
+
+  it('wraps BOTH symptomEntry.create and auditLog.create in a SINGLE transaction', async () => {
+    await POST(req({ date: '2026-01-01', symptom: 'mood', score: 7 }));
+    // Exactly ONE transaction — never two separate non-atomic writes. If the
+    // audit write threw, the entry would roll back instead of leaving a
+    // committed symptom + missing audit (duplicate-on-retry hazard).
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+    expect(mockDb.symptomEntry.create).toHaveBeenCalledTimes(1);
+    expect(mockDb.auditLog.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the created id AFTER the transaction commits', async () => {
+    const res = await POST(req({ date: '2026-01-01', symptom: 'mood', score: 7 }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body).toEqual({ ok: true, id: 'se-1' });
   });
 });

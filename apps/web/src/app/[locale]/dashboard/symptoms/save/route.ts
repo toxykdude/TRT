@@ -41,19 +41,26 @@ export async function POST(req: NextRequest) {
 
   const note = typeof body.note === 'string' && body.note.trim() !== '' ? body.note : null;
 
-  const entry = await db.symptomEntry.create({
-    data: {
-      patientId: patient.id,
-      ownerId,
-      date: new Date(body.date as string),
-      symptom,
-      score,
-      note,
-    },
-  });
-
-  await db.auditLog.create({
-    data: { userId: ownerId, action: 'create', entity: 'symptom_entries', entityId: entry.id },
+  // Atomic create + audit (FIX-1, AGENTS §6 / RES-1): the symptom entry and its
+  // AuditLog are written in ONE transaction. If the audit write throws, the entry
+  // rolls back — no committed symptom with a missing audit, no duplicate on a
+  // user retry (mirrors labs/extract/route.ts). ownerId is still bound from the
+  // session above; client input is never trusted here.
+  const entry = await db.$transaction(async (tx) => {
+    const created = await tx.symptomEntry.create({
+      data: {
+        patientId: patient.id,
+        ownerId,
+        date: new Date(body.date as string),
+        symptom,
+        score,
+        note,
+      },
+    });
+    await tx.auditLog.create({
+      data: { userId: ownerId, action: 'create', entity: 'symptom_entries', entityId: created.id },
+    });
+    return created;
   });
 
   return NextResponse.json({ ok: true, id: entry.id });
