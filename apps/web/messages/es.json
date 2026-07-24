@@ -229,7 +229,20 @@
       "subtitle": "Registre cómo se siente a lo largo del tiempo (GOLD §5.10).",
       "trackingTitle": "Seguimiento de síntomas — {count, plural, one {# entrada registrada} other {# entradas registradas}}",
       "trackingWhat": "El esquema y el almacenamiento están listos (puntuación de 0 a 10 en energía, estado de ánimo, libido, sueño y más). El ingreso de datos y los gráficos de tendencia forman parte de la próxima etapa.",
-      "trackingNext": "Un formulario de control diario y gráficos de tendencia por síntoma superpuestos con sus laboratorios."
+      "trackingNext": "Un formulario de control diario y gráficos de tendencia por síntoma superpuestos con sus laboratorios.",
+      "addTitle": "Registrar un síntoma",
+      "date": "Fecha",
+      "dateRequired": "La fecha es obligatoria.",
+      "symptom": "Síntoma",
+      "score": "Puntuación (0–10)",
+      "note": "Nota",
+      "save": "Guardar entrada",
+      "saveFailed": "No se pudo guardar. Inténtelo de nuevo.",
+      "symptomEnergy": "Energía",
+      "symptomMood": "Estado de ánimo",
+      "symptomLibido": "Libido",
+      "symptomSleep": "Sueño",
+      "symptomRecovery": "Recuperación"
     },
     "Patients": {
       "title": "Perfil del paciente",

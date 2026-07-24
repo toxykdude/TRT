@@ -229,7 +229,20 @@
       "subtitle": "Track how you feel over time (GOLD §5.10).",
       "trackingTitle": "Symptom tracking — {count, plural, one {# entry recorded} other {# entries recorded}}",
       "trackingWhat": "The schema and storage are ready (0–10 scoring across energy, mood, libido, sleep, and more). Data entry and trend charts are part of the next pass.",
-      "trackingNext": "A daily check-in form and per-symptom trend charts overlaid with your labs."
+      "trackingNext": "A daily check-in form and per-symptom trend charts overlaid with your labs.",
+      "addTitle": "Log a symptom",
+      "date": "Date",
+      "dateRequired": "Date is required.",
+      "symptom": "Symptom",
+      "score": "Score (0–10)",
+      "note": "Note",
+      "save": "Save entry",
+      "saveFailed": "Could not save. Please try again.",
+      "symptomEnergy": "Energy",
+      "symptomMood": "Mood",
+      "symptomLibido": "Libido",
+      "symptomSleep": "Sleep",
+      "symptomRecovery": "Recovery"
     },
     "Patients": {
       "title": "Patient profile",
