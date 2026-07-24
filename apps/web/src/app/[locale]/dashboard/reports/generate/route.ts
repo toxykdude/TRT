@@ -43,29 +43,37 @@ export async function POST(req: NextRequest) {
   const patient = await db.patient.findUnique({ where: { ownerId: session.user.id } });
   if (!patient) return NextResponse.json({ error: 'No patient record' }, { status: 400 });
 
-  // Pull all results with their biomarker metadata, newest first.
+  // Pull all CONFIRMED results with their biomarker metadata, newest first.
+  // P0.2.b: PENDING_REVIEW / low-confidence extractions never feed trends/reports
+  // until a human confirms them (GOLD §6 — protect the deterministic baseline).
   const rows = await db.labResult.findMany({
-    where: { ownerId: session.user.id },
+    where: { ownerId: session.user.id, reviewStatus: 'CONFIRMED' },
     include: { biomarker: true },
     orderBy: { collectedAt: 'asc' },
   });
   if (rows.length === 0) return NextResponse.json({ error: 'No lab data' }, { status: 400 });
 
-  // Map DB rows → engine ResultPoint inputs.
-  const results: ResultPoint[] = rows.map((r) => ({
-    biomarkerKey: r.biomarker.key,
-    biomarkerName: r.biomarker.name,
-    category: r.biomarker.category,
-    collectedAt: r.collectedAt ? r.collectedAt.toISOString() : null,
-    valueNumeric: r.valueNumeric,
-    unit: r.unit ?? r.biomarker.canonicalUnit,
-    rawValue: r.rawValue,
-    // Use the per-result range; fall back to the biomarker catalog typical range.
-    refLow: numOrNull(r.rawRefLow) ?? r.biomarker.refLow ?? null,
-    refHigh: numOrNull(r.rawRefHigh) ?? r.biomarker.refHigh ?? null,
-    refText: r.rawRefText,
-    flag: r.flag,
-  }));
+  // Map DB rows → engine ResultPoint inputs. Skip any row whose biomarker is
+  // null (shouldn't happen on CONFIRMED rows, but defensive — unmapped are
+  // always PENDING_REVIEW so they never reach here).
+  const results: ResultPoint[] = [];
+  for (const r of rows) {
+    if (!r.biomarker) continue;
+    results.push({
+      biomarkerKey: r.biomarker.key,
+      biomarkerName: r.biomarker.name,
+      category: r.biomarker.category,
+      collectedAt: r.collectedAt ? r.collectedAt.toISOString() : null,
+      valueNumeric: r.valueNumeric,
+      unit: r.unit ?? r.biomarker.canonicalUnit,
+      rawValue: r.rawValue,
+      // Use the per-result range; fall back to the biomarker catalog typical range.
+      refLow: numOrNull(r.rawRefLow) ?? r.biomarker.refLow ?? null,
+      refHigh: numOrNull(r.rawRefHigh) ?? r.biomarker.refHigh ?? null,
+      refText: r.rawRefText,
+      flag: r.flag,
+    });
+  }
 
   // Patient context for the engine.
   const ageYears = patient.dateOfBirth
@@ -258,6 +266,7 @@ export async function POST(req: NextRequest) {
 }
 
 /** Parse a possibly-null string ref bound to a number, else null. */
+// TODO dedupe numOrNull — 4 divergent copies exist; see packages/ai/src/extraction.ts.
 function numOrNull(s: string | null): number | null {
   if (s == null || s.trim() === '') return null;
   const n = Number(s);

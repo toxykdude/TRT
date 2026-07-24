@@ -7,26 +7,36 @@
 import { z } from 'zod';
 import { enforceGuardrails, type GuardrailResult } from './guardrails';
 
-// ── Extraction ───────────────────────────────────────────────────────────────
-export const ExtractedResultSchema = z.object({
-  biomarkerKey: z.string(),
-  rawValue: z.string().nullable(),
-  rawUnit: z.string().nullable(),
-  rawRefLow: z.string().nullable(),
-  rawRefHigh: z.string().nullable(),
-  rawRefText: z.string().nullable(),
-  valueNumeric: z.number().nullable(),
-  canonicalUnit: z.string().nullable(),
-  flag: z.string().nullable(), // "H" | "L" | null
-  uncertain: z.boolean().default(false),
+// ── Extraction (P0.2.a) ──────────────────────────────────────────────────────
+// Model-facing Structured Output contract. Transcribes a lab document exactly as
+// printed (GOLD §6.2 — never infer a value). Each biomarker carries the printed
+// `name`, the resolved `canonicalCode` (Biomarker.key, or null when unmapped →
+// surfaced for review), plus `confidence` and `sourcePage` for auditability.
+// The raw→normalized mapping to LabResult columns lives in extraction.ts.
+export const ExtractedBiomarkerSchema = z.object({
+  /** biomarker name exactly as printed on the report */
+  name: z.string(),
+  /** resolved Biomarker.key, or null when no catalog/alias match (review) */
+  canonicalCode: z.string().nullable(),
+  /** value exactly as printed ("584.70", ">1000", "<0.5", "positive") */
+  value: z.string(),
+  unit: z.string().nullable(),
+  referenceLow: z.string().nullable(),
+  referenceHigh: z.string().nullable(),
+  /** ISO date/time the sample was collected, if present on the report */
+  collectedAt: z.string().nullable(),
+  /** model's self-reported transcription confidence, 0..1 */
+  confidence: z.number().min(0).max(1),
+  /** 1-indexed page the value was read from, if known */
+  sourcePage: z.number().int().nullable(),
 });
-export type ExtractedResult = z.infer<typeof ExtractedResultSchema>;
+export type ExtractedBiomarker = z.infer<typeof ExtractedBiomarkerSchema>;
 
 export const ExtractionSchema = z.object({
-  collectedAt: z.string().nullable(), // ISO date
-  laboratory: z.string().nullable(),
-  doctor: z.string().nullable(),
-  results: z.array(ExtractedResultSchema),
+  labName: z.string().nullable(),
+  /** report-level collection date if a single one is present */
+  collectedAt: z.string().nullable(),
+  biomarkers: z.array(ExtractedBiomarkerSchema),
 });
 export type Extraction = z.infer<typeof ExtractionSchema>;
 

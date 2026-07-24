@@ -38,12 +38,15 @@ export default async function ResultsPage({
     orderBy: { collectedAt: 'desc' },
   });
 
-  // Group by biomarker for a per-marker view.
+  // Group by biomarker for a per-marker view. Unmapped rows (biomarker null
+  // since P0.2.a) are grouped under their printed rawName so they surface for
+  // review instead of being dropped. This page shows ALL rows (review surface).
   const byMarker = new Map<string, typeof results>();
   for (const r of results) {
-    const arr = byMarker.get(r.biomarker.key) ?? [];
+    const key = r.biomarker?.key ?? `raw:${r.rawName ?? 'unknown'}`;
+    const arr = byMarker.get(key) ?? [];
     arr.push(r);
-    byMarker.set(r.biomarker.key, arr);
+    byMarker.set(key, arr);
   }
 
   return (
@@ -70,16 +73,25 @@ export default async function ResultsPage({
         <div className="grid gap-4 md:grid-cols-2">
           {Array.from(byMarker.entries()).map(([key, points]) => {
             const latest = points[0]!;
+            const biomarker = latest.biomarker;
+            // Null-safe display fields: unmapped rows (biomarker null) use the
+            // printed rawName + raw range; status falls back to NO_RANGE.
+            const biomarkerName = biomarker?.name ?? latest.rawName ?? '—';
+            const category = biomarker?.category ?? 'unknown';
+            const canonicalUnit = biomarker?.canonicalUnit ?? null;
+            const refLow = numOrNull(latest.rawRefLow) ?? biomarker?.refLow ?? null;
+            const refHigh = numOrNull(latest.rawRefHigh) ?? biomarker?.refHigh ?? null;
+            const isPending = latest.reviewStatus === 'PENDING_REVIEW';
             const classified = classifyResult({
-              biomarkerKey: key,
-              biomarkerName: latest.biomarker.name,
-              category: latest.biomarker.category,
+              biomarkerKey: biomarker?.key ?? key,
+              biomarkerName,
+              category,
               collectedAt: latest.collectedAt?.toISOString() ?? null,
               valueNumeric: latest.valueNumeric,
-              unit: latest.unit ?? latest.biomarker.canonicalUnit,
+              unit: latest.unit ?? canonicalUnit,
               rawValue: latest.rawValue,
-              refLow: numOrNull(latest.rawRefLow) ?? latest.biomarker.refLow ?? null,
-              refHigh: numOrNull(latest.rawRefHigh) ?? latest.biomarker.refHigh ?? null,
+              refLow,
+              refHigh,
               refText: latest.rawRefText,
               flag: latest.flag,
             });
@@ -87,12 +99,12 @@ export default async function ResultsPage({
               <Card key={key}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium">{latest.biomarker.name}</CardTitle>
+                    <CardTitle className="text-sm font-medium">{biomarkerName}</CardTitle>
                     <span className={cn('text-xs font-medium', STATUS_STYLE[classified.status])}>
                       {statusT(classified.status)}
                     </span>
                   </div>
-                  <CardDescription className="capitalize">{latest.biomarker.category}</CardDescription>
+                  <CardDescription className="capitalize">{category}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -104,7 +116,7 @@ export default async function ResultsPage({
                   <p className="mt-1 text-xs text-muted-foreground">
                     {t('rangeLabel')}: {latest.rawRefText ?? '—'} · {fmtDate(latest.collectedAt)} ·{' '}
                     {t('valueCount', { count: points.length })}
-                    {latest.uncertain && ` · ${tCommon('review')}`}
+                    {isPending && ` · ${tCommon('review')}`}
                   </p>
                 </CardContent>
               </Card>
@@ -116,6 +128,7 @@ export default async function ResultsPage({
   );
 }
 
+// TODO dedupe numOrNull — 4 divergent copies exist; see packages/ai/src/extraction.ts.
 function numOrNull(s: string | null): number | null {
   if (s == null || s.trim() === '') return null;
   const n = Number(s);

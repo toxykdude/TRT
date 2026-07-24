@@ -188,6 +188,7 @@ model LabReport {
 
   patient Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   results LabResult[]
+  extractionRuns ExtractionRun[]
 
   @@index([patientId])
   @@index([ownerId])
@@ -206,13 +207,22 @@ enum LabStatus {
 // RAW values (as printed) are kept alongside the NORMALIZED value so trends can
 // compare across labs while preserving provenance. The reference range is stored
 // per-result because ranges differ by lab/assay (GOLD §5.7).
+//
+// P0.2.a: biomarkerId is NULLABLE — an extracted name with no catalog/alias
+// match is persisted (rawName set, reviewStatus PENDING_REVIEW) so unmapped
+// biomarkers SURFACE for review instead of being dropped. `confidence` +
+// `reviewStatus` gate values out of trends/reports until confirmed (P0.2.b).
 model LabResult {
   id            String   @id @default(cuid())
   labReportId   String
   patientId     String
   ownerId       String   // denormalized for RLS
-  biomarkerId   String
+  biomarkerId   String?  // nullable since P0.2.a — null when unmapped (rawName set)
   collectedAt   DateTime? // mirrors LabReport.collectedAt for query convenience
+
+  // Printed biomarker name when biomarkerId is null (unmapped → review).
+  // Null for mapped results.
+  rawName       String?
 
   // Raw (as printed on the report)
   rawValue      String?  // "612" (string — preserves ">, <, *" etc.)
@@ -224,17 +234,53 @@ model LabResult {
   valueNumeric  Float?   // null if non-numeric (e.g. "positive")
   unit          String?  // canonical unit
   flag          String?  // "H" | "L" | "AB" | null — as flagged by the lab
-  uncertain     Boolean  @default(false) // true if extraction couldn't parse confidently
+  uncertain     Boolean  @default(false) // legacy — superseded by reviewStatus
+  // P0.2.a — extraction confidence (0..1) + review gate
+  confidence    Float?
+  reviewStatus  LabResultReviewStatus @default(CONFIRMED)
 
-  labReport LabReport @relation(fields: [labReportId], references: [id], onDelete: Cascade)
-  biomarker Biomarker @relation(fields: [biomarkerId], references: [id])
-  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  labReport LabReport  @relation(fields: [labReportId], references: [id], onDelete: Cascade)
+  biomarker Biomarker? @relation(fields: [biomarkerId], references: [id])
+  patient   Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId])
   @@index([biomarkerId])
   @@index([ownerId])
+  @@index([reviewStatus])
   @@unique([labReportId, biomarkerId])
   @@map("lab_results")
+}
+
+enum LabResultReviewStatus {
+  CONFIRMED       // manual entry or high-confidence extraction — feeds trends/reports
+  PENDING_REVIEW  // low-confidence or unmapped — excluded from trends/reports until confirmed
+}
+
+// P0.2.a — one row per extraction attempt. Captures provider, token usage,
+// cost, duration, and outcome for observability + cost accounting. Patient data
+// is on LabResult; this row holds only run metadata (no PHI).
+model ExtractionRun {
+  id           String            @id @default(cuid())
+  labReportId  String
+  modelId      String            // e.g. "gpt-4o-mini" | "stub"
+  inputTokens  Int?
+  outputTokens Int?
+  costUsd      Float?
+  durationMs   Int?
+  outcome      ExtractionOutcome
+  errorClass   String?           // e.g. "ExtractionSchemaError" when FAILED
+  createdAt    DateTime          @default(now())
+
+  labReport LabReport @relation(fields: [labReportId], references: [id], onDelete: Cascade)
+
+  @@index([labReportId])
+  @@map("extraction_runs")
+}
+
+enum ExtractionOutcome {
+  SUCCESS          // extracted with no low-confidence values
+  LOW_CONFIDENCE   // extracted but some values are PENDING_REVIEW
+  FAILED           // schema violation, render failure, or model error
 }
 
 // GOLD §5.10 — symptom scoring. Fixed 0–10 ordinal so scores are chartable.

@@ -41,6 +41,10 @@ type LabResultWithBiomarker = {
   };
 };
 
+// TODO dedupe numOrNull — 4 divergent copies (extraction.ts, analysis.ts,
+// reports/generate/route.ts, labs/results/page.tsx). This one lacks the
+// `.trim()` guard so '' → 0 here vs null elsewhere; consolidating would change
+// classifyResult behavior with no covering tests. Not consolidated.
 function numOrNull(s: string | null): number | null {
   if (s == null) return null;
   const n = Number(s);

@@ -18,10 +18,12 @@ export default async function AnalyticsPage({
   const db = prismaFor(session!.user.id);
   const [labs, results, byCategory] = await Promise.all([
     db.labReport.count(),
-    db.labResult.count(),
+    // P0.2.b: only CONFIRMED values count toward analytics aggregates.
+    db.labResult.count({ where: { reviewStatus: 'CONFIRMED' } }),
     db.labResult.groupBy({
       by: ['biomarkerId'],
       _count: true,
+      where: { reviewStatus: 'CONFIRMED' },
     }),
   ]);
 

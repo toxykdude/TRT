@@ -25,6 +25,8 @@ export default async function DashboardHome({
     db.patient.findUnique({ where: { ownerId: session!.user.id } }),
     db.labReport.count(),
     db.labResult.findMany({
+      // P0.2.b: only CONFIRMED values feed dashboard summaries.
+      where: { reviewStatus: 'CONFIRMED' },
       orderBy: { collectedAt: 'desc' },
       take: 5,
       include: { biomarker: true },
@@ -110,7 +112,7 @@ export default async function DashboardHome({
                 <tbody>
                   {latestResults.map((r) => (
                     <tr key={r.id} className="border-t">
-                      <td className="py-2 pr-4">{r.biomarker.name}</td>
+                      <td className="py-2 pr-4">{r.biomarker?.name ?? r.rawName ?? '—'}</td>
                       <td className="py-2 pr-4">
                         {r.rawValue ?? '—'} {r.rawUnit ?? ''}
                         {r.uncertain && (

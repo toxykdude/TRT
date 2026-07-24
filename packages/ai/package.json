@@ -11,8 +11,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@trt/guardrails": "workspace:*",
     "@trt/engine": "workspace:*",
+    "@trt/guardrails": "workspace:*",
+    "openai": "^6.49.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

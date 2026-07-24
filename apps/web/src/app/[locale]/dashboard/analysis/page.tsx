@@ -38,7 +38,8 @@ export default async function AnalysisPage({
 
   const [results, reports] = await Promise.all([
     db.labResult.findMany({
-      where: { ownerId: session!.user.id },
+      // P0.2.b: only CONFIRMED values feed trend analysis.
+      where: { ownerId: session!.user.id, reviewStatus: 'CONFIRMED' },
       include: { biomarker: true },
       orderBy: { collectedAt: 'asc' },
     }),
