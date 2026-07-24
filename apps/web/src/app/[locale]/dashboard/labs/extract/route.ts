@@ -2,17 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prismaFor } from '@trt/db';
 import { extractLab } from '@trt/ai';
+import { checkQuota, recordUsage, quotaExceededPayload } from '@/lib/quota';
 
 /**
  * Run (stub) extraction on a lab report (GOLD §5.6 / §6).
  * - Routes the report through the extraction pipeline.
  * - Persists LabResult rows with raw + normalized values.
  * - Marks uncertain when stubbed (no real OCR), surfacing for human review.
+ * - Enforces the UPLOAD quota server-side (Free tier has no upload allowance).
  * No diagnosis/dosage anywhere — the stub output is support content only.
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // ── Quota (P1.d) — UPLOAD path. Free tier (0 uploads) is blocked entirely. ──
+  const uploadQuota = await checkQuota(session.user.id, 'UPLOAD');
+  if (!uploadQuota.allowed) {
+    const locale = new URL(req.url).pathname.split('/')[1] ?? 'en';
+    return NextResponse.json(quotaExceededPayload(uploadQuota, locale), { status: 402 });
+  }
 
   const { labReportId } = await req.json();
   if (!labReportId) return NextResponse.json({ error: 'labReportId required' }, { status: 400 });
@@ -87,6 +96,9 @@ export async function POST(req: NextRequest) {
         entityId: labReportId,
       },
     });
+
+    // Meter usage only after a successful extraction (P1.d).
+    await recordUsage(session.user.id, 'UPLOAD');
 
     return NextResponse.json({ ok: true, count: extracted.results.length });
   } catch (e) {

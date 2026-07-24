@@ -10,12 +10,12 @@
  */
 export { extractDocument, extractAndStore, slugify, titleFromPath } from './extract';
 export type { ExtractedDoc } from './extract';
-export { KbStore } from './store';
-export type { KbDocument, KbPassage } from './store';
+export { KbStore, CONSUMER_GRADES } from './store';
+export type { KbDocument, KbPassage, SourceGrade } from './store';
 export { searchFacts as searchGraphFacts, graphitiStatus } from './graphiti';
 export type { GraphitiResult, GraphitiStatus } from './graphiti';
 
-import { KbStore, type KbPassage } from './store';
+import { KbStore, type KbPassage, type SourceGrade, CONSUMER_GRADES } from './store';
 import { searchFacts } from './graphiti';
 
 let _store: KbStore | null = null;
@@ -39,14 +39,26 @@ export function closeStore() {
 /**
  * Deterministic KB search for cited reference passages.
  * The primary knowledge source — no model, fully reproducible.
+ *
+ * P0.1.f: pass `opts.grades` to restrict citations by evidence grade (consumer
+ * citations are limited to guideline/review via `CONSUMER_GRADES`).
  */
-export function searchReferences(query: string, k = 3): KbPassage[] {
+export function searchReferences(
+  query: string,
+  k = 3,
+  opts?: { grades?: readonly SourceGrade[] },
+): KbPassage[] {
   try {
-    return getStore().search(query, k);
+    return getStore().search(query, k, opts);
   } catch {
     // KB not built yet — return empty rather than crash the report.
     return [];
   }
+}
+
+/** Consumer-safe citation search: restricted to guideline + review grades. */
+export function searchConsumerReferences(query: string, k = 3): KbPassage[] {
+  return searchReferences(query, k, { grades: CONSUMER_GRADES });
 }
 
 /**

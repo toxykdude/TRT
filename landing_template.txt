@@ -1,0 +1,15 @@
+Create a modern, high-tech landing page for a biotechnology company named "BiomeSense" focused on microbiome research and precision medicine.
+
+Design & Layout Guidelines:
+- Color Palette: Deep dark teal/emerald green background, vibrant mint green accents, slate gray text, and bright white typography.
+- Visuals: Immersive 3D background featuring glowing microscopic cellular particles, spheres, and fluid biological structures.
+- Header: Minimalist top navigation bar with logo ("BIOMESENSE") on the left and links ("Home", "Technology", "Team") on the right.
+- Hero Section:
+  - Main Headline: Large, bold sans-serif text reading "Revolutionizing Microbiome Discovery" with selective mint green highlight on key words.
+  - Subheadline: "Understanding the microbiome is hard. We're making it easier. BiomeSense is revolutionizing human microbiome discovery, the next frontier of precision medicine."
+  - CTA Button: Rounded mint green button reading "JOIN US ->".
+- Secondary Sections:
+  - Feature badges (e.g., "OVERVIEW", "TECHNOLOGY APPLICATIONS", "OUR TEAM").
+  - Clean cards showcasing 3D hardware/device renders alongside descriptive body text.
+  - Section titles like "The Human Microbiome: Implications for Health" and secondary CTAs like "OUR TECHNOLOGY ->".
+- UI Style: Sleek, high-contrast, modern biotech aesthetic with clean typography grid and scannable visual hierarchy.

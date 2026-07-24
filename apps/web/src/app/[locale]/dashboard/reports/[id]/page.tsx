@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prismaFor } from '@trt/db';
 import { Dashboard } from '@/components/dashboard';
+import { isVerifiedClinician } from '@/lib/report-policy';
 import { fmtDate } from '@/lib/utils';
 
 type ReportRow = {
@@ -32,8 +33,17 @@ export default async function ReportDetailPage({
 
   if (!report) notFound();
 
+  // Authoritative dosing gate (GOLD §2.4): re-read role + licenseVerifiedAt
+  // from the DB — the JWT role is a coarse UI gate only.
+  const viewer = await db.user.findUnique({
+    where: { id: session!.user.id },
+    select: { role: true, licenseVerifiedAt: true },
+  });
+  const viewerCanSeeDosing = isVerifiedClinician(viewer?.role, viewer?.licenseVerifiedAt ?? null);
+
   return (
     <Dashboard
+      viewerCanSeeDosing={viewerCanSeeDosing}
       report={{
         sections: report.sections as never,
         generatedAt: fmtDate(report.generatedAt),

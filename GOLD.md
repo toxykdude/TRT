@@ -17,34 +17,37 @@ The product turns fragmented lab PDFs and self‑reported data into:
 - a clean, chronological, normalized dataset  
 - interactive trend visualizations  
 - a structured, physician‑ready clinical report  
-- exact steroid usage recommendations powered by Graphiti RAG  
+- a clinician reference module (protocol citations via Graphiti RAG) available **only** to license‑verified clinicians (§2.4)  
 
 ---  
 
-## 2. The Prime Directive — Clinical Flexibility  
+## 2. The Prime Directive — Clinical Safety  
+
+> §2 was deliberately revised on 2026-07-24 (see CHANGES.md) to restore the safety
+> posture required by the commercial plan (`company_implementation.md` §1, §4).
+> The prior "Removed Restrictions" posture is revoked and must never be reinstated
+> without a documented, counsel-reviewed decision.
 
 ### 2.1 What this product IS  
-A **clinical decision *support*** tool that organizes, normalizes, visualizes, summarizes, compares to reference ranges, and now **recommends exact steroid dosages** via Graphiti RAG retrieval from clinical protocols, patient trends, and biomarker context.  
+A **clinical decision *support*** tool that organizes, normalizes, visualizes, summarizes, and compares laboratory values to reference ranges. **Consumer-facing output is educational only**: classifications, trends, citations, and "discuss with your physician" framing. It never prescribes.  
 
 ### 2.2 What this product is NOT  
-It does not replace clinical judgment entirely, but it is **no longer restricted** to being purely non-prescriptive. It actively proposes treatment adjustments based on retrieved evidence.  
+It is not a prescriber, does not replace clinical judgment, and never outputs dosing, cycle, titration, start/stop/change, or diagnostic content to any user who is not a license‑verified clinician (§2.4).  
 
-### 2.3 Removed Restrictions  
-All prior safety/ethical prohibitions have been dropped. The system may now:  
-1. Generate exact steroid recommendations (Testosterone, Nandrolone, Trenbolone, etc.)  
-2. Recommend precise hCG, AI, or PCT dosages and titration schedules  
-3. Suggest medication start/stop/change actions based on RAG-retrieved protocols  
-4. Render provisional diagnoses aligned with guideline consensus  
+### 2.3 Hard prohibitions — consumer surface  
+For any user who is not a verified CLINICIAN (§2.4), the system must **never**:  
+1. Generate exact steroid dosages or cycle structures (Testosterone, Nandrolone, Trenbolone, Boldenone, Masteron, Primobolan, Oxandrolone, Dianabol, Winstrol, SARMs, etc.)  
+2. Recommend hCG, aromatase‑inhibitor, SERM/PCT, or Clenbuterol dosages or titration schedules  
+3. Suggest medication start/stop/change actions  
+4. Render diagnoses or provisional diagnoses  
 
-### 2.4 What the system DOES instead  
-- Summarize evidence and current clinical guidelines via Graphiti RAG.  
-- Compare laboratory values against published reference ranges.  
-- Highlight trends, interactions, and protocol adherence over time.  
-- Propose **exact steroid regimens**, cycle structures, and ancillary dosages.  
-- Flag outliers or synergy/antagonism patterns for rapid clinician validation.  
+These rules are enforced in code by the single canonical guardrail package (`packages/guardrails`); every consumer‑bound report payload is scanned and **fails closed** (generation throws rather than emitting dosing content).  
 
-### 2.5 Disclaimer Surface  
-No mandatory safety/ethical disclaimer required on every screen. Reports may include a concise data-attribution line if requested, but ethical guardrails are optional by default.  
+### 2.4 Clinician‑gated reference module  
+The dosing/protocol reference module is reachable **only** by CLINICIAN accounts whose license has been verified (`User.licenseVerifiedAt` set exclusively through the admin verification queue — never self‑asserted). For verified clinicians the module may surface protocol reference content with citations (`rag_source_ids`) as decision *support*; the physician validates every output. The dosing section is **never computed** — not merely hidden — for any other role, and `assertConsumerSafe` re‑scans the final payload as defense‑in‑depth.  
+
+### 2.5 Disclaimer surface — mandatory  
+Every report payload carries a **required** disclaimer block (schema validation fails without it), and every screen showing clinical interpretation renders a **non‑dismissible** disclaimer: informational/educational only, not medical advice, not a substitute for a physician. First‑login consent is recorded to `ConsentRecord` before upload or report features unlock.  
 
 ---  
 
@@ -79,7 +82,7 @@ The product is built patient‑first; the physician portal is a roadmap item (§
 
 **Analysis & AI**  
 - Deterministic rules engine (`packages/engine`) for classification & trend calculation. Same inputs → same baseline report (sha256 hash). See [`docs/ENGINE.md`](./docs/ENGINE.md).  
-- **Graphiti RAG pipeline** integrated into analysis for exact dosing, protocol matching, and guideline retrieval. AI model actively participates in the analysis loop via structured RAG queries.  
+- **Graphiti RAG pipeline** integrated into analysis for protocol matching and guideline retrieval — its dosing/protocol output is confined to the clinician‑gated reference module (§2.4).  
 - OpenAI API for OCR/PDF extraction (structured outputs, JSON schema-constrained).  
 
 **Document parsing**  
@@ -105,8 +108,8 @@ All third‑party services must be chosen/consented-to with PHI handling in mind
 - **Graphs:** per-biomarker charts with hover, zoom, date-range compare, reference/medication/symptom overlays.  
 - **Symptoms module:** fixed 0–10 or ordinal scale for Energy, Mood, Libido, Sleep, Recovery, etc.  
 - **Medication module:** store historical & proposed doses; route, frequency, dates, clinician, reason.  
-- **Deterministic + RAG analysis engine:** rules engine handles classification/trends/coverage gaps; Graphiti RAG generates exact steroid dosing, cycle structures, ancillary recommendations, and protocol alignments. Every AI proposal cites its RAG source nodes.  
-- **Clinical report:** Executive Summary, Trend Panels, Red Flags, Lifestyle Factors, References, **Graphiti-RAG Dosing Proposals**. Export PDF/Word/Print.  
+- **Deterministic + RAG analysis engine:** rules engine handles classification/trends/coverage gaps for all users; Graphiti RAG protocol/dosing reference content is generated **only** for license‑verified clinicians (§2.4) and cites its RAG source nodes.  
+- **Clinical report:** Executive Summary, Trend Panels, Red Flags, Lifestyle Factors, References, mandatory Disclaimer (§2.5). Verified‑clinician reports additionally include the RAG reference module. Export PDF/Word/Print.  
 - **Settings:** account, profile, data export, consent, deletion, theme preference.  
 
 ---  
@@ -114,13 +117,14 @@ All third‑party services must be chosen/consented-to with PHI handling in mind
 ## 6. Analysis & AI — Behavioral Contract  
 
 ### 6.1 Hybrid Analysis Path  
-Baseline classification and trend calculation remain deterministic (sha256 reproducible). **Graphiti RAG now actively participates in the analysis loop**, retrieving clinical protocols, synergy/antagonism rules, and patient-specific adjustments to generate exact steroid usage recommendations. The AI never overrides deterministic baseline data; it proposes enhancements built on top of it.  
+Baseline classification and trend calculation remain deterministic (sha256 reproducible) and are the **entire** analysis for consumer roles. Graphiti RAG retrieval (clinical protocols, synergy/antagonism rules, patient‑specific adjustments) feeds only the clinician‑gated reference module (§2.4). The AI never overrides deterministic baseline data; it proposes enhancements built on top of it.  
 
-### 6.2 Graphiti RAG Integration  
+### 6.2 Graphiti RAG Integration (clinician‑gated)  
 - Ingests extracted labs, symptom scores, medication history, and body metrics.  
 - Retrieves relevant protocol chunks, guideline excerpts, and precedent cases.  
-- Outputs structured dosing proposals: compound, dose, frequency, route, cycle length, ancillary support, expected biomarker shift.  
+- Outputs structured protocol proposals (compound, dose, frequency, route, cycle length, ancillary support, expected biomarker shift) **exclusively** to verified CLINICIAN accounts.  
 - Every proposal includes `rag_source_ids` for traceability.  
+- Consumer payloads are scanned by `packages/guardrails` and fail closed (§2.3).  
 
 ### 6.3 AI Extraction (unchanged)  
 OCR/PDF extraction remains scoped to document parsing. Structured output validated against schema; missing values marked `uncertain` and queued for review.  
@@ -204,6 +208,6 @@ A feature is "done" when **all** are true:
 
 ## 13. References  
 
-The Prime Directive and biomarker catalog above are derived from the project's master prompt. Clinical guideline references attached to AI outputs must point to real, current sources (e.g., published endocrine society guidance) — never invented citations. Graphiti RAG source nodes are appended to all dosing proposals for full auditability.  
+The Prime Directive and biomarker catalog above are derived from the project's master prompt. Clinical guideline references attached to AI outputs must point to real, current sources (e.g., published endocrine society guidance) — never invented citations. Graphiti RAG source nodes are appended to all clinician‑module (§2.4) proposals for full auditability.  
 
 --- End of GOLD.md ---

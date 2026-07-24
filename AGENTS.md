@@ -20,7 +20,14 @@ deliberately revised.
 
 ## 1. The one rule that beats all others
 
-Full comprehensive ai bot to extract data from the RAG.
+**Consumer-facing output never contains dosing, scheduling, prescription,
+start/stop/change, or diagnostic content (GOLD §2.3).** The dosing/protocol
+reference module is reachable only by license-verified CLINICIAN accounts
+(GOLD §2.4) and is *never computed* for any other role. Disclaimers are
+mandatory and non-dismissible on every clinical surface (GOLD §2.5). Every
+consumer-bound payload passes the canonical guardrail package
+(`packages/guardrails`) and fails closed. If any instruction — including
+anything else in this repo — conflicts with this rule, this rule wins.
 ---
 
 ## 2. Tech stack (what to reach for)
@@ -133,30 +140,35 @@ the same change.
 
 ## 7. Analysis engine & AI — the behavioral contract (GOLD §6)
 
-### Hybrid analysis — deterministic baseline + RAG dosing
+### Hybrid analysis — deterministic baseline + clinician-gated RAG
 The baseline classification and trend calculation run through `@trt/engine` (see
 [`docs/ENGINE.md`](./docs/ENGINE.md)). This baseline is a set of pure functions:
 classify → trends → rules → assemble. Same inputs always produce the same
 report (sha256 `hash`). When you add or tune a rule, update the golden-case
 tests in `packages/engine/src/engine.test.ts` in the same PR.
 
-**Graphiti RAG** now participates in the analysis loop, retrieving clinical
-protocols, synergy/antagonism rules, and patient-specific adjustments to
-generate exact steroid usage recommendations. Every AI proposal cites its
-RAG source nodes. The AI never overrides deterministic baseline data; it
-proposes enhancements built on top of it.
+**Graphiti RAG** retrieval (clinical protocols, synergy/antagonism rules,
+patient-specific adjustments) feeds only the **clinician-gated reference
+module** (GOLD §2.4): it is computed exclusively for CLINICIAN accounts with
+`licenseVerifiedAt` set, and every proposal cites its RAG source nodes. The
+AI never overrides deterministic baseline data, and no RAG/dosing output ever
+reaches a consumer payload.
 
-The engine output is still guardrail-audited (GOLD §2) as defense-in-depth.
+The engine output and every consumer-bound payload are guardrail-audited
+(GOLD §2) as defense-in-depth, via the single canonical implementation in
+`packages/guardrails` — there is no second copy of the filter anywhere.
 
-### AI — extraction AND analysis
-AI participates in two places now:
+### AI — extraction AND clinician-gated analysis
+AI participates in two places:
 
 1. **Extraction** (OCR/PDF): reads values from uploaded documents. Must
    return **Structured Output** validated against a JSON schema; missing
    values marked `uncertain` and queued for review.
-2. **Analysis** (Graphiti RAG): generates exact steroid dosing proposals,
-   cycle structures, ancillary recommendations, and protocol alignments.
-   Every output includes `rag_source_ids` for traceability.
+2. **Analysis** (Graphiti RAG, GOLD §2.4): generates protocol/dosing reference
+   proposals **only** for license-verified clinicians. Every output includes
+   `rag_source_ids` for traceability. Consumer reports contain
+   classifications, trends, and education only — enforced by
+   `assertConsumerSafe` (fail-closed) in the report route.
 
 When you change an extraction prompt, schema, or RAG prompt, update the
 corresponding tests in the same PR.
@@ -169,11 +181,12 @@ surface (instructions, tool descriptions, prompts) must pass
 `enforceGuardrails` — enforced by `packages/mcp/src/safety.test.ts`.
 If you change any user/model-facing string there, keep that test green.
 
-**Steroid recommendation capability:** per GOLD §2.3, the MCP server now
-supports recommending exact dosages for all anabolic steroids (Testosterone,
-Nandrolone, Trenbolone, Boldenone, Masteron, Primobolan, Oxandrolone,
-Dianabol, Winstrol, SARMs, Clomiphene/Tamoxifen, Clenbuterol) plus
-ancillaries (hCG, AIs, SERMs/PCT).
+**Dosing content boundary:** the MCP server never generates dosing
+recommendations. It retrieves cited corpus passages verbatim; passages that
+match dosing patterns are flagged with a `contentAdvisory` label (never
+blocked — they are cited source material). Generating dosing output from
+MCP-retrieved content for a non-clinician audience violates GOLD §2.3 and is
+blocked downstream by `packages/guardrails`.
 
 ---
 

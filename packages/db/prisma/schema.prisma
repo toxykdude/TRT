@@ -32,11 +32,23 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // ── Clinician license verification (GOLD §2.4) ──────────────────────────
+  // Set ONLY through the admin verification queue — never self-asserted.
+  // The dosing/protocol reference module requires role = CLINICIAN *and*
+  // licenseVerifiedAt != null.
+  licenseVerifiedAt  DateTime?
+  licenseDocumentUrl String?
+  licenseState       String?
+  npi                String?
+
   accounts      Account[]
   sessions      Session[]
   patients      Patient[]
   consents      ConsentRecord[]
   auditLogs     AuditLog[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  usageRecords  UsageRecord[]
 
   @@map("users")
 }
@@ -322,7 +334,7 @@ model ConsentRecord {
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String
-  action    String   // "create" | "update" | "delete" | "read_sensitive"
+  action    String   // "create" | "update" | "delete" | "read_sensitive" | "guardrail_audit" | "admin_action"
   entity    String   // table name
   entityId  String?
   detail    Json?
@@ -332,4 +344,106 @@ model AuditLog {
 
   @@index([userId])
   @@map("audit_logs")
+}
+
+// ── Billing (P1 — Wompi + PayPal) ────────────────────────────────────────────
+//
+// Plans themselves live in code (`apps/web/src/lib/plans.ts`); the DB records
+// the subscription state, individual payments, idempotent webhook events, and
+// per-period usage for quota enforcement. RLS: owner read; service write.
+
+enum PaymentProvider {
+  WOMPI
+  PAYPAL
+  MANUAL // comped accounts granted by an admin
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  ERROR
+  VOIDED
+}
+
+enum UsageKind {
+  UPLOAD
+  REPORT
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String
+  provider          PaymentProvider
+  planCode          String // "PLUS_MONTHLY" | "PLUS_YEARLY" | "PRO_MONTHLY"
+  status            SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd  DateTime
+  externalRef       String? // provider transaction/subscription id (last seen)
+  cancelAtPeriodEnd Boolean            @default(false)
+  // P1.b — optional trial window. While now < trialEndsAt, checkQuota treats
+  // the user as holding this subscription's plan (trial access). Null when no
+  // trial is active. Set by an admin/start-trial affordance (Phase 2 UI).
+  trialEndsAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id            String          @id @default(cuid())
+  userId        String
+  provider      PaymentProvider
+  reference     String          @unique // our reference (Wompi reference / PayPal order id)
+  externalId    String? // provider-side transaction/capture id
+  amountInCents Int
+  currency      String // "COP" (Wompi) | "USD" (PayPal)
+  status        PaymentStatus   @default(PENDING)
+  planCode      String
+  raw           Json? // last webhook/capture payload for support/debug
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("payments")
+}
+
+// Idempotency for provider webhooks: one row per processed provider event.
+model PaymentEvent {
+  id          String          @id @default(cuid())
+  provider    PaymentProvider
+  eventId     String
+  payload     Json?
+  processedAt DateTime        @default(now())
+
+  @@unique([provider, eventId])
+  @@map("payment_events")
+}
+
+// Quota metering (company plan §5): uploads per calendar month; free-tier
+// reports per quarter. Paid-tier reports unmetered (marginal cost ≈ 0).
+model UsageRecord {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      UsageKind
+  period    String // "2026-07" (monthly) | "2026-Q3" (quarterly)
+  count     Int       @default(0)
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, period])
+  @@map("usage_records")
 }

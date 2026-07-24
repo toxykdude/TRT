@@ -47,6 +47,9 @@ importers:
       '@trt/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@trt/guardrails':
+        specifier: workspace:*
+        version: link:../../packages/guardrails
       '@trt/kb':
         specifier: workspace:*
         version: link:../../packages/kb
@@ -129,12 +132,18 @@ importers:
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(tsx@4.23.0)
+      vitest:
+        specifier: ^2.1.4
+        version: 2.1.9(@types/node@22.20.0)
 
   packages/ai:
     dependencies:
       '@trt/engine':
         specifier: workspace:*
         version: link:../engine
+      '@trt/guardrails':
+        specifier: workspace:*
+        version: link:../guardrails
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -167,6 +176,9 @@ importers:
 
   packages/engine:
     dependencies:
+      '@trt/guardrails':
+        specifier: workspace:*
+        version: link:../guardrails
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -180,6 +192,18 @@ importers:
       vitest:
         specifier: ^2.1.4
         version: 2.1.9(@types/node@26.1.1)
+
+  packages/guardrails:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.4
+        version: 2.1.9(@types/node@22.20.0)
 
   packages/kb:
     dependencies:

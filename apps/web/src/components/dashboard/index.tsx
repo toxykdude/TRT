@@ -80,8 +80,16 @@ type ReportData = {
 
 export function Dashboard({
   report,
+  viewerCanSeeDosing = false,
 }: {
   report: { sections: ReportData; generatedAt: string; generatedBy: string; redFlags: string[] };
+  /**
+   * Defense-in-depth dosing gate (GOLD §2.4). The route already stores an empty
+   * dosing list for non-clinicians; this flag additionally guarantees no dosing
+   * data is ever rendered for a viewer who is not a license-verified CLINICIAN.
+   * Defaults to false so any caller that forgets to pass it stays safe.
+   */
+  viewerCanSeeDosing?: boolean;
 }) {
   const t = useTranslations('Report');
   const statusT = useTranslations('Status');
@@ -90,7 +98,9 @@ export function Dashboard({
   const biomarkersT = useTranslations('Biomarkers');
   const categoriesT = useTranslations('Categories');
   const s = report.sections;
-  const dosing = s.dosingRecommendations || [];
+  // GOLD §2.4 — dosing is shown ONLY to a license-verified CLINICIAN. For every
+  // other viewer the list is forced empty so dosing content never reaches the DOM.
+  const dosing = viewerCanSeeDosing ? s.dosingRecommendations || [] : [];
   const chart = s.chartData;
   const classified = chart?.classified || [];
   const trends = chart?.trends || [];

@@ -57,6 +57,8 @@ export const ReportSectionSchema = z.object({
   redFlags: z.array(z.string()),
   lifestyleFactors: z.string(),
   guidelineReferences: z.array(z.string()),
+  /** GOLD §2.5 — REQUIRED. Schema validation fails without it. */
+  disclaimer: z.string().min(1),
 });
 export type ReportSection = z.infer<typeof ReportSectionSchema>;
 

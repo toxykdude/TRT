@@ -10,7 +10,7 @@
  */
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { BIOMARKER_DISPLAY_NAMES, SEARCH_PHRASES } from '@trt/engine';
+import { BIOMARKER_DISPLAY_NAMES, SEARCH_PHRASES, scanForDosing } from '@trt/engine';
 import { GRAPH_QUERY_URL, KB_DB_PATH, MCP_HTTP_PORT } from './config.js';
 import { DISCLAIMER } from './safety.js';
 import {
@@ -28,14 +28,36 @@ import { biomarkerCategories, engineMetadata, platformServices } from './platfor
 type TextContent = { type: 'text'; text: string };
 export type ToolResponse = { content: TextContent[]; isError?: boolean };
 
-/** Attach the mandatory disclaimer and serialize (clinical content rule, GOLD §2.5). */
+/**
+ * Attach the mandatory disclaimer and serialize (clinical content rule, GOLD §2.5).
+ *
+ * Content-advisory labeling (CHANGES.md W7, decision: label-only): when the
+ * serialized payload contains passages matching dosing/protocol patterns, the
+ * response is flagged with `contentAdvisory` so the consuming model treats
+ * those passages as cited source material for clinician review — never as
+ * advice to relay to a general audience. Citations are never blocked.
+ */
 function respond(payload: Record<string, unknown>): ToolResponse {
+  const body = JSON.stringify(payload);
+  const advisory = scanForDosing(body).length > 0 ? CONTENT_ADVISORY : undefined;
   return {
     content: [
-      { type: 'text', text: JSON.stringify({ ...payload, disclaimer: DISCLAIMER }, null, 2) },
+      {
+        type: 'text',
+        text: JSON.stringify(
+          { ...payload, ...(advisory ? { contentAdvisory: advisory } : {}), disclaimer: DISCLAIMER },
+          null,
+          2,
+        ),
+      },
     ],
   };
 }
+
+const CONTENT_ADVISORY =
+  'Contains cited source passages with protocol/dosing context. Cited source ' +
+  'material for clinician review only — do not relay dosing guidance to a ' +
+  'general audience (GOLD §2.3).';
 
 function fail(message: string): ToolResponse {
   return { content: [{ type: 'text', text: message }], isError: true };

@@ -18,6 +18,21 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
+/**
+ * Evidence grade of a corpus source (GOLD §2 / develop_saas.md P0.1.f).
+ * Consumer-visible citations are restricted to `guideline` and `review`; the
+ * clinician view shows every grade with a badge. Defaults to `other` for
+ * legacy/uncategorized documents.
+ */
+export type SourceGrade = 'guideline' | 'review' | 'monograph' | 'other';
+
+/** Grades permitted in consumer-facing citations. */
+export const CONSUMER_GRADES: readonly SourceGrade[] = ['guideline', 'review'] as const;
+
+function isSourceGrade(v: unknown): v is SourceGrade {
+  return v === 'guideline' || v === 'review' || v === 'monograph' || v === 'other';
+}
+
 export type KbDocument = {
   id: number;
   title: string;
@@ -26,6 +41,7 @@ export type KbDocument = {
   method: string;
   pages: number | null;
   charCount: number;
+  sourceGrade: SourceGrade;
 };
 
 export type KbPassage = {
@@ -36,6 +52,7 @@ export type KbPassage = {
   ordinal: number;
   text: string;
   score: number;
+  sourceGrade: SourceGrade;
 };
 
 const CHUNK_TARGET_CHARS = 1000;
@@ -106,7 +123,8 @@ export class KbStore {
         content_hash TEXT NOT NULL,
         method TEXT NOT NULL,
         pages INTEGER,
-        char_count INTEGER NOT NULL DEFAULT 0
+        char_count INTEGER NOT NULL DEFAULT 0,
+        source_grade TEXT NOT NULL DEFAULT 'other'
       );
       CREATE TABLE IF NOT EXISTS chunks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,6 +146,14 @@ export class KbStore {
       CREATE INDEX IF NOT EXISTS idx_chunks_doc ON chunks(document_id);
       CREATE INDEX IF NOT EXISTS idx_chunk_terms_term ON chunk_terms(term);
     `);
+    // P0.1.f — backfill source_grade for databases created before the column
+    // existed. SQLite has no ADD COLUMN IF NOT EXISTS; introspect table_info.
+    const cols = this.db.prepare('PRAGMA table_info(documents)').all() as Array<{ name: string }>;
+    if (!cols.some((c) => c.name === 'source_grade')) {
+      this.db.exec(
+        `ALTER TABLE documents ADD COLUMN source_grade TEXT NOT NULL DEFAULT 'other'`,
+      );
+    }
   }
 
   /** Has this exact source (by path + content hash) already been ingested? */
@@ -146,6 +172,7 @@ export class KbStore {
     method: string;
     pages: number | null;
     text: string;
+    sourceGrade?: SourceGrade;
   }): { docId: number; chunkCount: number } {
     if (this.isIndexed(doc.sourcePath, doc.contentHash)) {
       const existing = this.db
@@ -154,10 +181,11 @@ export class KbStore {
       return { docId: existing.id, chunkCount: 0 };
     }
 
+    const sourceGrade: SourceGrade = doc.sourceGrade ?? 'other';
     const chunks = chunkText(doc.text);
     const insertDoc = this.db.prepare(
-      `INSERT INTO documents (title, source_path, content_hash, method, pages, char_count)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO documents (title, source_path, content_hash, method, pages, char_count, source_grade)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
     const insertChunk = this.db.prepare(
       'INSERT INTO chunks (document_id, ordinal, page, text) VALUES (?, ?, ?, ?)',
@@ -178,6 +206,7 @@ export class KbStore {
         doc.method,
         doc.pages,
         doc.text.length,
+        sourceGrade,
       );
       const docId = Number(info.lastInsertRowid);
 
@@ -218,7 +247,7 @@ export class KbStore {
   listDocuments(): KbDocument[] {
     const rows = this.db
       .prepare(
-        `SELECT id, title, source_path, content_hash, method, pages, char_count
+        `SELECT id, title, source_path, content_hash, method, pages, char_count, source_grade
          FROM documents ORDER BY title COLLATE NOCASE`,
       )
       .all() as Array<{
@@ -229,6 +258,7 @@ export class KbStore {
       method: string;
       pages: number | null;
       char_count: number;
+      source_grade: string;
     }>;
     return rows.map((r) => ({
       id: r.id,
@@ -238,6 +268,7 @@ export class KbStore {
       method: r.method,
       pages: r.pages,
       charCount: r.char_count,
+      sourceGrade: (isSourceGrade(r.source_grade) ? r.source_grade : 'other'),
     }));
   }
 
@@ -246,7 +277,7 @@ export class KbStore {
     const row = this.db
       .prepare(
         `SELECT c.id AS chunk_id, c.ordinal, c.page, c.text,
-                d.title AS doc_title, d.source_path AS doc_source
+                d.title AS doc_title, d.source_path AS doc_source, d.source_grade AS doc_grade
          FROM chunks c JOIN documents d ON d.id = c.document_id
          WHERE c.id = ?`,
       )
@@ -258,6 +289,7 @@ export class KbStore {
           text: string;
           doc_title: string;
           doc_source: string;
+          doc_grade: string;
         }
       | undefined;
     if (!row) return null;
@@ -269,6 +301,7 @@ export class KbStore {
       ordinal: row.ordinal,
       text: row.text,
       score: 0,
+      sourceGrade: (isSourceGrade(row.doc_grade) ? row.doc_grade : 'other'),
     };
   }
 
@@ -277,7 +310,7 @@ export class KbStore {
     const rows = this.db
       .prepare(
         `SELECT c.id AS chunk_id, c.ordinal, c.page, c.text,
-                d.title AS doc_title, d.source_path AS doc_source
+                d.title AS doc_title, d.source_path AS doc_source, d.source_grade AS doc_grade
          FROM chunks c JOIN documents d ON d.id = c.document_id
          WHERE c.document_id = ?
          ORDER BY c.ordinal
@@ -290,6 +323,7 @@ export class KbStore {
       text: string;
       doc_title: string;
       doc_source: string;
+      doc_grade: string;
     }>;
     return rows.map((r) => ({
       chunkId: r.chunk_id,
@@ -299,13 +333,30 @@ export class KbStore {
       ordinal: r.ordinal,
       text: r.text,
       score: 0,
+      sourceGrade: (isSourceGrade(r.doc_grade) ? r.doc_grade : 'other'),
     }));
   }
 
-  /** BM25 search over the corpus. Returns top-k cited passages. */
-  search(query: string, k = 5): KbPassage[] {
+  /**
+   * BM25 search over the corpus. Returns top-k cited passages.
+   * When `opts.grades` is provided, results are restricted to documents of those
+   * evidence grades (P0.1.f — consumer citations limited to guideline/review).
+   */
+  search(query: string, k = 5, opts?: { grades?: readonly SourceGrade[] }): KbPassage[] {
     const qTerms = Array.from(new Set(tokenize(query)));
     if (qTerms.length === 0) return [];
+
+    // Grade filter: build the set of allowed document ids up front so the BM25
+    // candidate query stays term-indexed. Empty allowed set → no results.
+    let allowedDocIds: Set<number> | null = null;
+    if (opts?.grades && opts.grades.length > 0) {
+      const ph = opts.grades.map(() => '?').join(',');
+      const allowed = this.db
+        .prepare(`SELECT id FROM documents WHERE source_grade IN (${ph})`)
+        .all(...opts.grades) as Array<{ id: number }>;
+      allowedDocIds = new Set(allowed.map((a) => a.id));
+      if (allowedDocIds.size === 0) return [];
+    }
 
     const totalDocs = this.docCount() || 1;
     const avgdl = Number(
@@ -351,6 +402,7 @@ export class KbStore {
       { text: string; ordinal: number; page: number | null; documentId: number; score: number }
     >();
     for (const r of rows) {
+      if (allowedDocIds && !allowedDocIds.has(r.document_id)) continue;
       const idf = Math.log(1 + (totalDocs - r.df + 0.5) / (r.df + 0.5));
       const tfNorm = (r.tf * (k1 + 1)) / (r.tf + k1 * (1 - b + (b * r.dl) / avgdl));
       const contribution = idf * tfNorm;
@@ -366,15 +418,19 @@ export class KbStore {
         });
     }
 
-    // Resolve document titles.
+    // Resolve document titles + grades.
     const docIds = Array.from(new Set([...byChunk.values()].map((v) => v.documentId)));
     const titleMap = new Map<number, string>();
+    const gradeMap = new Map<number, SourceGrade>();
     if (docIds.length) {
       const ph = docIds.map(() => '?').join(',');
       const titleRows = this.db
-        .prepare(`SELECT id, title FROM documents WHERE id IN (${ph})`)
-        .all(...docIds) as Array<{ id: number; title: string }>;
-      for (const t of titleRows) titleMap.set(t.id, t.title);
+        .prepare(`SELECT id, title, source_grade FROM documents WHERE id IN (${ph})`)
+        .all(...docIds) as Array<{ id: number; title: string; source_grade: string }>;
+      for (const t of titleRows) {
+        titleMap.set(t.id, t.title);
+        gradeMap.set(t.id, isSourceGrade(t.source_grade) ? t.source_grade : 'other');
+      }
     }
 
     return [...byChunk.entries()]
@@ -386,6 +442,7 @@ export class KbStore {
         ordinal: v.ordinal,
         text: v.text,
         score: v.score,
+        sourceGrade: gradeMap.get(v.documentId) ?? 'other',
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, k);

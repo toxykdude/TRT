@@ -21,8 +21,14 @@ import { enforceGuardrails } from './guardrails';
 import { enrichWithKnowledge, type KbSearchFn } from './knowledge';
 import type { DeterministicReport, EngineInput } from './types';
 
-export { enforceGuardrails, refuseAndRedirect } from './guardrails';
-export type { GuardrailResult } from './guardrails';
+export {
+  enforceGuardrails,
+  refuseAndRedirect,
+  scanForDosing,
+  redactDosing,
+  assertConsumerSafe,
+} from './guardrails';
+export type { GuardrailResult, GuardrailFinding, GuardrailRole } from './guardrails';
 export * from './types';
 export { classifyResult, classifyAll, statusLabel, isAbnormal, isOutOfBand } from './classify';
 export { computeTrends, trendArrow, trendWord } from './trends';

@@ -5,6 +5,7 @@
  * Sections follow GOLD §5.13. The disclaimer (GOLD §2.5) is added by the report
  * renderer (apps/web), not here — this module produces the structured payload.
  */
+import { REPORT_DISCLAIMER } from '@trt/guardrails';
 import { ReportSectionSchema, guarded, type ReportSection } from './schemas';
 
 export type ReportInput = {
@@ -14,13 +15,14 @@ export type ReportInput = {
 
 /**
  * Generate a structured clinical report. Stub returns deterministic, safe text.
+ * Consumer-safe (GOLD §2.3): classifications, trends, and education only.
  */
 export async function generateReport(input: ReportInput): Promise<ReportSection> {
   const report: ReportSection = {
     executiveSummary:
       `This report summarizes ${input.resultCount} lab value(s)` +
       (input.monthsSpan ? ` across ${input.monthsSpan} month(s)` : '') +
-      ' for review by your healthcare provider. It includes a deterministic baseline analysis plus Graphiti RAG dosing proposals based on retrieved clinical protocols.',
+      ' for review by your healthcare provider. It includes a deterministic baseline analysis with cited references.',
     hormoneTrends:
       'Total and free testosterone values are within the typical range but toward the lower end. Discuss whether symptom correlation warrants further evaluation.',
     cbcTrends:
@@ -53,6 +55,8 @@ export async function generateReport(input: ReportInput): Promise<ReportSection>
       'Endocrine Society Clinical Practice Guideline on Testosterone Therapy in Adult Men with Androgen Deficiency Syndromes.',
       'Refer to current published guidance for exact titles, authors, and publication years when citing.',
     ],
+    // GOLD §2.5 — mandatory disclaimer; schema validation fails without it.
+    disclaimer: REPORT_DISCLAIMER,
   };
 
   return ReportSectionSchema.parse(report);

@@ -132,3 +132,41 @@ CREATE POLICY biomarkers_read_all ON biomarkers
 -- id = app_user_id(); during signup we set app.user_id to the new user's id
 -- AFTER generation but BEFORE insert is impossible. Therefore signup is
 -- performed via a dedicated elevated path. See apps/web register action.
+
+-- ── Billing tables (P1 — Wompi + PayPal) ────────────────────────────────────
+-- Subscriptions & payments are written ONLY by server-side billing code
+-- (checkout/webhook handlers, admin comp actions). End users may read their
+-- own rows; all writes flow through the service path.
+
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS subscriptions_owner_read ON subscriptions;
+CREATE POLICY subscriptions_owner_read ON subscriptions
+  FOR SELECT TO trt USING ("userId" = app_user_id());
+
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS payments_owner_read ON payments;
+CREATE POLICY payments_owner_read ON payments
+  FOR SELECT TO trt USING ("userId" = app_user_id());
+
+-- Webhook idempotency records: service-only, no end-user access at all.
+ALTER TABLE payment_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_events FORCE ROW LEVEL SECURITY;
+
+ALTER TABLE usage_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usage_records FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS usage_records_owner_isolation ON usage_records;
+CREATE POLICY usage_records_owner_isolation ON usage_records
+  FOR ALL TO trt USING ("userId" = app_user_id()) WITH CHECK ("userId" = app_user_id());
+
+-- ── Audit logs: insert-from-owner, read-by-admin-only (P0.1.e) ──────────────
+-- Guardrail audits and admin actions are compliance evidence; end users must
+-- not browse them. Admin reads happen through the service path (app-layer
+-- role check), which bypasses RLS by design.
+DROP POLICY IF EXISTS audit_user_isolation ON audit_logs;
+DROP POLICY IF EXISTS audit_insert_owner ON audit_logs;
+DROP POLICY IF EXISTS audit_read_admin ON audit_logs;
+CREATE POLICY audit_insert_owner ON audit_logs
+  FOR INSERT TO trt WITH CHECK ("userId" = app_user_id());
+-- No SELECT/UPDATE/DELETE policy for 'trt' → denied by default under RLS.

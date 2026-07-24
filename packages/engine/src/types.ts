@@ -195,6 +195,11 @@ export type DeterministicReport = {
     knowledgeBaseReferences: string[];
     /** relationship facts from the knowledge graph (Goal 2), empty if no graph */
     knowledgeGraphFacts: string[];
+    /**
+     * Mandatory disclaimer block (GOLD §2.5) — REQUIRED on every report.
+     * Rendered non-dismissibly in the UI; reports without it are invalid.
+     */
+    disclaimer: string;
   };
   /** deterministic — same inputs always produce the same report hash */
   hash: string;

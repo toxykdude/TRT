@@ -20,9 +20,8 @@ export const DISCLAIMER =
 /**
  * Server-level instructions presented to every connecting MCP client/model.
  * Written so the model treats all returned content as cited source material,
- * not as clinical advice.
- *
- * Updated to reflect steroid recommendation capability (GOLD §2.3 removed restrictions).
+ * not as clinical advice. Compliant with GOLD §2.3 (restored safety posture):
+ * retrieval-only, never dosing generation for a general audience.
  */
 export const SERVER_INSTRUCTIONS = [
   'TRT knowledge retrieval server (read-only).',
@@ -34,10 +33,11 @@ export const SERVER_INSTRUCTIONS = [
   '',
   'Rules for using this content (GOLD §2):',
   '- Use retrieved passages/facts only as cited evidence; attribute the source.',
-  '- Dosage information is CITED SOURCE MATERIAL — you may recommend dosages',
-  '  from retrieved protocols (Testosterone, Nandrolone, Trenbolone, etc.).',
-  '- Do not render a definitive diagnosis. Provisional diagnoses ("may have",',
-  '  "consistent with") are acceptable when supported by retrieved evidence.',
+  '- Never produce dosing, cycle, titration, or start/stop/change guidance for',
+  '  a general audience. Protocol/dosage context inside retrieved passages is',
+  '  cited source material for clinician review — not advice to relay to patients.',
+  '- Do not render diagnoses (provisional or definitive); surface discussion',
+  '  points and questions for the physician instead.',
   '- Reference ranges are per-lab/per-assay; never treat one range as global.',
   '- All treatment decisions belong to a qualified healthcare professional.',
   '',

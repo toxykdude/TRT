@@ -9,6 +9,7 @@
  * to the rules and data that produced it. No free-text generation.
  */
 import { createHash } from 'node:crypto';
+import { REPORT_DISCLAIMER } from '@trt/guardrails';
 import { statusLabel } from './classify';
 import { trendWord } from './trends';
 import type {
@@ -205,6 +206,8 @@ export function assembleReport(
     guidelineReferences,
     knowledgeBaseReferences,
     knowledgeGraphFacts,
+    // GOLD §2.5 — mandatory, non-optional disclaimer block on every report.
+    disclaimer: REPORT_DISCLAIMER,
   };
 
   // Deterministic hash over everything except the timestamp (which is recorded

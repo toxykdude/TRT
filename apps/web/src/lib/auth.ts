@@ -36,7 +36,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user || !user.passwordHash) return null;
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
-        return { id: user.id, email: user.email, name: user.name ?? undefined };
+        return { id: user.id, email: user.email, name: user.name ?? undefined, role: user.role } as {
+          id: string;
+          email: string;
+          name?: string;
+          role: string;
+        };
       },
     }),
   ],
@@ -44,12 +49,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        // role is carried in the JWT for coarse UI gating. Authoritative role
+        // checks (report generation, /admin) always re-read the DB row, since
+        // license verification and role changes must take effect immediately.
+        token.role = (user as { role?: string }).role ?? 'PATIENT';
       }
       return token;
     },
     async session({ session, token }) {
       if (token?.id && session.user) {
         session.user.id = token.id as string;
+        session.user.role = (token.role as 'PATIENT' | 'CLINICIAN' | 'ADMIN') ?? 'PATIENT';
       }
       return session;
     },

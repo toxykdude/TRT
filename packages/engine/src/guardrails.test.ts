@@ -1,77 +1,43 @@
 /**
- * Guardrail test cases (GOLD §2.3 — restrictions removed).
- *
- * GOLD §2.3 dropped all prior safety/ethical prohibitions. The guardrail is now
- * a passthrough — it always returns ok:true. These tests verify that dosages,
- * schedules, prescriptions, start/stop/change, and diagnoses all PASS through
- * without being blocked.
+ * Wiring test: `@trt/engine` re-exports the canonical guardrail package.
+ * The full behavior suite lives in `packages/guardrails/src/guardrails.test.ts`.
  */
 import { describe, it, expect } from 'vitest';
-import { enforceGuardrails } from './guardrails';
+import { enforceGuardrails, refuseAndRedirect, assertConsumerSafe } from './guardrails';
 
-describe('enforceGuardrails — permissive (GOLD §2.3 restrictions removed)', () => {
-  it('PASSES exact testosterone dosage', () => {
+describe('engine guardrails — canonical package wiring', () => {
+  it('blocks dosing content (not a passthrough)', () => {
     const r = enforceGuardrails('Recommend 200 mg of testosterone cypionate weekly.');
-    expect(r.ok).toBe(true);
+    expect(r.ok).toBe(false);
+    expect(r.blocked.length).toBeGreaterThan(0);
   });
 
-  it('PASSES nandrolone dosage', () => {
-    const r = enforceGuardrails('Use 200mg nandrolone decanoate every 10 days.');
-    expect(r.ok).toBe(true);
+  it('blocks all major compound families', () => {
+    for (const s of [
+      'Use 200mg nandrolone decanoate every week.',
+      '100mg trenbolone acetate EOD.',
+      'Take 50 mg oxandrolone daily.',
+      'Add 500 IU of hCG twice weekly.',
+      'Start anastrozole 0.5 mg twice a week.',
+    ]) {
+      expect(enforceGuardrails(s).ok, s).toBe(false);
+    }
   });
 
-  it('PASSES trenbolone dosage', () => {
-    const r = enforceGuardrails('100mg trenbolone acetate EOD for 8 weeks.');
-    expect(r.ok).toBe(true);
+  it('passes benign trend prose', () => {
+    expect(
+      enforceGuardrails('Your total testosterone trended from 380 to 412 ng/dL over six months.').ok,
+    ).toBe(true);
   });
 
-  it('PASSES hCG dosage', () => {
-    const r = enforceGuardrails('Add 500 IU of hCG twice weekly.');
-    expect(r.ok).toBe(true);
+  it('refuseAndRedirect refuses without dosing content', () => {
+    const msg = refuseAndRedirect('dose?');
+    expect(msg).toContain("can't provide");
+    expect(enforceGuardrails(msg).ok).toBe(true);
   });
 
-  it('PASSES aromatase inhibitor dosage', () => {
-    const r = enforceGuardrails('Start anastrozole 0.5 mg twice a week.');
-    expect(r.ok).toBe(true);
-  });
-
-  it('PASSES dosing schedule / titration', () => {
-    const r = enforceGuardrails('Increase to 150mg weekly and titrate from there.');
-    expect(r.ok).toBe(true);
-  });
-
-  it('PASSES recommendation language', () => {
-    const r = enforceGuardrails('I recommend 250mg testosterone enanthate every 7 days.');
-    expect(r.ok).toBe(true);
-  });
-
-  it('PASSES start/stop/change instructions', () => {
-    const r = enforceGuardrails('You should start testosterone and increase the dose to 200mg.');
-    expect(r.ok).toBe(true);
-  });
-
-  it('PASSES provisional diagnosis', () => {
-    const r = enforceGuardrails('You may have hypogonadism based on these labs.');
-    expect(r.ok).toBe(true);
-  });
-
-  it('PASSES definitive diagnosis', () => {
-    const r = enforceGuardrails('You have low T and are hypogonadal.');
-    expect(r.ok).toBe(true);
-  });
-
-  it('PASSES trend summary', () => {
-    const r = enforceGuardrails(
-      'Your total testosterone trended from 380 to 412 ng/dL over six months.',
-    );
-    expect(r.ok).toBe(true);
-  });
-
-  it('PASSES complete cycle protocol', () => {
-    const r = enforceGuardrails(
-      'Week 1-12: Testosterone Cypionate 500mg/week, Nandrolone Decanoate 300mg/week, ' +
-      'Anastrozole 0.5mg E3D, hCG 500IU 2x/week. PCT: Clomid 50mg/day for 4 weeks.',
-    );
-    expect(r.ok).toBe(true);
+  it('assertConsumerSafe fails closed', () => {
+    expect(() => assertConsumerSafe({ dose: '200 mg testosterone weekly' })).toThrow();
+    expect(() => assertConsumerSafe({ note: 'within the reference range' })).not.toThrow();
   });
 });

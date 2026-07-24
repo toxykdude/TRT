@@ -1,26 +1,43 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prismaFor } from '@trt/db';
+import { prismaFor, type Prisma } from '@trt/db';
 import { analyze, enrichWithGraph, assembleReport } from '@trt/engine';
 import { generateDosingRecommendations } from '@trt/ai';
-import type { ResultPoint, DosingRecommendation } from '@trt/engine';
+import type { ResultPoint } from '@trt/engine';
 import { searchReferences, searchGraphFacts } from '@trt/kb';
+import {
+  persistGuardrailAudit,
+  summarizeFindings,
+  type GuardrailRole,
+} from '@trt/guardrails';
+import { checkQuota, recordUsage, quotaExceededPayload } from '@/lib/quota';
+import {
+  decideReportPolicy,
+  buildGuardrailAuditEvent,
+} from '@/lib/report-policy';
 
 /**
- * Generate a deterministic clinical report with steroid + ancillary dosing
- * recommendations (GOLD §5.13).
+ * Generate a deterministic clinical report (GOLD §5.13).
  *
  * Pipeline:
  *   1. Deterministic engine: classify → trends → rules → gaps → assemble
  *   2. Graphiti RAG enrichment: knowledge graph facts
- *   3. AI dosing engine: exact steroid + ancillary dosages
- *   4. Guardrail audit on all prose
+ *   3. Dosing recommendations — ONLY for a license-verified CLINICIAN (GOLD §2.4)
+ *   4. Guardrail audit on all prose + fail-closed consumer check (GOLD §2)
  *
- * Same deterministic inputs → same report hash + same dosing recommendations.
+ * Same deterministic inputs → same report hash. Non-clinician reports never
+ * compute dosing (kept as the engine's empty `[]`) and are fail-closed audited.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // ── Quota (P1.d) — check BEFORE the work; never increment on a block. ───────
+  const reportQuota = await checkQuota(session.user.id, 'REPORT');
+  if (!reportQuota.allowed) {
+    const locale = new URL(req.url).pathname.split('/')[1] ?? 'en';
+    return NextResponse.json(quotaExceededPayload(reportQuota, locale), { status: 402 });
+  }
 
   const db = prismaFor(session.user.id);
   const patient = await db.patient.findUnique({ where: { ownerId: session.user.id } });
@@ -93,13 +110,24 @@ export async function POST() {
     );
   }
 
-  // ── Step 2: Dosing recommendations from findings ────────────────────────────
-  const dosingRecommendations = generateDosingRecommendations({
-    classified: report.classified,
-    trends: report.trends,
-    findings: enrichedFindings,
-    coverageGaps: report.coverageGaps,
+  // ── Step 2: Dosing — ONLY for a license-verified CLINICIAN (GOLD §2.4) ──────
+  // The JWT role is a coarse UI gate only; authoritative role + license checks
+  // always re-read the DB row (license verification must take effect instantly).
+  const viewer = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, licenseVerifiedAt: true },
   });
+  const viewerRole: GuardrailRole = (viewer?.role as GuardrailRole) ?? 'PATIENT';
+
+  const dosingRecommendations =
+    viewerRole === 'CLINICIAN' && viewer?.licenseVerifiedAt != null
+      ? generateDosingRecommendations({
+          classified: report.classified,
+          trends: report.trends,
+          findings: enrichedFindings,
+          coverageGaps: report.coverageGaps,
+        })
+      : []; // Non-clinicians (incl. unverified CLINICIAN) NEVER get dosing computed.
 
   // ── Step 3: Save report with dosing + chart data ───────────────────────────
 
@@ -161,11 +189,20 @@ export async function POST() {
     },
   };
 
+  // ── Step 4: Guardrail policy — fail closed for consumer payloads (GOLD §2) ──
+  const policy = decideReportPolicy({
+    role: viewerRole,
+    licenseVerifiedAt: viewer?.licenseVerifiedAt ?? null,
+    payload: sectionsWithDosing,
+  });
+
   const created = await db.report.create({
     data: {
       patientId: patient.id,
       ownerId: session.user.id,
-      generatedBy: 'deterministic-engine+dosing',
+      generatedBy: policy.canComputeDosing
+        ? 'deterministic-engine+dosing'
+        : 'deterministic-engine',
       sections: sectionsWithDosing,
       redFlags: report.sections.redFlags,
       dataRangeStart: report.meta.dataRangeStart ? new Date(report.meta.dataRangeStart) : null,
@@ -176,6 +213,46 @@ export async function POST() {
   await db.auditLog.create({
     data: { userId: session.user.id, action: 'create', entity: 'reports', entityId: created.id },
   });
+
+  // ── Step 5: Persist the guardrail audit (P0.1.e) — exactly one row ──────────
+  // Best-effort: the report is already persisted (db.report.create above), so a
+  // transient AuditLog failure must NOT 500 and trigger a client retry that
+  // duplicates the report (no idempotency key). Log and continue (RES-2).
+  const auditEvent = buildGuardrailAuditEvent({
+    userId: session.user.id,
+    role: viewerRole,
+    reportId: created.id,
+    findingsCount: policy.findings.length,
+    action: policy.auditAction,
+    engineVersion: report.hash,
+    kbVersion: null,
+    detail: summarizeFindings(policy.findings),
+  });
+  try {
+    await persistGuardrailAudit(async (event) => {
+      await db.auditLog.create({
+        data: {
+          userId: event.userId,
+          action: 'guardrail_audit',
+          entity: 'reports',
+          entityId: event.reportId ?? null,
+          detail: {
+            role: event.role,
+            findingsCount: event.findingsCount,
+            guardrailAction: event.action,
+            engineVersion: event.engineVersion ?? null,
+            kbVersion: event.kbVersion ?? null,
+            summary: (event.detail ?? {}) as Prisma.InputJsonValue,
+          } as Prisma.AuditLogCreateInput['detail'],
+        },
+      });
+    }, auditEvent);
+  } catch (auditErr) {
+    console.error('guardrail_audit_persist_failed', auditErr);
+  }
+
+  // ── Step 6: Meter usage (only after a successful generation) ────────────────
+  await recordUsage(session.user.id, 'REPORT');
 
   return NextResponse.json({ ok: true, id: created.id, hash: report.hash, dosingCount: dosingRecommendations.length });
 }
