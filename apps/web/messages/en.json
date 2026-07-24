@@ -206,6 +206,24 @@
       "emptyWhat": "Upload a lab report and confirm the extracted values to see your interactive trend charts with medication and symptom overlays.",
       "goToLabs": "Go to Labs"
     },
+    "Medications": {
+      "title": "Add a medication",
+      "subtitle": "Record medications you take or have taken (GOLD §5.11).",
+      "name": "Name",
+      "namePlaceholder": "e.g. Testosterone Cypionate",
+      "nameRequired": "Name is required.",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "datesInvalid": "End date must be on or after the start date.",
+      "route": "Route",
+      "frequency": "Frequency",
+      "dose": "Dose",
+      "doseHint": "Historical record only — stored for your reference, never used as a recommendation, and not shown on your charts.",
+      "reason": "Reason",
+      "clinician": "Prescribing clinician",
+      "save": "Save medication",
+      "saveFailed": "Could not save. Please try again."
+    },
     "Symptoms": {
       "title": "Symptoms",
       "subtitle": "Track how you feel over time (GOLD §5.10).",

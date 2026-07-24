@@ -206,6 +206,24 @@
       "emptyWhat": "Sube un informe de laboratorio y confirma los valores extraídos para ver tus gráficos de tendencia interactivos con superposición de medicamentos y síntomas.",
       "goToLabs": "Ir a Laboratorios"
     },
+    "Medications": {
+      "title": "Agregar un medicamento",
+      "subtitle": "Registre los medicamentos que toma o ha tomado (GOLD §5.11).",
+      "name": "Nombre",
+      "namePlaceholder": "p. ej. Testosterona Cipionato",
+      "nameRequired": "El nombre es obligatorio.",
+      "startDate": "Fecha de inicio",
+      "endDate": "Fecha de fin",
+      "datesInvalid": "La fecha de fin debe ser igual o posterior a la de inicio.",
+      "route": "Vía",
+      "frequency": "Frecuencia",
+      "dose": "Dosis",
+      "doseHint": "Solo registro histórico — se guarda para su referencia, nunca se usa como recomendación ni se muestra en sus gráficos.",
+      "reason": "Motivo",
+      "clinician": "Clínico prescriptor",
+      "save": "Guardar medicamento",
+      "saveFailed": "No se pudo guardar. Inténtelo de nuevo."
+    },
     "Symptoms": {
       "title": "Síntomas",
       "subtitle": "Registre cómo se siente a lo largo del tiempo (GOLD §5.10).",
