@@ -67,7 +67,8 @@
       "or": "o",
       "google": "Continuar con Google",
       "noAccount": "¿No tiene una cuenta?",
-      "createOne": "Crear una"
+      "createOne": "Crear una",
+      "verified": "Correo verificado. Inicie sesión para continuar."
     },
     "Register": {
       "title": "Cree su cuenta",
@@ -76,9 +77,17 @@
       "email": "Correo electrónico",
       "password": "Contraseña",
       "passwordHint": "Al menos 8 caracteres.",
-      "submit": "Crear cuenta",
+      "submit": "Enviar código de verificación",
       "haveAccount": "¿Ya tiene una cuenta?",
       "signIn": "Iniciar sesión"
+    },
+    "Verify": {
+      "title": "Verifique su correo",
+      "subtitle": "Ingrese el código de 6 dígitos que enviamos a {email}.",
+      "code": "Código de verificación",
+      "submit": "Verificar y crear cuenta",
+      "restart": "¿No recibió el código? Empiece de nuevo",
+      "missingEmail": "No pudimos identificar el correo a verificar. Empiece de nuevo."
     },
     "Forgot": {
       "title": "Restablezca su contraseña",

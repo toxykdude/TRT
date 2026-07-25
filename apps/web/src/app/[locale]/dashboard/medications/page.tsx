@@ -11,10 +11,10 @@ import { fmtDate } from '@/lib/utils';
  * Medications page (GOLD §5.11 / spec ME-1..ME-7, SRV-1 / FIX-H).
  *
  * The patient's OWN dashboard surface: lists their medication history and hosts
- * the entry form. SAFETY (GOLD §2.3 / spec OQ#1, SRV-3): the list is TIMING-ONLY
- * — `fetchMedicationsForConsumer` selects only {id, name, startDate, endDate};
- * dose/frequency/route/reason/clinician are NEVER read here, so they can never
- * render. The §2.5 SafetyBanner is present (SRV-1 / ME-5).
+ * the entry form. SAFETY (GOLD §2.3 revised): dose/frequency/route are READ for
+ * rendering on this page; timing-only chart overlays persist on analytics.
+ * `fetchMedicationsForConsumer` partitions by name-scan { meds, omissions } (AGENTS §1).
+ * The §2.5 SafetyBanner is present (SRV-1 / ME-5).
  *
  * FIX-H — graceful degradation: a medication whose NAME carries a dosing pattern
  * (e.g. a concentration-bearing product name) is OMITTED from `meds` by the
@@ -59,11 +59,27 @@ export default async function MedicationsPage({
             <ul className="divide-y">
               {meds.map((m) => (
                 <li key={m.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-sm font-medium">{m.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium">{m.name}</span>
+                    <div className="text-xs text-muted-foreground">
+                      {m.dose && (
+                        <>
+                          <span>{m.dose}</span>
+                          {' · '}
+                        </>
+                      )}
+                      {m.frequency && (
+                        <>
+                          <span>{m.frequency}</span>
+                          {' · '}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">
                     {t('startDate')}: {fmtDate(m.startDate)}
                     {' · '}
-                    {t('endDate')}: {m.endDate ? fmtDate(m.endDate) : t('ongoing')}
+                    {m.endDate ? fmtDate(m.endDate) : t('ongoing')}
                   </span>
                 </li>
               ))}

@@ -29,8 +29,8 @@ type Db = PrismaClient;
 /** A lab report reduced to identity + timing for the timeline feed. */
 export type TimelineLab = { id: string; fileName: string; uploadedAt: Date };
 
-/** A medication reduced to identity + timing — NO dosing field exists here. */
-export type TimelineMed = { id: string; name: string; createdAt: Date };
+/** A medication — identity, timing, and the patient-recorded dose/frequency/route (GOLD §2.3). */
+export type TimelineMed = { id: string; name: string; createdAt: Date; dose?: string | null; frequency?: string | null };
 
 /** Result of {@link fetchTimelineFeed}: recent labs + medications for the timeline. */
 export type TimelineFeed = { labs: TimelineLab[]; meds: TimelineMed[] };
@@ -60,8 +60,8 @@ export async function fetchTimelineFeed(
       where: { ownerId },
       orderBy: { createdAt: 'desc' },
       take,
-      // Timing/identity only — NO dose/frequency/route/reason/clinician (GOLD §2.3).
-      select: { id: true, name: true, createdAt: true },
+      // Timing/identity + dose — patient-recorded dose/frequency visible (GOLD §2.3).
+      select: { id: true, name: true, createdAt: true, dose: true, frequency: true },
     }),
   ]);
   return { labs, meds };

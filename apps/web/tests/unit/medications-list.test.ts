@@ -2,12 +2,11 @@
  * fetchMedicationsForConsumer — the consumer medications-list data access
  * (GOLD §5.11 / spec OQ#1, SRV-3 / FIX-H graceful degradation).
  *
- * Behavioral contract (mirrors the analytics overlay's timing-only philosophy):
+ * Behavioral contract (GOLD §2.3 revised 2026-07-25):
  *  - the read is scoped `where: { ownerId }` (tenancy — prismaFor is BYPASSRLS).
- *  - the `select` returns ONLY {id, name, startDate, endDate}; it MUST NOT
- *    include dose/frequency/route/reason/clinician (OQ#1: these are "displayed
- *    NOWHERE" consumer-bound). This is structural defense-in-depth: dose can
- *    never reach the rendered list because it is never selected.
+ *  - the `select` returns {id, name, startDate, endDate, dose, frequency, route}
+ *    so patient-recorded dose is visible on consumer surfaces (GOLD §2.3).
+ *    reason/clinician remain omitted (structural forbidden fields).
  *
  * FIX-H — graceful degradation (CONSISTENT with the analytics overlay). A
  * medication whose NAME itself trips the dosing scan (e.g. a real TRT product
@@ -49,39 +48,37 @@ describe('fetchMedicationsForConsumer — tenancy', () => {
   });
 });
 
-describe('fetchMedicationsForConsumer — dose never selected (SRV-3 / OQ#1)', () => {
+describe('fetchMedicationsForConsumer — dose is now visible (GOLD §2.3 revised)', () => {
   beforeEach(() => {
     findMany.mockReset();
     findMany.mockResolvedValue([
-      { id: 'm1', name: 'Testosterone Cypionate', startDate: new Date('2026-01-01'), endDate: null },
+      { id: 'm1', name: 'Testosterone Cypionate', startDate: new Date('2026-01-01'), endDate: null, dose: '200 mg weekly', frequency: 'weekly', route: 'im' },
       { id: 'm2', name: 'Anastrozole', startDate: new Date('2026-03-15'), endDate: new Date('2026-06-01') },
     ]);
   });
 
-  it('selects NO clinical-detail field (dose/frequency/route/reason/clinician)', async () => {
+  it('SELECTS dose + frequency + route (patient-visible per GOLD §2.3)', async () => {
     await fetchMedicationsForConsumer(db, 'u-session');
     const call = findMany.mock.calls[0]![0] as { select: Record<string, boolean> };
-    expect(call.select).not.toHaveProperty('dose');
-    expect(call.select).not.toHaveProperty('frequency');
-    expect(call.select).not.toHaveProperty('route');
-    expect(call.select).not.toHaveProperty('reason');
-    expect(call.select).not.toHaveProperty('clinician');
+    expect(call.select).toHaveProperty('dose', true);
+    expect(call.select).toHaveProperty('frequency', true);
+    expect(call.select).toHaveProperty('route', true);
     // And it DOES select the timing-only fields.
     expect(call.select).toHaveProperty('name', true);
     expect(call.select).toHaveProperty('startDate', true);
     expect(call.select).toHaveProperty('endDate', true);
   });
 
-  it('returns a meds payload with NO dose key on any row', async () => {
-    const { meds } = await fetchMedicationsForConsumer(db, 'u-session');
-    expect(meds).toHaveLength(2);
-    for (const row of meds) {
-      expect(row).not.toHaveProperty('dose');
-      expect(row).not.toHaveProperty('frequency');
-      expect(row).not.toHaveProperty('route');
-      expect(row).not.toHaveProperty('reason');
-      expect(row).not.toHaveProperty('clinician');
-    }
+  it('returns a meds payload WITH dose/frequency/route on rows that have them', async () => {
+    const result = await fetchMedicationsForConsumer(db, 'u-session');
+    expect(result.meds).toHaveLength(2);
+    // First med has dose data.
+    expect(result.meds[0]).toHaveProperty('dose', '200 mg weekly');
+    expect(result.meds[0].frequency).toBe('weekly');
+    expect(result.meds[0].route).toBe('im');
+    // Second med has no dose → null.
+    expect(result.meds[1].dose).toBeNull();
+    expect(result.meds[1].frequency).toBeNull();
   });
 
   it('maps startDate/endDate to ISO strings (null endDate stays null)', async () => {
@@ -91,6 +88,9 @@ describe('fetchMedicationsForConsumer — dose never selected (SRV-3 / OQ#1)', (
       name: 'Testosterone Cypionate',
       startDate: '2026-01-01T00:00:00.000Z',
       endDate: null,
+      dose: '200 mg weekly',
+      frequency: 'weekly',
+      route: 'im',
     });
   });
 });
@@ -140,14 +140,21 @@ describe('fetchMedicationsForConsumer — graceful degradation by name (FIX-H)',
     expect(out.omissions).toEqual([]);
   });
 
-  it('the CLEANED meds list passes assertConsumerSafe (defense-in-depth backstop)', async () => {
-    // After partition, the surviving meds are name-clean by construction. The
-    // canonical fail-closed scan must therefore pass on them (AGENTS §1).
+  it('assertConsumerSafe passes on name-only scan (dose values stripped before assertion)', async () => {
+    // After partition, the lib checks assertConsumerSafe on a name-only strip so
+    // patient-recorded dose/frequency/route values don't trip the regex. The returned
+    // list still carries dose values (GOLD §2.3 revised).
     findMany.mockResolvedValue([
       { id: 'm1', name: 'Anastrozole', startDate: new Date('2026-01-01'), endDate: null },
-      { id: 'm2', name: 'Testosterone 200mg/ml', startDate: new Date('2026-02-01'), endDate: null },
+      // This med has dosing text in its name AND dose value — it's omitted by the name scan.
+      { id: 'm2', name: 'Testosterone 200mg/ml', startDate: new Date('2026-02-01'), endDate: null, dose: '5 mg daily' },
     ]);
     const out = await fetchMedicationsForConsumer(db, 'u-session');
-    expect(() => assertConsumerSafe(out.meds)).not.toThrow();
+    // m2 (dirty name) is omitted; only m1 survives.
+    expect(out.meds.map((m) => m.name)).toEqual(['Anastrozole']);
+    expect(out.omissions).toHaveLength(1);
+    expect(out.omissions[0].name).toBe('Testosterone 200mg/ml');
+    // The returned med still carries its dose value (even though it was omitted).
+    expect(out.meds[0]).toHaveProperty('dose', null);
   });
 });

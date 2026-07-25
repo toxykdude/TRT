@@ -177,6 +177,7 @@ export function BiomarkerChart({
               const x1 = dayKey(m.startDate);
               const x2 = dayKey(m.endDate) ?? nowEdge;
               if (!x1) return null;
+              // Timing band on chart — dose/frequency/route carry in the object but the overlay is timing-only (GOLD §2.3).
               return (
                 <ReferenceArea
                   key={`med-${i}`}

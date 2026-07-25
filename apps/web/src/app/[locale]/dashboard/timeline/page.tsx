@@ -27,7 +27,12 @@ export default async function TimelinePage({
   type Event = { date: string; type: string; label: string };
   const events: Event[] = [
     ...labs.map((l) => ({ date: fmtDate(l.uploadedAt), type: t('typeLab'), label: l.fileName })),
-    ...meds.map((m) => ({ date: fmtDate(m.createdAt), type: t('typeMedication'), label: m.name })),
+    ...meds.map((m) => {
+      const parts = [m.name];
+      if (m.dose && m.dose.trim()) parts.push(m.dose);
+      if (m.frequency && m.frequency.trim()) parts.push(m.frequency);
+      return { date: fmtDate(m.createdAt), type: t('typeMedication'), label: parts.join(' · ') };
+    }),
   ].sort((a, b) => (a.date < b.date ? 1 : -1));
 
   return (

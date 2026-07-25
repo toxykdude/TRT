@@ -99,6 +99,27 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+// ── Email-OTP signup (pending accounts) ─────────────────────────────────────
+//
+// Holds a PENDING signup between "request code" and "verify code". The real User
+// row is created ONLY after the emailed 6-digit code is verified, so unverified
+// emails never enter the User table and a new account is always blank. One row
+// per email (re-requesting a code upserts it and resets attempts). Only the
+// bcrypt HASH of the code is stored; a verified/expired row is deleted.
+model SignupOtp {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("signup_otps")
+}
+
 // ── Patient & longitudinal clinical data ────────────────────────────────────
 //
 // A Patient is the medical-record subject. In this pass each User (PATIENT role)

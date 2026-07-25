@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { SafetyBanner } from '@/components/safety-banner';
 import { fmtDate } from '@/lib/utils';
+import { fetchDashboardOverview } from '@/lib/dashboard-overview';
 
 export default async function DashboardHome({
   params,
@@ -19,19 +20,12 @@ export default async function DashboardHome({
   const tCommon = await getTranslations('Dashboard');
 
   const session = await auth();
-  const db = prismaFor(session!.user.id);
+  const ownerId = session!.user.id;
+  const db = prismaFor(ownerId);
 
-  const [patient, labCount, latestResults] = await Promise.all([
-    db.patient.findUnique({ where: { ownerId: session!.user.id } }),
-    db.labReport.count(),
-    db.labResult.findMany({
-      // P0.2.b: only CONFIRMED values feed dashboard summaries.
-      where: { reviewStatus: 'CONFIRMED' },
-      orderBy: { collectedAt: 'desc' },
-      take: 5,
-      include: { biomarker: true },
-    }),
-  ]);
+  // ownerId is the real tenancy gate (prismaFor is BYPASSRLS). fetchDashboardOverview
+  // scopes ALL three reads to ownerId so a new user sees only their own (blank) data.
+  const { patient, labCount, latestResults } = await fetchDashboardOverview(db, ownerId);
 
   const name = session?.user.name;
 

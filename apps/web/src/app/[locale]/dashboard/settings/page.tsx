@@ -16,8 +16,11 @@ export default async function SettingsPage({
   const t = await getTranslations('Dashboard.Settings');
 
   const session = await auth();
-  const db = prismaFor(session!.user.id);
-  const auditCount = await db.auditLog.count();
+  const ownerId = session!.user.id;
+  const db = prismaFor(ownerId);
+  // ownerId is the real tenancy gate (prismaFor is BYPASSRLS): count only THIS
+  // user's audit rows, never every tenant's. AuditLog scopes by `userId`.
+  const auditCount = await db.auditLog.count({ where: { userId: ownerId } });
 
   return (
     <div className="space-y-8">

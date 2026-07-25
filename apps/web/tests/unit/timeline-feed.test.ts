@@ -4,8 +4,10 @@
  * CRITICAL: `prismaFor` is BYPASSRLS (packages/db), so app-layer `where:{ownerId}`
  * is the ONLY tenancy gate. Before this fix, the timeline read labs + medications
  * with NO `where` clause → an authenticated user saw EVERY tenant's lab filenames
- * and medication names (cross-tenant PHI leak). This suite pins the tenancy gate
- * AND the consumer-surface safety contract (dose never loads into server memory).
+ * and medication names (cross-tenant PHI leak). This suite pins the tenancy gate.
+ *
+ * GOLD §2.3 revised 2026-07-25: dose/frequency are now loaded on this consumer surface
+ * so patients see their historic dose in the timeline feed.
  *
  * The suite is hermetic: a mock db is passed directly to the pure lib function
  * (vitest node env; no jsdom / React rendering needed).
@@ -54,20 +56,18 @@ describe('fetchTimelineFeed — tenancy (FIX-G / TC-7)', () => {
   });
 });
 
-describe('fetchTimelineFeed — dose never loaded into server memory (GOLD §2.3)', () => {
+describe('fetchTimelineFeed — dose + frequency loaded on consumer surface (GOLD §2.3 revised)', () => {
   beforeEach(() => {
     labFindMany.mockReset();
     medFindMany.mockReset();
   });
 
-  it('selects NO dosing field on the medication read', async () => {
+  it('SELECTS dose + frequency on the medication read (patient-visible per GOLD §2.3)', async () => {
     await fetchTimelineFeed(db, 'u-session');
     const call = medFindMany.mock.calls[0]![0] as { select: Record<string, boolean> };
-    // The hard requirement: dose never loads into server memory on this consumer
-    // surface. frequency/route/reason/clinician are omitted too (analytics-spine
-    // forbidden fields) — the timeline renders only name + createdAt.
-    expect(call.select).not.toHaveProperty('dose');
-    expect(call.select).not.toHaveProperty('frequency');
+    // dose/frequency are now loaded for patient display; route/reason/clinician remain omitted.
+    expect(call.select).toHaveProperty('dose', true);
+    expect(call.select).toHaveProperty('frequency', true);
     expect(call.select).not.toHaveProperty('route');
     expect(call.select).not.toHaveProperty('reason');
     expect(call.select).not.toHaveProperty('clinician');

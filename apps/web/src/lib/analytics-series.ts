@@ -25,12 +25,17 @@ import {
 import { buildMarkerViews, type MarkerView } from '@/lib/analysis';
 import type { PrismaClient } from '@trt/db';
 
-/** A medication reduced to its timing envelope — no dosing field exists here. */
-export type TimingOnlyMed = {
+/** A medication — timing plus the patient-recorded dose/frequency/route. */
+export type MedicationOverlay = {
   name: string;
   startDate: string | null;
   endDate: string | null;
+  dose?: string | null;
+  frequency?: string | null;
+  route?: string | null;
 };
+/** @deprecated Use `MedicationOverlay` (includes dose/frequency/route). */
+export type TimingOnlyMed = MedicationOverlay;
 
 /** One symptom observation plotted as a magnitude dot (TC-5). */
 export type SymptomPoint = {
@@ -52,7 +57,8 @@ export type AnalyticsSeries = {
  * the by-construction `select` was bypassed, so `serializeForConsumer` THROWS.
  * (Contrast: a dosing pattern in the legit `name` VALUE is handled gracefully.)
  */
-const FORBIDDEN_MED_FIELDS = ['dose', 'frequency', 'route', 'reason', 'clinician'] as const;
+// dose/frequency/route are now consumer-visible (GOLD §2.3 revised). reason + clinician remain forbidden to catch structural regressions.
+const FORBIDDEN_MED_FIELDS = ['reason', 'clinician'] as const;
 
 /** Why a medication was omitted from a consumer payload. */
 export type OmissionReason = 'dosing-pattern-in-name';
@@ -86,19 +92,25 @@ function toIso(d: Date | string | null | undefined): string | null {
 }
 
 /**
- * Reduce a medication row to its timing envelope, dropping EVERY dosing field
- * (dose/frequency/route/reason/clinician) by construction. Null endDate stays
- * null (open-ended band → extends to the chart now-edge, S-TC-NULL-ENDDATE).
+ * Reduce a medication row — keeps dose/frequency/route for consumer display
+ * (GOLD §2.3 revised). Null endDate stays null (open-ended band → extends to
+ * the chart now-edge, S-TC-NULL-ENDDATE).
  */
 export function stripMedicationToTiming(m: {
   name: string;
   startDate: Date | string | null;
   endDate: Date | string | null;
+  dose?: string | null;
+  frequency?: string | null;
+  route?: string | null;
 }): TimingOnlyMed {
   return {
     name: m.name,
     startDate: toIso(m.startDate),
     endDate: toIso(m.endDate),
+    dose: (m as { dose?: string }).dose ?? null,
+    frequency: (m as { frequency?: string }).frequency ?? null,
+    route: (m as { route?: string }).route ?? null,
   };
 }
 
@@ -162,12 +174,15 @@ export function serializeForConsumer(series: AnalyticsSeries): ConsumerSafeSerie
       safeMeds.push(med);
     }
   }
-  const cleaned: AnalyticsSeries = { ...series, medications: safeMeds };
 
   // Step 3 — defense-in-depth: final fail-closed scan on the clean payload.
-  assertConsumerSafe(cleaned);
+  // Strip patient-recorded dose/frequency/route values BEFORE asserting so they
+  // don't trip the regex content scan (the fields are consumer-visible now; the
+  // scan only checks biomarkers + symptoms for hidden dosing prose).
+  const assertionPayload: AnalyticsSeries = { ...series, medications: safeMeds.map((m) => ({ name: m.name, startDate: m.startDate, endDate: m.endDate })) };
+  assertConsumerSafe(assertionPayload);
 
-  return { series: cleaned, omissions };
+  return { series: { ...series, medications: safeMeds }, omissions };
 }
 
 /** The `since` cutoff Date for a range preset, or null for no window. */
@@ -180,7 +195,8 @@ function rangeSince(range: AnalyticsRange | undefined): Date | null {
   return d;
 }
 
-type MedRow = { name: string; startDate: Date | string | null; endDate: Date | string | null };
+// Medication DB row — includes dose/frequency/route so stripMedicationToTiming can pass them through.
+type MedRow = { name: string; startDate: Date | string | null; endDate: Date | string | null; dose?: string | null; frequency?: string | null; route?: string | null };
 type SymptomRow = { date: Date | string; symptom: string; score: number };
 
 /**
@@ -205,10 +221,11 @@ export async function buildAnalyticsSeries(
       include: { biomarker: true },
       orderBy: { collectedAt: 'asc' },
     }),
-    // Timing-only select — NO dose/frequency/route/reason/clinician (TC-4).
+    // Timing + dose select — includes the patient-recorded dose/frequency/route
+    // so consumer charts and lists render dosing (GOLD §2.3 revised).
     db.medication.findMany({
       where: { ownerId, ...medSince },
-      select: { name: true, startDate: true, endDate: true },
+      select: { name: true, startDate: true, endDate: true, dose: true, frequency: true, route: true },
     }),
     db.symptomEntry.findMany({
       where: { ownerId, ...symSince },

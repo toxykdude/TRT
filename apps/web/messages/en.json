@@ -67,7 +67,8 @@
       "or": "or",
       "google": "Continue with Google",
       "noAccount": "Don't have an account?",
-      "createOne": "Create one"
+      "createOne": "Create one",
+      "verified": "Email verified. Sign in to continue."
     },
     "Register": {
       "title": "Create your account",
@@ -76,9 +77,17 @@
       "email": "Email",
       "password": "Password",
       "passwordHint": "At least 8 characters.",
-      "submit": "Create account",
+      "submit": "Send verification code",
       "haveAccount": "Already have an account?",
       "signIn": "Sign in"
+    },
+    "Verify": {
+      "title": "Verify your email",
+      "subtitle": "Enter the 6-digit code we emailed to {email}.",
+      "code": "Verification code",
+      "submit": "Verify and create account",
+      "restart": "Didn't get a code? Start over",
+      "missingEmail": "We couldn't tell which email to verify. Please start again."
     },
     "Forgot": {
       "title": "Reset your password",

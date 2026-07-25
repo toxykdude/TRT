@@ -7,6 +7,7 @@ import { SafetyBanner } from '@/components/safety-banner';
 import { PlaceholderCard } from '@/components/dashboard/placeholder-card';
 import { fmtDate } from '@/lib/utils';
 import { GenerateReportButton } from '@/components/dashboard/generate-report-button';
+import { fetchReportsList } from '@/lib/reports-list';
 
 export default async function ReportsPage({
   params,
@@ -18,12 +19,12 @@ export default async function ReportsPage({
   const t = await getTranslations('Dashboard.Reports');
 
   const session = await auth();
-  const db = prismaFor(session!.user.id);
+  const ownerId = session!.user.id;
+  const db = prismaFor(ownerId);
 
-  const [reports, resultCount] = await Promise.all([
-    db.report.findMany({ orderBy: { generatedAt: 'desc' }, take: 10 }),
-    db.labResult.count(),
-  ]);
+  // ownerId is the real tenancy gate (prismaFor is BYPASSRLS). fetchReportsList
+  // scopes both reads to ownerId so reports never cross tenants.
+  const { reports, resultCount } = await fetchReportsList(db, ownerId);
 
   return (
     <div className="space-y-8">

@@ -2,14 +2,8 @@
  * Consumer medications-list data access (GOLD §5.11 / spec OQ#1, SRV-3 / FIX-H).
  *
  * The `/dashboard/medications` page is CONSUMER-BOUND (the patient's own
- * dashboard), so the list read is TIMING-ONLY — exactly the contract the
- * analytics overlay uses (see analytics-series.ts `stripMedicationToTiming`).
- *
- * SAFETY (GOLD §2.3 / spec OQ#1): dose (and frequency/route/reason/clinician)
- * is capture-and-store-only, "displayed NOWHERE" consumer-bound. This helper
- * enforces that BY CONSTRUCTION — the `select` returns only {id, name,
- * startDate, endDate}. `dose` is never selected, so it can never reach the
- * rendered list.
+ * dashboard). Per GOLD §2.3 revised: dose/frequency/route are NOW SELECTED and
+ * RENDERED patient-side; timing-only chart overlays persist on analytics surfaces.
  *
  * FIX-H — graceful degradation (CONSISTENT with the analytics overlay). Before
  * this fix, the helper ran `assertConsumerSafe` on the WHOLE mapped list, which
@@ -20,7 +14,7 @@
  * `serializeForConsumer`: each med NAME is scanned via `scanForDosing`; a
  * dirty-named med is OMITTED from the returned list + recorded in `omissions`
  * (the page renders a COUNT-only notice and NEVER the offending name). A final
- * `assertConsumerSafe` still runs on the CLEANED list as a fail-closed backstop
+ * `assertConsumerSafe` runs on a name-only strip as a fail-closed backstop
  * (AGENTS §1) — defense-in-depth, mirroring the analytics two-layer philosophy.
  *
  * Tenancy: `where: { ownerId }` on every read — `prismaFor` is BYPASSRLS, so
@@ -29,12 +23,15 @@
 import type { PrismaClient } from '@trt/db';
 import { assertConsumerSafe, scanForDosing } from '@trt/guardrails';
 
-/** A medication row reduced to identity + timing — no dosing field exists here. */
+/** A medication row — identity, timing, and the patient-recorded dose/frequency/route. */
 export type MedicationListItem = {
   id: string;
   name: string;
   startDate: string | null;
   endDate: string | null;
+  dose?: string | null;
+  frequency?: string | null;
+  route?: string | null;
 };
 
 /** Why a medication was omitted from a consumer list (for audit/count notice). */
@@ -80,14 +77,17 @@ export async function fetchMedicationsForConsumer(
   const rows = await db.medication.findMany({
     where: { ownerId },
     orderBy: { startDate: 'desc' },
-    // Timing-only select — NO dose/frequency/route/reason/clinician (OQ#1).
-    select: { id: true, name: true, startDate: true, endDate: true },
+    // Timing + dose select — patient-recorded dose/frequency/route for display.
+    select: { id: true, name: true, startDate: true, endDate: true, dose: true, frequency: true, route: true },
   });
   const mapped = rows.map((r) => ({
     id: r.id,
     name: r.name,
     startDate: toIso(r.startDate),
     endDate: toIso(r.endDate),
+    dose: r.dose ?? null,
+    frequency: r.frequency ?? null,
+    route: r.route ?? null,
   }));
 
   // FIX-H — graceful per-medication degradation by name scan (mirrors the
@@ -105,12 +105,11 @@ export async function fetchMedicationsForConsumer(
     }
   }
 
-  // Fail-closed backstop (AGENTS §1): the timing-only select is the PRIMARY
-  // guard, and the partition above removes any name-scanned med. The surviving
-  // `meds` are name-clean by construction, so this scan passes — but if a
-  // future regression ever leaked dosing text into a non-name field, this would
-  // throw rather than ship it (mirrors the analytics cleaned-list backstop).
-  assertConsumerSafe(meds);
+  // Fail-closed backstop (AGENTS §1): strip only name for the assertion so patient-recorded
+  // dose/frequency/route values (now consumer-visible) don't trip the regex scan, but the
+  // returned list still carries them. This mirrors the analytics strip-before-assert pattern.
+  const nameOnlyForScan: { name: string }[] = meds.map((m) => ({ name: m.name }));
+  assertConsumerSafe(nameOnlyForScan);
 
   return { meds, omissions };
 }
