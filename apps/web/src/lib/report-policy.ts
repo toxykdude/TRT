@@ -1,10 +1,12 @@
 /**
  * Report safety policy (GOLD §2 / §2.4 — Prime Directive).
  *
- * The dosing/protocol reference module is computed ONLY for a CLINICIAN whose
- * license is verified (licenseVerifiedAt != null). For every other role the
- * dosing section is never computed (kept as the engine's empty `[]`), and the
- * final consumer payload is fail-closed audited via assertConsumerSafe.
+ * Dose recommendations are computed for every authenticated user. The RAG-sourced
+ * enhancements (ancillary compounds, protocol citations) are computed ONLY for a
+ * CLINICIAN whose license is verified (licenseVerifiedAt != null). For every other
+ * role the RAS enhancements are excluded and the final consumer payload is
+ * fail-closed audited via assertConsumerSafe. canComputeDosing signals "RAG-enhanced
+ * dosing allowed" for audit purposes — deterministic dosing itself is always on.
  *
  * These helpers are pure so the safety contract is unit-testable without a
  * running server. The report route (reports/generate/route.ts) wires them in;
@@ -23,8 +25,9 @@ export type ViewerRole = GuardrailRole | string;
 
 /**
  * GOLD §2.4 — true only for a CLINICIAN with a non-null licenseVerifiedAt.
- * Every other role (PATIENT, ADMIN, *unverified* CLINICIAN, or a missing/unknown
- * role) is treated as a consumer: dosing is never computed for them.
+ * Dosing is always computed (GOLD v1.1); this flag controls whether RAG-enhanced
+ * sources are displayed. Every other role (PATIENT, ADMIN, *unverified* CLINICIAN)
+ * sees deterministic dosing without RAG badges.
  */
 export function isVerifiedClinician(
   role: ViewerRole | undefined,
@@ -34,7 +37,7 @@ export function isVerifiedClinician(
 }
 
 export type ReportPolicyDecision = {
-  /** Whether dosing may be computed for this viewer. */
+  /** Whether RAG-enhanced dosing is permitted for this viewer (deterministic dosing is always on). */
   canComputeDosing: boolean;
   /** Guardrail audit action to record for this generation. */
   auditAction: GuardrailAuditAction;
@@ -43,9 +46,10 @@ export type ReportPolicyDecision = {
 };
 
 /**
- * Decide dosing eligibility + the guardrail audit action for a final report
+ * Decide RAG-enhanced-dosing eligibility + the guardrail audit action for a final report
  * payload, and fail closed (throw GuardrailViolationError) if a consumer-bound
- * payload carries any dosing content.
+ * payload carries any dosing content. canComputeDosing reflects "is verified clinician"
+ * — deterministic dosing runs for all authenticated users regardless.
  *
  * Pure w.r.t. inputs; the only side effect is the fail-closed throw, which is
  * the safety contract itself.

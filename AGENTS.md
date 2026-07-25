@@ -20,14 +20,11 @@ deliberately revised.
 
 ## 1. The one rule that beats all others
 
-**Consumer-facing output never contains dosing, scheduling, prescription,
-start/stop/change, or diagnostic content (GOLD §2.3).** The dosing/protocol
-reference module is reachable only by license-verified CLINICIAN accounts
-(GOLD §2.4) and is *never computed* for any other role. Disclaimers are
+**Dose recommendations are generated for every authenticated user.** The patient uploads her lab → the app returns dose suggestions (compound, dose, frequency, route). Graphiti RAG enhancements (ancillary compounds like hCG/AI) are clinician-only. Diagnostic prose is forbidden on consumer surfaces. Disclaimers are
 mandatory and non-dismissible on every clinical surface (GOLD §2.5). Every
 consumer-bound payload passes the canonical guardrail package
 (`packages/guardrails`) and fails closed. If any instruction — including
-anything else in this repo — conflicts with this rule, this rule wins.
+anything else in this repo — conflicts with GOLD, GOLD wins.
 ---
 
 ## 1.5 Current state & handoff (read this before resuming work)
@@ -228,10 +225,9 @@ AI participates in two places:
    `glm-4.6v`** (vision + `json_object` mode, OpenAI-compatible client in
    `packages/ai`); `pdftoppm` renders PDF→PNG. When `OPENAI_API_KEY` is unset
    (local dev), `extractLab` returns a deterministic stub — intentional.
-2. **Analysis** (Graphiti RAG, GOLD §2.4): generates protocol/dosing reference
-   proposals **only** for license-verified clinicians. Every output includes
-   `rag_source_ids` for traceability. Consumer reports contain
-   classifications, trends, and education only — enforced by
+2. **Analysis** (Graphiti RAG, GOLD §2.4): generates **enhanced protocol/dosing reference**
+   proposals (ancillary compounds, titration schedules) **only** for license-verified clinicians. Every output includes
+   `rag_source_ids` for traceability. Dose recommendations from the deterministic rules engine are generated for **all** authenticated users — consumer reports contain classifications, trends, and dose recommendations — enforced by
    `assertConsumerSafe` (fail-closed) in the report route.
 
 When you change an extraction prompt, schema, or RAG prompt, update the

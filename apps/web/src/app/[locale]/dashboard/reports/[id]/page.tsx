@@ -39,11 +39,11 @@ export default async function ReportDetailPage({
     where: { id: session!.user.id },
     select: { role: true, licenseVerifiedAt: true },
   });
-  const viewerCanSeeDosing = isVerifiedClinician(viewer?.role, viewer?.licenseVerifiedAt ?? null);
+  const viewerCanSeeRag = isVerifiedClinician(viewer?.role, viewer?.licenseVerifiedAt ?? null);
 
   return (
     <Dashboard
-      viewerCanSeeDosing={viewerCanSeeDosing}
+      viewerCanSeeRag={viewerCanSeeRag}
       report={{
         sections: report.sections as never,
         generatedAt: fmtDate(report.generatedAt),

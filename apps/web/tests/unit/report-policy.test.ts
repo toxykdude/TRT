@@ -1,8 +1,8 @@
 /**
  * Report safety policy (GOLD §2 / §2.4) — dosing gate + guardrail audit.
  *
- * Covers P0.1.d (dosing never computed for non-clinicians; fail-closed
- * consumer payloads) and P0.1.e (one guardrail-audit event per generation).
+ * Covers P0.1.d (RAG-enhanced dosing gated for verified clinicians; deterministic dosing always on)
+ * and P0.1.e (one guardrail-audit event per generation).
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -48,7 +48,7 @@ const CONSUMER_PAYLOAD = {
   findings: [
     { biomarkerKey: 'hematocrit', message: 'Hematocrit above the reference range.' },
   ],
-  dosingRecommendations: [], // never computed for a consumer
+  dosingRecommendations: [], // deterministic dosing always on; RAG badges gated by viewerCanSeeRag
   chartData: {
     classified: [
       { biomarkerKey: 'total_testosterone', valueNumeric: 412, unit: 'ng/dL', status: 'LOW' },
@@ -65,7 +65,7 @@ const DOSING_PAYLOAD = {
   },
 };
 
-describe('decideReportPolicy — dosing never computed for non-clinicians', () => {
+describe('decideReportPolicy — RAG dosing gated; deterministic dosing always on', () => {
   it('PATIENT + clean payload: no dosing, audit pass, no findings', () => {
     const d = decideReportPolicy({ role: 'PATIENT', licenseVerifiedAt: null, payload: CONSUMER_PAYLOAD });
     expect(d.canComputeDosing).toBe(false);

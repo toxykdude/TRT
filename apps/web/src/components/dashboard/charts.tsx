@@ -386,7 +386,7 @@ const PRIORITY_BAR = {
   alternative: CHART_COLORS.purple,
 };
 
-export function DosingTable({ recommendations }: { recommendations: DosingRec[] }) {
+export function DosingTable({ recommendations, viewerCanSeeRag = false }: { recommendations: DosingRec[]; viewerCanSeeRag?: boolean }) {
   const t = useTranslations('Charts');
   const compoundsT = useTranslations('Compounds');
   const protocolsT = useTranslations('DosingProtocols');

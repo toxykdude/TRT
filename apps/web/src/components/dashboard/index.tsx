@@ -80,16 +80,15 @@ type ReportData = {
 
 export function Dashboard({
   report,
-  viewerCanSeeDosing = false,
+  viewerCanSeeRag = false,
 }: {
   report: { sections: ReportData; generatedAt: string; generatedBy: string; redFlags: string[] };
   /**
-   * Defense-in-depth dosing gate (GOLD §2.4). The route already stores an empty
-   * dosing list for non-clinicians; this flag additionally guarantees no dosing
-   * data is ever rendered for a viewer who is not a license-verified CLINICIAN.
-   * Defaults to false so any caller that forgets to pass it stays safe.
-   */
-  viewerCanSeeDosing?: boolean;
+    * RAG source badges are clinician-only (GOLD §2.4). Dosing itself is computed
+    * for every authenticated user; this flag only controls whether RAG sources
+    * are displayed on the dosing cards.
+    */
+  viewerCanSeeRag?: boolean;
 }) {
   const t = useTranslations('Report');
   const statusT = useTranslations('Status');
@@ -98,9 +97,10 @@ export function Dashboard({
   const biomarkersT = useTranslations('Biomarkers');
   const categoriesT = useTranslations('Categories');
   const s = report.sections;
-  // GOLD §2.4 — dosing is shown ONLY to a license-verified CLINICIAN. For every
-  // other viewer the list is forced empty so dosing content never reaches the DOM.
-  const dosing = viewerCanSeeDosing ? s.dosingRecommendations || [] : [];
+  // Dosing is computed for every authenticated user. RAG source badges are
+  // clinician-only (GOLD §2.4) — gate them with viewerCanSeeRag below in the
+  // dosing card components.
+  const dosing = s.dosingRecommendations || [];
   const chart = s.chartData;
   const classified = chart?.classified || [];
   const trends = chart?.trends || [];
@@ -233,7 +233,7 @@ export function Dashboard({
           subtitle={t('dosingSub', { protocols: dosing.length, priority: clinicalPriority })}
           className="lg:col-span-2"
         >
-          <DosingTable recommendations={dosing} />
+          <DosingTable recommendations={dosing} viewerCanSeeRag={viewerCanSeeRag} />
         </ChartCard>
 
         <ChartCard title={t('hormoneTotalT')} subtitle={t('historicalTrend')}>
@@ -269,7 +269,7 @@ export function Dashboard({
           {dosing.length > 0 ? (
             <div className="grid gap-4 lg:grid-cols-2">
               {dosing.map((rec, i) => (
-                <DosingDetailCard key={i} rec={rec} />
+                <DosingDetailCard key={i} rec={rec} viewerCanSeeRag={viewerCanSeeRag} />
               ))}
             </div>
           ) : (
@@ -363,7 +363,7 @@ export function Dashboard({
 
 // ── Helper components ─────────────────────────────────────────────────────────
 
-function DosingDetailCard({ rec }: { rec: DosingRec }) {
+function DosingDetailCard({ rec, viewerCanSeeRag = false }: { rec: DosingRec; viewerCanSeeRag?: boolean }) {
   const t = useTranslations('Report');
   const compoundsT = useTranslations('Compounds');
   const protocolsT = useTranslations('DosingProtocols');
@@ -403,7 +403,7 @@ function DosingDetailCard({ rec }: { rec: DosingRec }) {
           </div>
         </div>
         {rec.notes && <p className="text-xs text-muted-foreground italic">{resolveNotes(rec, protocolsT)}</p>}
-        {rec.ragSourceIds?.length > 0 && (
+        {viewerCanSeeRag && rec.ragSourceIds?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {rec.ragSourceIds.slice(0, 4).map((src, i) => (
               <Badge key={i} variant="secondary" className="text-[10px]">{src}</Badge>

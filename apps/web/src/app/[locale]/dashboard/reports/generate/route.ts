@@ -22,11 +22,12 @@ import {
  * Pipeline:
  *   1. Deterministic engine: classify → trends → rules → gaps → assemble
  *   2. Graphiti RAG enrichment: knowledge graph facts
- *   3. Dosing recommendations — ONLY for a license-verified CLINICIAN (GOLD §2.4)
- *   4. Guardrail audit on all prose + fail-closed consumer check (GOLD §2)
+ *   3. Dosing recommendations — computed for every authenticated user (GOLD core flow)
+ *   4. RAG sources — clinician-only (GOLD §2.4)
+ *   5. Guardrail audit on all prose + fail-closed consumer check (GOLD §2)
  *
- * Same deterministic inputs → same report hash. Non-clinician reports never
- * compute dosing (kept as the engine's empty `[]`) and are fail-closed audited.
+ * Same deterministic inputs → same report hash. Dosing is always computed;
+ * RAG source badges are hidden for non-clinicians (GOLD §2.4).
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -118,24 +119,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Step 2: Dosing — ONLY for a license-verified CLINICIAN (GOLD §2.4) ──────
-  // The JWT role is a coarse UI gate only; authoritative role + license checks
-  // always re-read the DB row (license verification must take effect instantly).
+  // ── Step 2: Dosing — computed for every authenticated user ──────────────────
+  // The RAG source badges are clinician-only (GOLD §2.4); dosing itself is the
+  // core value of the app: patient uploads lab → gets dose recommendation.
   const viewer = await db.user.findUnique({
     where: { id: session.user.id },
     select: { role: true, licenseVerifiedAt: true },
   });
   const viewerRole: GuardrailRole = (viewer?.role as GuardrailRole) ?? 'PATIENT';
 
-  const dosingRecommendations =
-    viewerRole === 'CLINICIAN' && viewer?.licenseVerifiedAt != null
-      ? generateDosingRecommendations({
-          classified: report.classified,
-          trends: report.trends,
-          findings: enrichedFindings,
-          coverageGaps: report.coverageGaps,
-        })
-      : []; // Non-clinicians (incl. unverified CLINICIAN) NEVER get dosing computed.
+  const dosingRecommendations = generateDosingRecommendations({
+    classified: report.classified,
+    trends: report.trends,
+    findings: enrichedFindings,
+    coverageGaps: report.coverageGaps,
+  });
 
   // ── Step 3: Save report with dosing + chart data ───────────────────────────
 

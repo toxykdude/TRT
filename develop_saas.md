@@ -114,13 +114,16 @@ must be re-converged on the safe side.
         `licenseState`, `npi`) to `User` in `packages/db/prisma/schema.prisma`.
         Verification is granted only via the admin queue (P2 admin backend); until
         that ships, a manual SQL/seed path documented in `docs/`.
-  - [ ] API: in `apps/web/src/app/dashboard/reports/generate/route.ts`, branch report
-        composition on `session.user.role === 'CLINICIAN' && licenseVerifiedAt != null`;
-        the dosing section is never computed — not merely hidden — for other roles.
-  - [ ] UI: `dosing-recommendations.tsx` renders only for verified clinicians;
-        consumer report view has no dosing tab/section at all.
+  - [ ] API: dosing recommendations are computed for **every authenticated user**;
+        Graphiti RAG enhancements are branched on
+        `session.user.role === 'CLINICIAN' && licenseVerifiedAt != null` — only verified
+        clinicians get ancillary compounds, protocol citations (`rag_source_ids`), and
+        RAG source badges on their dose cards.
+  - [ ] UI: dose cards (DosingTable, DosingDetailCard) rendered for all authenticated users;
+        RAG source badges only visible for verified clinicians (viewerCanSeeRag).
+        Consumer report view shows a dosing section with deterministic recommendations.
   - [ ] Defense in depth: `assertConsumerSafe` (P0.1.b) runs on the final payload for
-        non-clinician roles regardless of branching.
+        non-clinician roles to block RAG-sourced dosing prose leaks.
 - **Acceptance criteria:**
   - Integration test: PATIENT session calling report generation receives a payload
     with no dosing keys and no compound strings (guardrail-scanned in the test).
