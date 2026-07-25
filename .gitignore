@@ -8,6 +8,8 @@
 .trt_dbpw
 *.pem
 *.key
+# Local-only credential scratch files (e.g. provider API keys) — never commit
+add-zai-key.txt
 
 # ── Dependencies ────────────────────────────────────────────────
 node_modules/
@@ -66,3 +68,5 @@ Thumbs.db
 # ── Misc ────────────────────────────────────────────────────────
 .turbo/
 .cache/
+# Local scratch files not part of the repo
+particlesPrompt
