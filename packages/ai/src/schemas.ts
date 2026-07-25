@@ -5,7 +5,7 @@
  * so the model is constrained to it at generation time.
  */
 import { z } from 'zod';
-import { enforceGuardrails, type GuardrailResult } from './guardrails';
+import { enforceGuardrails } from '@trt/guardrails';
 
 // ── Extraction (P0.2.a) ──────────────────────────────────────────────────────
 // Model-facing Structured Output contract. Transcribes a lab document exactly as

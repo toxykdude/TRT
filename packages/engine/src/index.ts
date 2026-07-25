@@ -17,18 +17,11 @@ import { classifyAll } from './classify';
 import { computeTrends } from './trends';
 import { coverageGaps, runRules } from './rules';
 import { assembleReport } from './report';
-import { enforceGuardrails } from './guardrails';
+import { enforceGuardrails } from '@trt/guardrails';
 import { enrichWithKnowledge, type KbSearchFn } from './knowledge';
 import type { DeterministicReport, EngineInput } from './types';
 
-export {
-  enforceGuardrails,
-  refuseAndRedirect,
-  scanForDosing,
-  redactDosing,
-  assertConsumerSafe,
-} from './guardrails';
-export type { GuardrailResult, GuardrailFinding, GuardrailRole } from './guardrails';
+export { refuseAndRedirect, scanForDosing, redactDosing, assertConsumerSafe, type GuardrailResult, type GuardrailFinding, type GuardrailRole } from '@trt/guardrails';
 export * from './types';
 export { classifyResult, classifyAll, statusLabel, isAbnormal, isOutOfBand } from './classify';
 export { computeTrends, trendArrow, trendWord } from './trends';

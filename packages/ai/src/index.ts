@@ -11,7 +11,7 @@ export {
   enforceGuardrails,
   refuseAndRedirect,
   type GuardrailResult,
-} from './guardrails';
+} from '@trt/guardrails';
 
 export {
   extractLab,

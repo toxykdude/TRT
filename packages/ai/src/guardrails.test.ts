@@ -3,7 +3,7 @@
  * The full behavior suite lives in `packages/guardrails/src/guardrails.test.ts`.
  */
 import { describe, it, expect } from 'vitest';
-import { enforceGuardrails, refuseAndRedirect, assertConsumerSafe } from './guardrails';
+import { enforceGuardrails, refuseAndRedirect, assertConsumerSafe } from '@trt/guardrails';
 
 describe('ai guardrails — canonical package wiring', () => {
   it('blocks dosing content (not a passthrough)', () => {

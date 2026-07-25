@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { SafetyBanner } from '@/components/safety-banner';
 import { fmtDate } from '@/lib/utils';
 import { fetchTimelineFeed } from '@/lib/timeline-feed';
+import { scanForDosing } from '@trt/guardrails';
 
 export default async function TimelinePage({
   params,
@@ -28,8 +29,14 @@ export default async function TimelinePage({
   const events: Event[] = [
     ...labs.map((l) => ({ date: fmtDate(l.uploadedAt), type: t('typeLab'), label: l.fileName })),
     ...meds.map((m) => {
-      const parts = [m.name];
-      if (m.dose && m.dose.trim()) parts.push(m.dose);
+      // GOLD §2.3: scan med NAME for dosing patterns (e.g. "Testosterone 200mg/ml")
+      // so the timeline label doesn't display dosing-prose as activity text.
+      const isDosingName = scanForDosing(m.name).length > 0;
+      // Graceful degradation: for dosing-pattern names (e.g. "Testosterone 200mg/ml"),
+      // truncate to the non-dosing portion so the label doesn't double-expose dosing prose.
+      const displayName = isDosingName ? `${(m.name?.split(/\s\d/g)?.[0] ?? '').trim()}…` : m.name;
+      const parts = [displayName];
+      if (m.dose && m.dose.trim() && !isDosingName) parts.push(m.dose);
       if (m.frequency && m.frequency.trim()) parts.push(m.frequency);
       return { date: fmtDate(m.createdAt), type: t('typeMedication'), label: parts.join(' · ') };
     }),
