@@ -229,7 +229,8 @@
       "reason": "Reason",
       "clinician": "Prescribing clinician",
       "save": "Save medication",
-      "saveFailed": "Could not save. Please try again."
+      "saveFailed": "Could not save. Please try again.",
+      "medsOmittedNotice": "{count} medication hidden for review"
     },
     "Symptoms": {
       "title": "Symptoms",

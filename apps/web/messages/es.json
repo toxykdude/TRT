@@ -229,7 +229,8 @@
       "reason": "Motivo",
       "clinician": "Clínico prescriptor",
       "save": "Guardar medicamento",
-      "saveFailed": "No se pudo guardar. Inténtelo de nuevo."
+      "saveFailed": "No se pudo guardar. Inténtelo de nuevo.",
+      "medsOmittedNotice": "{count} medicación oculta para revisión"
     },
     "Symptoms": {
       "title": "Síntomas",

@@ -4,6 +4,7 @@ import { prismaFor } from '@trt/db';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { SafetyBanner } from '@/components/safety-banner';
 import { fmtDate } from '@/lib/utils';
+import { fetchTimelineFeed } from '@/lib/timeline-feed';
 
 export default async function TimelinePage({
   params,
@@ -15,10 +16,13 @@ export default async function TimelinePage({
   const t = await getTranslations('Dashboard.Timeline');
 
   const session = await auth();
-  const db = prismaFor(session!.user.id);
+  const ownerId = session!.user.id;
+  const db = prismaFor(ownerId);
 
-  const labs = await db.labReport.findMany({ orderBy: { uploadedAt: 'desc' }, take: 20 });
-  const meds = await db.medication.findMany({ orderBy: { createdAt: 'desc' }, take: 20 });
+  // FIX-G (GOLD §6 / TC-7): prismaFor is BYPASSRLS, so app-layer `where:{ownerId}`
+  // is the ONLY tenancy gate. fetchTimelineFeed scopes BOTH reads to ownerId and
+  // loads only identity/timing fields (no dosing field loads into server memory).
+  const { labs, meds } = await fetchTimelineFeed(db, ownerId);
 
   type Event = { date: string; type: string; label: string };
   const events: Event[] = [

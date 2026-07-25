@@ -8,13 +8,18 @@ import { fetchMedicationsForConsumer } from '@/lib/medications-list';
 import { fmtDate } from '@/lib/utils';
 
 /**
- * Medications page (GOLD §5.11 / spec ME-1..ME-7, SRV-1).
+ * Medications page (GOLD §5.11 / spec ME-1..ME-7, SRV-1 / FIX-H).
  *
  * The patient's OWN dashboard surface: lists their medication history and hosts
  * the entry form. SAFETY (GOLD §2.3 / spec OQ#1, SRV-3): the list is TIMING-ONLY
  * — `fetchMedicationsForConsumer` selects only {id, name, startDate, endDate};
  * dose/frequency/route/reason/clinician are NEVER read here, so they can never
  * render. The §2.5 SafetyBanner is present (SRV-1 / ME-5).
+ *
+ * FIX-H — graceful degradation: a medication whose NAME carries a dosing pattern
+ * (e.g. a concentration-bearing product name) is OMITTED from `meds` by the
+ * helper and surfaced here ONLY as a COUNT notice (never the offending name),
+ * consistent with the analytics overlay. The page no longer 500s on that case.
  */
 export default async function MedicationsPage({
   params,
@@ -29,8 +34,9 @@ export default async function MedicationsPage({
   const ownerId = session!.user.id;
   const db = prismaFor(ownerId);
 
-  // ownerId is the real tenancy gate (prismaFor is BYPASSRLS, TC-7).
-  const medications = await fetchMedicationsForConsumer(db, ownerId);
+  // ownerId is the real tenancy gate (prismaFor is BYPASSRLS, TC-7). FIX-H: the
+  // helper now partitions by name scan → { meds, omissions } (graceful omit).
+  const { meds, omissions } = await fetchMedicationsForConsumer(db, ownerId);
 
   return (
     <div className="space-y-8">
@@ -47,11 +53,11 @@ export default async function MedicationsPage({
           <CardDescription>{t('listDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {medications.length === 0 ? (
+          {meds.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">{t('emptyList')}</p>
           ) : (
             <ul className="divide-y">
-              {medications.map((m) => (
+              {meds.map((m) => (
                 <li key={m.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-sm font-medium">{m.name}</span>
                   <span className="text-xs text-muted-foreground">
@@ -63,6 +69,13 @@ export default async function MedicationsPage({
               ))}
             </ul>
           )}
+          {/* FIX-H — count-only notice: dirty-named meds were omitted for review.
+              The offending names are NEVER rendered (GOLD §2.3). */}
+          {omissions.length > 0 ? (
+            <p className="mt-4 text-xs text-muted-foreground" role="note">
+              {t('medsOmittedNotice', { count: omissions.length })}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
