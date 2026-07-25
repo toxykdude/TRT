@@ -75,12 +75,6 @@ intentional. Verified end-to-end 2026-07-24 (SYNLAB PDF → correct biomarkers).
   typecheck per-package or fix the db tsconfig.
 - Playwright E2E + DB-level tenant-isolation tests need a live server+DB+auth;
   not run headless. Run pre-merge.
-- The `timeline` page still renders a medication `name` verbatim as its activity
-  label — a dosing-pattern name would show. Consider routing med labels through
-  the same `scanForDosing` partition used by the analytics overlay.
-- Duplicate guardrail copies still exist at `packages/engine/src/guardrails.ts`
-  and `packages/ai/src/guardrails.ts`; the canonical package is `@trt/guardrails`
-  (imported by `apps/web/src/lib/report-policy.ts`). Consolidate when convenient.
 
 ---
 
