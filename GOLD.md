@@ -83,13 +83,13 @@ The product is built patient‑first; the physician portal is a roadmap item (§
 **Analysis & AI**  
 - Deterministic rules engine (`packages/engine`) for classification & trend calculation. Same inputs → same baseline report (sha256 hash). See [`docs/ENGINE.md`](./docs/ENGINE.md).  
 - **Graphiti RAG pipeline** integrated into analysis for protocol matching and guideline retrieval — its dosing/protocol output is confined to the clinician‑gated reference module (§2.4).  
-- OpenAI API for OCR/PDF extraction (structured outputs, JSON schema-constrained).  
+- Z.AI `glm-4.6v` (vision + `json_object` mode) via the OpenAI-compatible client (`packages/ai`) for OCR/PDF extraction. Structured Output validated against a zod schema.  
 
 **Document parsing**  
 - OCR pipeline, PDF text/layout extraction, image upload support (JPG, PNG, HEIC)  
 
 **Deployment**  
-- Vercel  
+- pm2 on a Debian LXC, behind a Cloudflare Tunnel (`https://trt.powerhousegym.co`). See AGENTS.md §1.5 for the runbook. (Vercel is out — kept here only as the v1 plan.)  
 
 All third‑party services must be chosen/consented-to with PHI handling in mind where applicable.  
 

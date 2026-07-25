@@ -30,6 +30,63 @@ consumer-bound payload passes the canonical guardrail package
 anything else in this repo — conflicts with this rule, this rule wins.
 ---
 
+## 1.5 Current state & handoff (read this before resuming work)
+
+> Snapshot as of 2026-07-24. The full SDD history of every change is in **Engram**
+> (`mem_search` the change name, e.g. `analytics-graphs` → explore/proposal/spec/
+> design/tasks/apply-progress/verify-report/archive-report).
+
+**Deploy target.** Production is **pm2 on the Debian LXC** (`root@10.162.36.45:/opt/trt`,
+app name `trt`), behind a Cloudflare Tunnel at `https://trt.powerhousegym.co`.
+GOLD.md §4 still says "Vercel" — that is **stale**; always follow the LXC runbook.
+Deploy steps: `git pull` on the box → `pnpm install --frozen-lockfile` →
+`pnpm --filter @trt/web build` → `pm2 reload trt --update-env` (the `--update-env`
+preserves the pm2 process env). Run `pnpm --filter @trt/db prisma:migrate` **only
+when the schema changed**.
+
+**`prismaFor(userId)` is BYPASSRLS** (`packages/db/src/index.ts`). It returns the
+generic client — Postgres RLS is **not** the tenancy gate. **App-layer
+`where: { ownerId }` is the ONLY thing scoping a query to a tenant.** Every read
+of patient data MUST filter `ownerId`; every write MUST bind `ownerId` from
+`auth()` and ignore any client-supplied value. (A cross-tenant PHI leak from a
+missing `ownerId` on `timeline/page.tsx` was found and fixed in 2026-07 — don't
+reintroduce it.)
+
+**Shipped through GOLD §5.9** (commit `6ca7935`, deployed): interactive per-biomarker
+trend charts on `/dashboard/analytics` (Recharts `<Brush>` zoom + date presets +
+per-lab reference-range overlay), plus medication + symptom **entry UI** at
+`/dashboard/medications` and `/dashboard/symptoms`. The medication overlay on any
+**consumer** chart/list is **timing-only** — `Medication.dose` is captured
+(historical record, GOLD §5.11) but rendered **nowhere** consumer-bound. Enforced
+three layers: Prisma `select` omits dose by construction → `serializeForConsumer`
+runs `assertConsumerSafe` (fail-closed) → a content-independent must-BLOCK unit
+test (`apps/web/tests/unit/analytics-series.test.ts`). A medication **name** that
+trips the dosing scan (e.g. "Testosterone 200mg/ml") is **gracefully omitted +**
+audited, not thrown, so the common TRT case doesn't 500 the page.
+
+**AI extraction is LIVE on prod** (no longer stub). `packages/ai` calls Z.AI
+`glm-4.6v` (vision + `json_object` mode) via the OpenAI-compatible client
+(`packages/ai/src/openai.ts`). Config lives in `/opt/trt/apps/web/.env.local`:
+`OPENAI_API_KEY`, `OPENAI_API_URL=https://api.z.ai/api/coding/paas/v4`,
+`OPENAI_MODEL=glm-4.6v`. `pdftoppm` renders PDF→PNG on the box. When
+`OPENAI_API_KEY` is unset (local dev), a deterministic stub runs — that is
+intentional. Verified end-to-end 2026-07-24 (SYNLAB PDF → correct biomarkers).
+
+**Open follow-ups** (none block the current deploy):
+- `@trt/db` `typecheck` is RED (missing `@types/node`, prisma outside rootDir) —
+  pre-existing debt. If CI runs `pnpm -r typecheck` it will fail; scope CI
+  typecheck per-package or fix the db tsconfig.
+- Playwright E2E + DB-level tenant-isolation tests need a live server+DB+auth;
+  not run headless. Run pre-merge.
+- The `timeline` page still renders a medication `name` verbatim as its activity
+  label — a dosing-pattern name would show. Consider routing med labels through
+  the same `scanForDosing` partition used by the analytics overlay.
+- Duplicate guardrail copies still exist at `packages/engine/src/guardrails.ts`
+  and `packages/ai/src/guardrails.ts`; the canonical package is `@trt/guardrails`
+  (imported by `apps/web/src/lib/report-policy.ts`). Consolidate when convenient.
+
+---
+
 ## 2. Tech stack (what to reach for)
 
 | Layer | Use |
@@ -127,6 +184,10 @@ Ask in a PR if a new env var is needed — document it in `.env.example`.
 
 - Every table holding patient data **must** have RLS enabled and policies that
   restrict rows to the owning patient (or a clinician with explicit access).
+- **`prismaFor(userId)` is BYPASSRLS** — it returns the generic client. Postgres
+  RLS is **not** the tenancy gate at the app layer. **Every read MUST filter
+  `where: { ownerId }`; every write MUST bind `ownerId` from `auth()` and ignore
+  any client-supplied value.** A missing `ownerId` = a cross-tenant PHI leak.
 - Supabase Storage bucket for labs is **private**; access via signed URLs only.
 - Write an **audit log** row on every create/update/delete of patient data.
 - Record **patient consent** before processing/sharing data.
@@ -163,7 +224,10 @@ AI participates in two places:
 
 1. **Extraction** (OCR/PDF): reads values from uploaded documents. Must
    return **Structured Output** validated against a JSON schema; missing
-   values marked `uncertain` and queued for review.
+   values marked `uncertain` and queued for review. **Live on prod via Z.AI
+   `glm-4.6v`** (vision + `json_object` mode, OpenAI-compatible client in
+   `packages/ai`); `pdftoppm` renders PDF→PNG. When `OPENAI_API_KEY` is unset
+   (local dev), `extractLab` returns a deterministic stub — intentional.
 2. **Analysis** (Graphiti RAG, GOLD §2.4): generates protocol/dosing reference
    proposals **only** for license-verified clinicians. Every output includes
    `rag_source_ids` for traceability. Consumer reports contain
@@ -230,6 +294,13 @@ Don't merge with failing tests. Don't disable a guardrail test to make CI green
 - **Dark mode only.** Light mode must be equally correct.
 - **Silent extraction failures.** Surface them for human review.
 - **Missing `rag_source_ids` on AI proposals.** Every dosing recommendation must cite its RAG source.
+- **Consumer medication overlays must be timing-only.** Never select/render
+  `Medication.dose` on a consumer surface (GOLD §2.3). Route every consumer-bound
+  chart/list payload through `serializeForConsumer` → `assertConsumerSafe`
+  (fail-closed). A dosing-pattern **name** is omitted + audited, never thrown.
+- **Forgetting `where: { ownerId }`.** `prismaFor` bypasses RLS — a query without
+  `ownerId` leaks every tenant's rows. The timeline leak of 2026-07 is the
+  cautionary tale.
 
 ---
 
