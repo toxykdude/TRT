@@ -112,7 +112,12 @@ def main() -> int:
     print(f"[shard {shard_index}/{shard_count}] LLM: {model} @ {base_url}", flush=True)
     llm = OpenAI(api_key=api_key, base_url=base_url, http_client=httpx.Client(timeout=httpx.Timeout(300.0, connect=15.0)))
     embedder = SentenceTransformer(EMBED_MODEL)
-    driver = GraphDatabase.driver(os.environ.get("NEO4J_URI", "bolt://localhost:7687"), auth=(os.environ.get("NEO4J_USER", "neo4j"), os.environ.get("NEO4J_PASSWORD", "trtneo4j2026")))
+    neo4j_uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+    neo4j_user = os.environ.get("NEO4J_USER", "neo4j")
+    neo4j_password = os.environ.get("NEO4J_PASSWORD", "")
+    if not neo4j_password:
+        raise RuntimeError("NEO4J_PASSWORD is not set; add it to /opt/trt-rag/.env")
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
     # shard-aware index/constraint creation (idempotent)
     with driver.session() as s:

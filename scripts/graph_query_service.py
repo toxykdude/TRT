@@ -14,9 +14,26 @@ from __future__ import annotations
 import json
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 from neo4j import GraphDatabase
 from sentence_transformers import SentenceTransformer
+
+ENV_FILE = Path(os.environ.get("GRAPHITI_ENV", "/opt/trt-rag/.env"))
+
+
+def load_env_file(path: Path) -> None:
+    if not path.exists():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        os.environ.setdefault(k.strip(), v.strip().strip('"'))
+
+
+load_env_file(ENV_FILE)
 
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "all-MiniLM-L6-v2")
 HOST = os.environ.get("GRAPH_QUERY_HOST", "127.0.0.1")
@@ -25,7 +42,9 @@ TOP_K = int(os.environ.get("GRAPH_QUERY_TOP_K", "8"))
 
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
-NEO4J_PW = os.environ.get("NEO4J_PASSWORD", "trtneo4j2026")
+NEO4J_PW = os.environ.get("NEO4J_PASSWORD", "")
+if not NEO4J_PW:
+    raise RuntimeError("NEO4J_PASSWORD is not set; add it to /opt/trt-rag/.env")
 
 print(f"Loading embedder {EMBED_MODEL}…", flush=True)
 _model = SentenceTransformer(EMBED_MODEL)
