@@ -88,6 +88,15 @@ async function main() {
   let created = 0;
   let updated = 0;
   for (const m of markers) {
+    // Biomarker carries no createdAt/updatedAt (see schema.prisma), so the
+    // upsert result cannot tell us which branch ran. Probe first. This used to
+    // read `res.createdAt === res.updatedAt`, which compared undefined to
+    // undefined — always true — so the summary reported EVERY marker as new on
+    // every run. A few dozen extra indexed reads in a seed script is free.
+    const existing = await prisma.biomarker.findUnique({
+      where: { key: m.key },
+      select: { id: true },
+    });
     const res = await prisma.biomarker.upsert({
       where: { key: m.key },
       create: m,
@@ -101,8 +110,8 @@ async function main() {
         notes: m.notes,
       },
     });
-    if (res.createdAt?.getTime?.() === res.updatedAt?.getTime?.()) created++;
-    else updated++;
+    if (existing) updated++;
+    else created++;
     console.log(`  • ${res.key.padEnd(26)} [${res.category}]`);
   }
   console.log(`\n✓ Seed complete: ${markers.length} biomarkers (${created} new, ${updated} updated).`);

@@ -21,7 +21,11 @@ import { enforceGuardrails } from '@trt/guardrails';
 import { enrichWithKnowledge, type KbSearchFn } from './knowledge';
 import type { DeterministicReport, EngineInput } from './types';
 
-export { refuseAndRedirect, scanForDosing, redactDosing, assertConsumerSafe, type GuardrailResult, type GuardrailFinding, type GuardrailRole } from '@trt/guardrails';
+// `enforceGuardrails` is re-exported alongside its siblings because this package
+// is the guardrails facade for consumers: @trt/mcp (src/safety.ts) imports it
+// from here. It was previously imported locally on line 20 but never re-exported,
+// so that import failed to typecheck (TS2459).
+export { enforceGuardrails, refuseAndRedirect, scanForDosing, redactDosing, assertConsumerSafe, type GuardrailResult, type GuardrailFinding, type GuardrailRole } from '@trt/guardrails';
 export * from './types';
 export { classifyResult, classifyAll, statusLabel, isAbnormal, isOutOfBand } from './classify';
 export { computeTrends, trendArrow, trendWord } from './trends';
