@@ -42,6 +42,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # packages/db/src/generated is gitignored — the Prisma client is generated,
+      # never committed. Without this step @trt/db cannot resolve
+      # './generated/client/index.js', so typecheck, test and build all fail on a
+      # clean checkout. ci-deploy.sh already does this before building; PR
+      # validation needs the same. No database is contacted: `prisma generate`
+      # only reads schema.prisma and emits types.
+      - name: Generate Prisma client
+        run: pnpm --filter @trt/db generate
+
       - name: Lint
         run: pnpm lint
 
