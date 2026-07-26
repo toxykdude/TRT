@@ -32,7 +32,7 @@ vi.mock('@/lib/quota', () => ({
     error: 'quota_exceeded',
     used: c.used,
     limit: c.limit,
-    upgradeUrl: `/${locale}/#pricing`,
+    upgradeUrl: `/${locale}/pricing`,
   }),
 }));
 

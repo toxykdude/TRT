@@ -138,6 +138,6 @@ export function quotaExceededPayload(check: QuotaCheck, locale = 'en') {
     used: check.used,
     limit: check.limit,
     period: check.period,
-    upgradeUrl: `/${locale}/#pricing`,
+    upgradeUrl: `/${locale}/pricing`,
   };
 }

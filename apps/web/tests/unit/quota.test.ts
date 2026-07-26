@@ -117,7 +117,7 @@ describe('checkQuota — tier × action matrix', () => {
     expect(c.allowed).toBe(false);
     const payload = quotaExceededPayload(c, 'es');
     expect(payload.error).toBe('quota_exceeded');
-    expect(payload.upgradeUrl).toContain('#pricing');
+    expect(payload.upgradeUrl).toBe('/es/pricing');
   });
   it('Plus reports: unmetered', async () => {
     const c = await checkQuota('u1', 'REPORT', mockDb({ plan: 'PLUS_YEARLY', used: 500 }), NOW);

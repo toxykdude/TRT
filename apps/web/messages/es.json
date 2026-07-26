@@ -7,7 +7,8 @@
     "primaryLabel": "Principal",
     "overview": "Resumen",
     "technology": "Tecnología",
-    "research": "Investigación"
+    "research": "Investigación",
+    "pricing": "Precios"
   },
   "Hero": {
     "trustSignal": "Basado en evidencia · Revisado por clínicos · No es una herramienta de prescripción",
@@ -99,6 +100,57 @@
   },
   "Safety": {
     "disclaimer": "Este software proporciona únicamente apoyo educativo y organizativo. No diagnostica afecciones médicas ni prescribe tratamientos. Todas las decisiones sobre el tratamiento deben ser tomadas por un profesional de la salud cualificado."
+  },
+  "Pricing": {
+    "metadataTitle": "Precios | TRT Insights",
+    "metadataDescription": "Compare los planes de TRT Insights para el seguimiento estructurado de laboratorios, informes y flujos de trabajo clínicos.",
+    "eyebrow": "Precios simples y transparentes",
+    "title": "Planes para tomar decisiones más claras",
+    "subtitle": "Comience con el seguimiento manual y agregue extracción automática de laboratorios, tendencias completas e informes para profesionales clínicos a medida que crezcan sus necesidades.",
+    "billingToggleLabel": "Período de facturación",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "save": "Ahorre {percent}%",
+    "mostPopular": "Más popular",
+    "plansHeading": "Planes disponibles",
+    "included": "Incluye",
+    "perMonth": "/ mes",
+    "perYear": "/ año",
+    "forever": "para siempre",
+    "monthlyOnly": "Actualmente, Pro solo está disponible con facturación mensual.",
+    "checkoutNote": "Cree una cuenta o inicie sesión para continuar. El pago seguro se completa desde su cuenta autenticada.",
+    "plans": {
+      "free": {
+        "name": "Gratis",
+        "description": "Un punto de partida enfocado para registrar manualmente los marcadores principales.",
+        "cta": "Comenzar gratis"
+      },
+      "plus": {
+        "name": "Plus",
+        "description": "Flujos de laboratorio automatizados y visibilidad completa de sus tendencias personales.",
+        "cta": "Elegir Plus"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Flujos de mayor volumen para profesionales clínicos verificados y consultorios en crecimiento.",
+        "cta": "Elegir Pro"
+      },
+      "features": {
+        "manualEntry": "Ingreso manual de valores de laboratorio",
+        "trends3": "Tendencias de 3 biomarcadores",
+        "reportQuarter": "1 informe por trimestre calendario",
+        "uploads10": "10 cargas de laboratorio por mes",
+        "trendsFull": "Tendencias de todos los biomarcadores",
+        "reportsUnlimited": "Informes ilimitados",
+        "symptoms": "Seguimiento de síntomas y medicamentos",
+        "export": "Exportación de informes",
+        "uploads50": "50 cargas de laboratorio por mes",
+        "everythingPlus": "Todo lo incluido en Plus",
+        "multiPatient": "Espacio multipaciente (planificado)",
+        "prepVisit": "Flujo previo a la consulta (planificado)",
+        "referenceModule": "Módulo de referencia para profesionales clínicos verificados"
+      }
+    }
   },
   "Dashboard": {
     "brand": "TRT Insights",

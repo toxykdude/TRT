@@ -25,6 +25,18 @@ test.describe('Page quality screenshots', () => {
     await page.screenshot({ path: 'tests/screenshots/register.png' });
   });
 
+  test('pricing page renders plans, billing switch, and the safety disclaimer', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/en/pricing', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: 'Plans built for clearer decisions' })).toBeVisible();
+    await expect(page.getByRole('article')).toHaveCount(3);
+
+    const yearly = page.getByRole('button', { name: /^Yearly/ });
+    await yearly.click();
+    await expect(yearly).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText(/educational and organizational support only/i)).toBeVisible();
+  });
+
   test('unauthenticated report redirect works', async ({ page }) => {
     await page.goto('/dashboard/reports/test', { waitUntil: 'networkidle' });
     // Should redirect to login

@@ -4,11 +4,12 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { LanguageToggle } from '@/components/language-toggle';
 
-/** Section anchors rendered over the dark hero — always light-on-dark. */
+/** Public navigation rendered over dark marketing surfaces. */
 const NAV_LINKS = [
-  { labelKey: 'overview', href: '#overview' },
-  { labelKey: 'technology', href: '#technology' },
-  { labelKey: 'research', href: '#research' },
+  { labelKey: 'overview', href: '/#overview' },
+  { labelKey: 'technology', href: '/#technology' },
+  { labelKey: 'research', href: '/#research' },
+  { labelKey: 'pricing', href: '/pricing' },
 ] as const;
 
 /** Abstract geometric brand mark — teal → blue gradient (template placeholder). */
@@ -75,12 +76,12 @@ export function LandingNav() {
           <ul className="hidden items-center gap-8 md:flex">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
-                <a
+                <Link
                   href={link.href}
                   className="rounded-sm text-sm font-medium text-gray-400 transition-colors duration-200 hover:text-mint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/60"
                 >
                   {t(link.labelKey)}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>

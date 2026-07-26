@@ -7,7 +7,8 @@
     "primaryLabel": "Primary",
     "overview": "Overview",
     "technology": "Technology",
-    "research": "Research"
+    "research": "Research",
+    "pricing": "Pricing"
   },
   "Hero": {
     "trustSignal": "Evidence-based · Clinician-reviewed · Not a prescribing tool",
@@ -99,6 +100,57 @@
   },
   "Safety": {
     "disclaimer": "This software provides educational and organizational support only. It does not diagnose medical conditions or prescribe treatment. All treatment decisions must be made by a qualified healthcare professional."
+  },
+  "Pricing": {
+    "metadataTitle": "Pricing | TRT Insights",
+    "metadataDescription": "Compare TRT Insights plans for structured lab tracking, reports, and clinician-ready workflows.",
+    "eyebrow": "Simple, transparent pricing",
+    "title": "Plans built for clearer decisions",
+    "subtitle": "Start with manual tracking, then add automated lab extraction, deeper trends, and clinician-ready reporting as your needs grow.",
+    "billingToggleLabel": "Billing period",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save": "Save {percent}%",
+    "mostPopular": "Most popular",
+    "plansHeading": "Available plans",
+    "included": "Included",
+    "perMonth": "/ month",
+    "perYear": "/ year",
+    "forever": "forever",
+    "monthlyOnly": "Pro is currently available with monthly billing only.",
+    "checkoutNote": "Create an account or sign in to continue. Secure checkout is completed from your authenticated account.",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "description": "A focused starting point for tracking core markers by hand.",
+        "cta": "Start free"
+      },
+      "plus": {
+        "name": "Plus",
+        "description": "Automated lab workflows and complete personal trend visibility.",
+        "cta": "Choose Plus"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Higher-volume workflows for verified clinicians and growing practices.",
+        "cta": "Choose Pro"
+      },
+      "features": {
+        "manualEntry": "Manual lab value entry",
+        "trends3": "Trends for 3 biomarkers",
+        "reportQuarter": "1 report per calendar quarter",
+        "uploads10": "10 lab uploads per month",
+        "trendsFull": "All biomarker trends",
+        "reportsUnlimited": "Unlimited reports",
+        "symptoms": "Symptom and medication tracking",
+        "export": "Report export",
+        "uploads50": "50 lab uploads per month",
+        "everythingPlus": "Everything in Plus",
+        "multiPatient": "Multi-patient workspace (planned)",
+        "prepVisit": "Pre-visit workflow (planned)",
+        "referenceModule": "Reference module for verified clinicians"
+      }
+    }
   },
   "Dashboard": {
     "brand": "TRT Insights",
