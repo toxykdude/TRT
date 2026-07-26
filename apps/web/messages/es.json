@@ -197,7 +197,12 @@
       "noReportsNext": "La exportación a PDF/Word y los gráficos de tendencia forman parte de la próxima etapa.",
       "recentReports": "Informes recientes",
       "reportLabel": "Informe · {date}",
-      "redFlags": "{count, plural, one {# indicador de alerta} other {# indicadores de alerta}}"
+      "redFlags": "{count, plural, one {# indicador de alerta} other {# indicadores de alerta}}",
+      "quotaTitle": "Límite de informes alcanzado",
+      "quotaDescription": "Ha alcanzado el límite de {limit} informe(s) de su plan para {period}.",
+      "quotaUsed": "{used} de {limit} utilizados",
+      "upgradeCta": "Mejorar plan",
+      "close": "Cerrar"
     },
     "Analytics": {
       "title": "Métricas",

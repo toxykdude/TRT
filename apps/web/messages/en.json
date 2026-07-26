@@ -197,7 +197,12 @@
       "noReportsNext": "PDF/Word export and trend charts are part of the next pass.",
       "recentReports": "Recent reports",
       "reportLabel": "Report · {date}",
-      "redFlags": "{count, plural, one {# red flag} other {# red flags}}"
+      "redFlags": "{count, plural, one {# red flag} other {# red flags}}",
+      "quotaTitle": "Report limit reached",
+      "quotaDescription": "You've reached your plan's limit of {limit} report(s) for {period}.",
+      "quotaUsed": "{used} of {limit} used",
+      "upgradeCta": "Upgrade plan",
+      "close": "Close"
     },
     "Analytics": {
       "title": "Analytics",
