@@ -74,11 +74,11 @@ describe('fetchMedicationsForConsumer — dose is now visible (GOLD §2.3 revise
     expect(result.meds).toHaveLength(2);
     // First med has dose data.
     expect(result.meds[0]).toHaveProperty('dose', '200 mg weekly');
-    expect(result.meds[0].frequency).toBe('weekly');
-    expect(result.meds[0].route).toBe('im');
+    expect(result.meds[0]!.frequency).toBe('weekly');
+    expect(result.meds[0]!.route).toBe('im');
     // Second med has no dose → null.
-    expect(result.meds[1].dose).toBeNull();
-    expect(result.meds[1].frequency).toBeNull();
+    expect(result.meds[1]!.dose).toBeNull();
+    expect(result.meds[1]!.frequency).toBeNull();
   });
 
   it('maps startDate/endDate to ISO strings (null endDate stays null)', async () => {
@@ -153,7 +153,7 @@ describe('fetchMedicationsForConsumer — graceful degradation by name (FIX-H)',
     // m2 (dirty name) is omitted; only m1 survives.
     expect(out.meds.map((m) => m.name)).toEqual(['Anastrozole']);
     expect(out.omissions).toHaveLength(1);
-    expect(out.omissions[0].name).toBe('Testosterone 200mg/ml');
+    expect(out.omissions[0]!.name).toBe('Testosterone 200mg/ml');
     // The returned med still carries its dose value (even though it was omitted).
     expect(out.meds[0]).toHaveProperty('dose', null);
   });

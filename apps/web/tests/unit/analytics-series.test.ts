@@ -146,7 +146,7 @@ describe('serializeForConsumer — assertConsumerSafe backstop (S-TC-BLOCK, SRV-
     const out = serializeForConsumer(series as never);
     expect(out.series.medications).toHaveLength(1);
     // dose values are preserved in the result (strip-only-before-assertion).
-    expect(out.series.medications[0].dose).toBe('200 mg weekly');
+    expect(out.series.medications[0]!.dose).toBe('200 mg weekly');
   });
 
   it('keeps clean meds and dose fields survive serialization', () => {
@@ -158,7 +158,7 @@ describe('serializeForConsumer — assertConsumerSafe backstop (S-TC-BLOCK, SRV-
       symptoms: [{ date: '2026-01-01', symptom: 'energy', score: 5 }],
     } as never);
     expect(out.series.medications).toHaveLength(1);
-    expect(out.series.medications[0].dose).toBe('200 mg weekly');
+    expect(out.series.medications[0]!.dose).toBe('200 mg weekly');
   });
 
   it('THROWS when a medication has forbidden FIELD KEY (reason/clinician) even when its value is NOT dosing text (FIX-2)', () => {
