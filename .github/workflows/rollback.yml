@@ -117,7 +117,11 @@ jobs:
           GRAPH_QUERY_URL="http://127.0.0.1:8001"
           MCP_HTTP_HOST="127.0.0.1"
           MCP_HTTP_PORT="${PORT}"
-          NODE_ENV="$ENV_NAME"
+          # Always "production", never $ENV_NAME. A development rollback used to
+          # render NODE_ENV=development, which breaks `next build` (development
+          # react-dom, prerender failure on /_error) -- the same bug fixed in
+          # deploy-dev.yml. A rollback is the worst possible time to discover it.
+          NODE_ENV="production"
           EOF
           chmod 600 "$APP_DIR/apps/web/.env.local"
 

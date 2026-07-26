@@ -88,7 +88,20 @@ jobs:
           GRAPH_QUERY_URL="http://127.0.0.1:8001"
           MCP_HTTP_HOST="127.0.0.1"
           MCP_HTTP_PORT="8003"
-          NODE_ENV="development"
+          # NODE_ENV is "production" even on DEV, deliberately. This is a real
+          # server build, not `next dev`: with NODE_ENV=development, `next build`
+          # pulls the development react-dom and dies prerendering the error page
+          # ("Export encountered an error on /_error: /404, exiting the build").
+          # Verified on the box — identical commit and env file, flipping only
+          # this value, turns a failing build into a passing one. DEV is
+          # distinguished by its own database (trt_dev), URL, port and data dirs,
+          # NOT by NODE_ENV.
+          #
+          # Consequence to keep in mind: apps/web/src/lib/email.ts only falls back
+          # to console-logging OTP codes when NODE_ENV !== "production", so DEV now
+          # needs a real (or test) RESEND_API_KEY in the development environment
+          # secrets, or OTP sends there will throw instead of logging.
+          NODE_ENV="production"
           EOF
           chmod 600 /opt/trt-dev/apps/web/.env.local
           echo "Rendered $(wc -l < /opt/trt-dev/apps/web/.env.local) lines"
