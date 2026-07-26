@@ -3,11 +3,12 @@
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
-import { requestSignupOtp, type AuthActionState } from '@/app/actions';
+import { requestLoginOtp, type AuthActionState } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/auth/password-input';
+import { Link } from '@/i18n/navigation';
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -18,17 +19,19 @@ function Submit({ label }: { label: string }) {
   );
 }
 
-/** Step 1 signup form: collects account details and requests an email OTP. */
-export function SignupForm() {
-  const t = useTranslations('Auth.Register');
-  const [state, action] = useActionState<AuthActionState, FormData>(requestSignupOtp, {});
+/**
+ * Step 1 of login (2FA): email + password. `requestLoginOtp` verifies the
+ * password out of band of Auth.js and, on success, REDIRECTS to
+ * `/login/verify?email=...` — this component never sees a session get
+ * created. On failure it returns a generic "Invalid email or password", the
+ * same message whether the email or the password was wrong.
+ */
+export function LoginForm() {
+  const t = useTranslations('Auth.Login');
+  const [state, action] = useActionState<AuthActionState, FormData>(requestLoginOtp, {});
 
   return (
     <form action={action} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">{t('name')}</Label>
-        <Input id="name" name="name" type="text" autoComplete="name" />
-      </div>
       <div className="space-y-2">
         <Label htmlFor="email">{t('email')}</Label>
         <Input id="email" name="email" type="email" required autoComplete="email" />
@@ -37,11 +40,14 @@ export function SignupForm() {
         id="password"
         name="password"
         label={t('password')}
-        autoComplete="new-password"
+        autoComplete="current-password"
         required
-        minLength={8}
-        hint={t('passwordHint')}
       />
+      <p className="text-right text-sm">
+        <Link href="/forgot-password" className="font-medium text-primary hover:underline">
+          {t('forgotPassword')}
+        </Link>
+      </p>
       {state.error && (
         <p role="alert" className="text-sm text-destructive">
           {state.error}

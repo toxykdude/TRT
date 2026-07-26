@@ -28,6 +28,11 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String? // present when using Credentials provider (bcrypt)
+  // Stamped by resetPassword (apps/web/src/app/actions.ts). session strategy
+  // is 'jwt', so resetting passwordHash alone does NOT revoke tokens already
+  // in the wild — the auth.ts jwt callback rejects any token minted before
+  // this timestamp, which is what actually kills those sessions.
+  passwordChangedAt DateTime?
   role          Role      @default(PATIENT)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -118,6 +123,55 @@ model SignupOtp {
   updatedAt    DateTime @updatedAt
 
   @@map("signup_otps")
+}
+
+// ── Login 2FA (email-OTP second factor) ──────────────────────────────────────
+//
+// Mirrors SignupOtp's shape. The row's EXISTENCE is the proof a password check
+// already succeeded: `requestLoginOtp` only creates it after `verifyUserPassword`
+// returns a user, so the `login-otp` Credentials provider (apps/web/src/lib/
+// auth.ts) — the ONLY path that can mint a session — cannot be reached without
+// the password. Re-requesting (resend) upserts and RESETS the attempt counter.
+// Deleted on successful verification or on lockout.
+model LoginOtp {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // Daily send-cap bookkeeping (see otp.ts `nextSendWindow` / `dailySendCapReached`).
+  // A real counter — NOT derived from createdAt/updatedAt, which cannot yield an
+  // exact count. windowStartedAt anchors a rolling 24h window; sendCount resets
+  // to 1 when a send happens after the window has elapsed, else increments.
+  sendCount       Int      @default(1)
+  windowStartedAt DateTime @default(now())
+
+  @@map("login_otps")
+}
+
+// ── Password reset (email-OTP recovery) ───────────────────────────────────────
+//
+// Same shape and lifecycle as LoginOtp. `resetPassword` accepts a new password
+// only alongside a verified code from this row; the new password is never
+// stored here — only in User.passwordHash, set in the same transaction that
+// deletes this row and stamps User.passwordChangedAt.
+model PasswordResetOtp {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // Daily send-cap bookkeeping — see LoginOtp above for the rationale; this
+  // table needs it too since requestPasswordReset is reachable with zero
+  // credentials and is the most abusable send endpoint in the feature.
+  sendCount       Int      @default(1)
+  windowStartedAt DateTime @default(now())
+
+  @@map("password_reset_otps")
 }
 
 // ── Patient & longitudinal clinical data ────────────────────────────────────

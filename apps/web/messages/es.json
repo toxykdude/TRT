@@ -69,7 +69,9 @@
       "google": "Continuar con Google",
       "noAccount": "¿No tiene una cuenta?",
       "createOne": "Crear una",
-      "verified": "Correo verificado. Inicie sesión para continuar."
+      "verified": "Correo verificado. Inicie sesión para continuar.",
+      "resetSuccess": "Contraseña restablecida. Inicie sesión con su nueva contraseña.",
+      "forgotPassword": "¿Olvidó su contraseña?"
     },
     "Register": {
       "title": "Cree su cuenta",
@@ -80,7 +82,9 @@
       "passwordHint": "Al menos 8 caracteres.",
       "submit": "Enviar código de verificación",
       "haveAccount": "¿Ya tiene una cuenta?",
-      "signIn": "Iniciar sesión"
+      "signIn": "Iniciar sesión",
+      "or": "o",
+      "google": "Continuar con Google"
     },
     "Verify": {
       "title": "Verifique su correo",
@@ -90,12 +94,38 @@
       "restart": "¿No recibió el código? Empiece de nuevo",
       "missingEmail": "No pudimos identificar el correo a verificar. Empiece de nuevo."
     },
+    "LoginVerify": {
+      "title": "Revise su correo",
+      "subtitle": "Ingrese el código de 6 dígitos que enviamos a {email}.",
+      "code": "Código de inicio de sesión",
+      "submit": "Verificar e iniciar sesión",
+      "resend": "Reenviar código",
+      "resent": "Se ha enviado un nuevo código.",
+      "restart": "Volver a iniciar sesión",
+      "missingEmail": "No pudimos identificar el correo a verificar. Inicie sesión de nuevo."
+    },
     "Forgot": {
       "title": "Restablezca su contraseña",
-      "body": "Los correos de restablecimiento de contraseña aún no están habilitados en esta versión. Contacte a su administrador para restablecerla, o cree una cuenta nueva.",
+      "body": "Ingrese su correo y, si tiene una cuenta, le enviaremos un código de 6 dígitos para restablecer su contraseña.",
       "email": "Correo electrónico",
-      "submit": "Enviar enlace de restablecimiento (próximamente)",
+      "submit": "Enviar código de restablecimiento",
       "backToSignIn": "Volver a iniciar sesión"
+    },
+    "Reset": {
+      "title": "Establezca una nueva contraseña",
+      "subtitle": "Ingrese el código de 6 dígitos que enviamos a {email}, junto con su nueva contraseña.",
+      "missingEmail": "No pudimos identificar el correo a restablecer. Empiece de nuevo.",
+      "confirmation": "Si ese correo tiene una cuenta, le hemos enviado un código de restablecimiento.",
+      "code": "Código de restablecimiento",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "mismatch": "Las contraseñas no coinciden.",
+      "submit": "Restablecer contraseña",
+      "restart": "¿No recibió el código? Empiece de nuevo"
+    },
+    "PasswordToggle": {
+      "show": "Mostrar contraseña",
+      "hide": "Ocultar contraseña"
     }
   },
   "Safety": {

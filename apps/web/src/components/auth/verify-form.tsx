@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
-import { verifySignupOtp, type SignupState } from '@/app/actions';
+import { verifySignupOtp, type AuthActionState } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,7 @@ function Submit({ label }: { label: string }) {
  *  secret, so this is safe. */
 export function VerifyForm({ email }: { email: string }) {
   const t = useTranslations('Auth.Verify');
-  const [state, action] = useActionState<SignupState, FormData>(verifySignupOtp, {});
+  const [state, action] = useActionState<AuthActionState, FormData>(verifySignupOtp, {});
 
   return (
     <form action={action} className="space-y-4">

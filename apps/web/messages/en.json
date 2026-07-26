@@ -69,7 +69,9 @@
       "google": "Continue with Google",
       "noAccount": "Don't have an account?",
       "createOne": "Create one",
-      "verified": "Email verified. Sign in to continue."
+      "verified": "Email verified. Sign in to continue.",
+      "resetSuccess": "Password reset. Sign in with your new password.",
+      "forgotPassword": "Forgot your password?"
     },
     "Register": {
       "title": "Create your account",
@@ -80,7 +82,9 @@
       "passwordHint": "At least 8 characters.",
       "submit": "Send verification code",
       "haveAccount": "Already have an account?",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "or": "or",
+      "google": "Continue with Google"
     },
     "Verify": {
       "title": "Verify your email",
@@ -90,12 +94,38 @@
       "restart": "Didn't get a code? Start over",
       "missingEmail": "We couldn't tell which email to verify. Please start again."
     },
+    "LoginVerify": {
+      "title": "Check your email",
+      "subtitle": "Enter the 6-digit code we emailed to {email}.",
+      "code": "Sign-in code",
+      "submit": "Verify and sign in",
+      "resend": "Resend code",
+      "resent": "A new code has been sent.",
+      "restart": "Back to sign in",
+      "missingEmail": "We couldn't tell which email to verify. Please sign in again."
+    },
     "Forgot": {
       "title": "Reset your password",
-      "body": "Password reset emails aren't enabled yet in this build. Contact your administrator to reset, or create a new account.",
+      "body": "Enter your email and, if you have an account, we'll send you a 6-digit code to reset your password.",
       "email": "Email",
-      "submit": "Send reset link (coming soon)",
+      "submit": "Send reset code",
       "backToSignIn": "Back to sign in"
+    },
+    "Reset": {
+      "title": "Set a new password",
+      "subtitle": "Enter the 6-digit code we emailed to {email}, along with your new password.",
+      "missingEmail": "We couldn't tell which email to reset. Please start again.",
+      "confirmation": "If that email has an account, we've sent a reset code to it.",
+      "code": "Reset code",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "mismatch": "Passwords do not match.",
+      "submit": "Reset password",
+      "restart": "Didn't get a code? Start over"
+    },
+    "PasswordToggle": {
+      "show": "Show password",
+      "hide": "Hide password"
     }
   },
   "Safety": {

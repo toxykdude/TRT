@@ -1,9 +1,8 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { auth } from '@/lib/auth';
-import { loginAction, googleAction } from '@/app/actions';
+import { googleAction } from '@/app/actions';
+import { LoginForm } from '@/components/auth/login-form';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Link, redirect } from '@/i18n/navigation';
 
 export default async function LoginPage({
@@ -11,7 +10,7 @@ export default async function LoginPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ verified?: string }>;
+  searchParams: Promise<{ verified?: string; reset?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -20,7 +19,9 @@ export default async function LoginPage({
   if (session?.user) redirect({ href: '/dashboard', locale });
 
   const t = await getTranslations('Auth.Login');
-  const justVerified = (await searchParams).verified === '1';
+  const { verified, reset } = await searchParams;
+  const justVerified = verified === '1';
+  const justReset = reset === '1';
 
   return (
     <div className="space-y-6">
@@ -35,19 +36,13 @@ export default async function LoginPage({
         </p>
       )}
 
-      <form action={loginAction} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">{t('email')}</Label>
-          <Input id="email" name="email" type="email" required autoComplete="email" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">{t('password')}</Label>
-          <Input id="password" name="password" type="password" required autoComplete="current-password" />
-        </div>
-        <Button type="submit" className="w-full">
-          {t('submit')}
-        </Button>
-      </form>
+      {justReset && (
+        <p role="status" className="rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">
+          {t('resetSuccess')}
+        </p>
+      )}
+
+      <LoginForm />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
