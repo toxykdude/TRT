@@ -1,10 +1,10 @@
 # Rollback — manual dispatch. Picks a previous SHA/tag, re-renders .env.local
-# from the SAME environment secrets currently in GitHub, and redeploys that
-# commit. Migrations are NOT reversed (prisma migrate deploy is forward-only).
+# from the SAME environment secrets, and redeploys that commit via ci-deploy.sh.
+# Migrations are NOT reversed (prisma migrate deploy is forward-only).
 #
-# Usage: Actions tab → Rollback → Run workflow → pick environment + ref.
+# Runs on the SELF-HOSTED runner. No SSH — everything is local on the box.
 #
-# IMPORTANT: If a forward migration ran between the target ref and HEAD,
+# WARNING: If a forward migration ran between the target ref and HEAD,
 # rolling back the CODE without rolling back the DB may break the app.
 # Inspect packages/db/prisma/migrations/ between target ref and HEAD first.
 name: Rollback
@@ -19,7 +19,7 @@ on:
         required: true
         default: production
       ref:
-        description: "Commit SHA, tag, or branch to roll back to (e.g. v1.2.0 or a40f3c1)"
+        description: "Commit SHA, tag, or branch to roll back to"
         type: string
         required: true
       reason:
@@ -38,7 +38,7 @@ permissions:
 jobs:
   rollback:
     name: Rollback ${{ github.event.inputs.environment }} → ${{ github.event.inputs.ref }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, LXC]
     environment: ${{ github.event.inputs.environment }}
     steps:
       - name: Resolve the target ref to a concrete SHA
@@ -47,15 +47,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_REF: ${{ github.event.inputs.ref }}
         run: |
-          # Resolve ref (SHA/tag/branch) to a full commit SHA via the GitHub API.
           SHA="$(gh api repos/${{ github.repository }}/commits/"$TARGET_REF" --jq '.sha')"
-          if [ -z "$SHA" ]; then
-            echo "ERROR: could not resolve ref '$TARGET_REF' to a SHA" >&2
-            exit 1
-          fi
+          [ -z "$SHA" ] && { echo "ERROR: could not resolve ref '$TARGET_REF'" >&2; exit 1; }
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "Resolved $TARGET_REF → $SHA"
-          echo "::notice::Rolling back ${{ github.event.inputs.environment }} to $SHA ($TARGET_REF). Reason: ${{ github.event.inputs.reason }}"
+          echo "::notice::Rollback ${{ github.event.inputs.environment }} to $SHA. Reason: ${{ github.event.inputs.reason }}"
 
       - name: Start GitHub deployment record
         uses: bobheadxi/deployments@v1
@@ -67,29 +63,7 @@ jobs:
           ref: ${{ steps.resolve.outputs.sha }}
           desc: "ROLLBACK to ${{ github.event.inputs.ref }} — ${{ github.event.inputs.reason }}"
 
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.resolve.outputs.sha }}
-
-      - name: Configure SSH
-        env:
-          LXC_HOST: ${{ secrets.LXC_HOST }}
-          LXC_SSH_USER: ${{ secrets.LXC_SSH_USER }}
-          LXC_SSH_KEY: ${{ secrets.LXC_SSH_KEY }}
-          LXC_KNOWN_HOSTS: ${{ secrets.LXC_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          if [ -n "$LXC_KNOWN_HOSTS" ]; then
-            echo "$LXC_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          else
-            ssh-keyscan -H "$LXC_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          fi
-          printf '%s\n' "$LXC_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "SSH_ALIAS=$LXC_SSH_USER@$LXC_HOST" >> "$GITHUB_ENV"
-
-      - name: Render apps/web/.env.local on runner
+      - name: Render .env.local + run deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
@@ -108,16 +82,15 @@ jobs:
           WOMPI_INTEGRITY_SECRET: ${{ secrets.WOMPI_INTEGRITY_SECRET }}
           ENV_NAME: ${{ github.event.inputs.environment }}
           TARGET_SHA: ${{ steps.resolve.outputs.sha }}
+          DEPLOY_ACTOR: ${{ github.actor }}
         run: |
-          # Per-env values
           case "$ENV_NAME" in
-            production)  URL="https://my-testo.com";      DATA_DIR="/var/lib/trt";      APP_DIR="/opt/trt";     PORT="8002" ;;
-            development) URL="https://dev.my-testo.com";  DATA_DIR="/var/lib/trt-dev";  APP_DIR="/opt/trt-dev"; PORT="8003" ;;
+            production)  APP_DIR="/opt/trt";     URL="https://my-testo.com";     DATA_DIR="/var/lib/trt";     PORT="8002" ;;
+            development) APP_DIR="/opt/trt-dev"; URL="https://dev.my-testo.com"; DATA_DIR="/var/lib/trt-dev"; PORT="8003" ;;
           esac
           umask 077
-          mkdir -p render
-          cat > render/.env.local <<EOF
-          # AUTO-RENDERED by Rollback workflow at ${TARGET_SHA}
+          cat > "$APP_DIR/apps/web/.env.local" <<EOF
+          # AUTO-RENDERED by Rollback at ${TARGET_SHA}
           # REASON: ${{ github.event.inputs.reason }}
           DATABASE_URL="${DATABASE_URL}"
           NEXTAUTH_URL="${URL}"
@@ -146,31 +119,12 @@ jobs:
           MCP_HTTP_PORT="${PORT}"
           NODE_ENV="$ENV_NAME"
           EOF
+          chmod 600 "$APP_DIR/apps/web/.env.local"
 
-      - name: Copy .env.local to box
-        env:
-          ENV_NAME: ${{ github.event.inputs.environment }}
-        run: |
-          case "$ENV_NAME" in
-            production)  TARGET_DIR="/opt/trt" ;;
-            development) TARGET_DIR="/opt/trt-dev" ;;
-          esac
-          scp -o StrictHostKeyChecking=accept-new render/.env.local "$SSH_ALIAS:${TARGET_DIR}/apps/web/.env.local"
-
-      - name: Run deploy (checks out the rollback SHA, not main)
-        env:
-          TARGET_SHA: ${{ steps.resolve.outputs.sha }}
-          DEPLOY_ACTOR: ${{ github.actor }}
-          ENV_NAME: ${{ github.event.inputs.environment }}
-        run: |
-          # ci-deploy.sh lives inside each checkout, so the path differs per env.
-          # prod: /opt/trt/scripts/ci-deploy.sh  | dev: /opt/trt-dev/scripts/ci-deploy.sh
-          case "$ENV_NAME" in
-            production)  SCRIPT_PATH="/opt/trt/scripts/ci-deploy.sh" ;;
-            development) SCRIPT_PATH="/opt/trt-dev/scripts/ci-deploy.sh" ;;
-          esac
-          ssh "$SSH_ALIAS" \
-            "TARGET_SHA='$TARGET_SHA' DEPLOY_ACTOR='$DEPLOY_ACTOR' bash '$SCRIPT_PATH' '$ENV_NAME'"
+          # Run ci-deploy.sh from the right checkout
+          cd "$APP_DIR"
+          TARGET_SHA="$TARGET_SHA" DEPLOY_ACTOR="$DEPLOY_ACTOR" \
+            bash scripts/ci-deploy.sh "$ENV_NAME"
 
       - name: Finish deployment (success)
         if: success()

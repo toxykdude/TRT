@@ -1,9 +1,9 @@
 # Deploy to DEV — fires on every PR and on pushes to feature/* branches.
-# Target: https://dev.my-testo.com (separate pm2 process `trt-dev` on :3001,
-# separate Postgres DB `trt_dev`, separate Cloudflare Tunnel route).
+# Target: https://dev.my-testo.com (pm2 process `trt-dev` on :3001,
+# separate Postgres DB `trt_dev` — synthetic seed data, never real PHI).
 #
-# What this gives you: every PR gets a live preview on DEV before merge.
-# Schema migrations are applied to trt_dev (synthetic seed data — NEVER real PHI).
+# Runs on the SELF-HOSTED runner (`trt-lxc`) which IS the LXC box. Writes
+# directly to /opt/trt-dev/apps/web/.env.local, runs ci-deploy.sh locally.
 name: Deploy DEV
 
 on:
@@ -13,7 +13,6 @@ on:
     branches: [feature/*]
 
 concurrency:
-  # One active DEV deploy at a time per PR/branch. New commits cancel the old.
   group: deploy-dev-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
@@ -25,14 +24,12 @@ permissions:
 jobs:
   deploy:
     name: Deploy to dev.my-testo.com
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, LXC]
     environment:
       name: development
       url: https://dev.my-testo.com
     if: github.repository == 'toxykdude/TRT'
     steps:
-      - uses: actions/checkout@v4
-
       - name: Start GitHub deployment record
         uses: bobheadxi/deployments@v1
         id: deployment
@@ -43,26 +40,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           desc: "PR #${{ github.event.pull_request.number || 'direct push' }} → dev.my-testo.com"
 
-      - name: Configure SSH
-        env:
-          LXC_HOST: ${{ secrets.LXC_HOST }}
-          LXC_SSH_USER: ${{ secrets.LXC_SSH_USER }}
-          LXC_SSH_KEY: ${{ secrets.LXC_SSH_KEY }}
-          LXC_KNOWN_HOSTS: ${{ secrets.LXC_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          # Prefer the curated known_hosts; fall back to keyscan if unset.
-          if [ -n "$LXC_KNOWN_HOSTS" ]; then
-            echo "$LXC_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          else
-            ssh-keyscan -H "$LXC_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          fi
-          printf '%s\n' "$LXC_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "SSH_ALIAS=$LXC_SSH_USER@$LXC_HOST" >> "$GITHUB_ENV"
-
-      - name: Render apps/web/.env.local on runner
+      - name: Render apps/web/.env.local for DEV directly on the box
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
@@ -82,25 +60,21 @@ jobs:
           TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           umask 077
-          mkdir -p render
-          cat > render/.env.local <<EOF
+          cat > /opt/trt-dev/apps/web/.env.local <<EOF
           # Auto-rendered by GitHub Actions DEV deploy at ${TARGET_SHA}
           # DO NOT EDIT BY HAND — overwritten on every deploy.
           DATABASE_URL="${DATABASE_URL}"
           NEXTAUTH_URL="https://dev.my-testo.com"
           AUTH_SECRET="${AUTH_SECRET}"
           NEXTAUTH_SALT="${NEXTAUTH_SALT}"
-          # DEV uses empty OPENAI_API_KEY intentionally → deterministic stub runs.
           OPENAI_API_KEY="${OPENAI_API_KEY}"
           OPENAI_API_URL="${OPENAI_API_URL}"
           OPENAI_MODEL="${OPENAI_MODEL}"
-          # DEV: RESEND empty → OTP codes logged to server console (dev fallback).
           RESEND_API_KEY="${RESEND_API_KEY}"
-          EMAIL_FROM="${EMAIL_FROM:-TRT DEV <no-reply@my-testo.com>}"
+          EMAIL_FROM="${EMAIL_FROM}"
           GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}"
           GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}"
           MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN}"
-          # DEV: WOMPI_ENV unset → sandbox mode; empty keys → billing UI hidden.
           WOMPI_ENV="${WOMPI_ENV}"
           WOMPI_PUBLIC_KEY="${WOMPI_PUBLIC_KEY}"
           WOMPI_EVENTS_SECRET="${WOMPI_EVENTS_SECRET}"
@@ -116,18 +90,17 @@ jobs:
           MCP_HTTP_PORT="8003"
           NODE_ENV="development"
           EOF
-          echo "Rendered $(wc -l < render/.env.local) lines to render/.env.local"
+          chmod 600 /opt/trt-dev/apps/web/.env.local
+          echo "Rendered $(wc -l < /opt/trt-dev/apps/web/.env.local) lines"
 
-      - name: Copy .env.local to DEV box
-        run: scp -o StrictHostKeyChecking=accept-new render/.env.local "$SSH_ALIAS:/opt/trt-dev/apps/web/.env.local"
-
-      - name: Run deploy on DEV box
+      - name: Run deploy (ci-deploy.sh lives in the dev checkout)
         env:
           TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           DEPLOY_ACTOR: ${{ github.actor }}
         run: |
-          ssh "$SSH_ALIAS" \
-            "TARGET_SHA='$TARGET_SHA' DEPLOY_ACTOR='$DEPLOY_ACTOR' bash /opt/trt-dev/scripts/ci-deploy.sh development"
+          cd /opt/trt-dev
+          TARGET_SHA="$TARGET_SHA" DEPLOY_ACTOR="$DEPLOY_ACTOR" \
+            bash scripts/ci-deploy.sh development
 
       - name: Comment on PR with DEV URL
         if: github.event_name == 'pull_request'
@@ -139,7 +112,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `🚀 **DEV deploy live:** https://dev.my-testo.com\n\nCommit: \`${sha}\`\n\nValidate before merge. DEV uses a separate Postgres DB (\`trt_dev\`) — no PHI.`
+              body: `🚀 **DEV deploy live:** https://dev.my-testo.com\n\nCommit: \`${sha}\`\n\nDEV uses a separate Postgres DB (\`trt_dev\`) — no PHI.`
             });
 
       - name: Finish deployment (success)

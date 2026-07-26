@@ -1,8 +1,11 @@
 # Deploy to PRODUCTION — fires ONLY on push to main (i.e., after PR merge).
 # Target: https://my-testo.com (pm2 process `trt` on :3000, Postgres DB `trt`).
 #
+# Runs on the SELF-HOSTED runner (`trt-lxc`) which IS the LXC box. No SSH needed —
+# .env.local is written directly to the prod checkout, ci-deploy.sh runs locally.
+#
 # Hard rules:
-#   - Depends on PR Validation passing (enforced by branch protection, not here).
+#   - Depends on PR Validation passing (enforced by branch protection).
 #   - prisma migrate deploy runs unattended — author migrations carefully.
 #   - Zero downtime via `pm2 reload --update-env`.
 name: Deploy Production
@@ -11,7 +14,6 @@ on:
   push:
     branches: [main]
 
-# Never cancel a prod deploy mid-flight; queue instead.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -23,14 +25,12 @@ permissions:
 jobs:
   deploy:
     name: Deploy to my-testo.com
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, LXC]
     environment:
       name: production
       url: https://my-testo.com
     if: github.repository == 'toxykdude/TRT'
     steps:
-      - uses: actions/checkout@v4
-
       - name: Start GitHub deployment record
         uses: bobheadxi/deployments@v1
         id: deployment
@@ -41,25 +41,7 @@ jobs:
           ref: ${{ github.sha }}
           desc: "main → my-testo.com"
 
-      - name: Configure SSH
-        env:
-          LXC_HOST: ${{ secrets.LXC_HOST }}
-          LXC_SSH_USER: ${{ secrets.LXC_SSH_USER }}
-          LXC_SSH_KEY: ${{ secrets.LXC_SSH_KEY }}
-          LXC_KNOWN_HOSTS: ${{ secrets.LXC_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          if [ -n "$LXC_KNOWN_HOSTS" ]; then
-            echo "$LXC_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          else
-            ssh-keyscan -H "$LXC_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          fi
-          printf '%s\n' "$LXC_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "SSH_ALIAS=$LXC_SSH_USER@$LXC_HOST" >> "$GITHUB_ENV"
-
-      - name: Render apps/web/.env.local on runner
+      - name: Render apps/web/.env.local directly on the box
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
@@ -79,8 +61,7 @@ jobs:
           TARGET_SHA: ${{ github.sha }}
         run: |
           umask 077
-          mkdir -p render
-          cat > render/.env.local <<EOF
+          cat > /opt/trt/apps/web/.env.local <<EOF
           # Auto-rendered by GitHub Actions PRODUCTION deploy at ${TARGET_SHA}
           # DO NOT EDIT BY HAND — overwritten on every deploy.
           DATABASE_URL="${DATABASE_URL}"
@@ -110,18 +91,17 @@ jobs:
           MCP_HTTP_PORT="8002"
           NODE_ENV="production"
           EOF
-          echo "Rendered $(wc -l < render/.env.local) lines"
+          chmod 600 /opt/trt/apps/web/.env.local
+          echo "Rendered $(wc -l < /opt/trt/apps/web/.env.local) lines to /opt/trt/apps/web/.env.local"
 
-      - name: Copy .env.local to PROD box
-        run: scp -o StrictHostKeyChecking=accept-new render/.env.local "$SSH_ALIAS:/opt/trt/apps/web/.env.local"
-
-      - name: Run deploy on PROD box
+      - name: Run deploy (ci-deploy.sh lives in the prod checkout)
         env:
           TARGET_SHA: ${{ github.sha }}
           DEPLOY_ACTOR: ${{ github.actor }}
         run: |
-          ssh "$SSH_ALIAS" \
-            "TARGET_SHA='$TARGET_SHA' DEPLOY_ACTOR='$DEPLOY_ACTOR' bash /opt/trt/scripts/ci-deploy.sh production"
+          cd /opt/trt
+          TARGET_SHA="$TARGET_SHA" DEPLOY_ACTOR="$DEPLOY_ACTOR" \
+            bash scripts/ci-deploy.sh production
 
       - name: Finish deployment (success)
         if: success()
