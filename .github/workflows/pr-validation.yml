@@ -1,0 +1,59 @@
+# PR validation — runs on every PR targeting main. Must pass to merge.
+# Gates: lint, typecheck, unit tests, build verification.
+#
+# Known issue (AGENTS.md §1.5): `@trt/db` typecheck is RED (missing @types/node,
+# prisma outside rootDir). This workflow will fail on first PR until that's fixed.
+# That's CI doing its job — do not weaken this workflow to bypass it; fix the db.
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same PR (saves CI minutes, avoids races).
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Lint + Typecheck + Test + Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build verification
+        env:
+          # Build doesn't need a real DB connection, but Next.js may still read
+          # some vars at build time. Use a placeholder DATABASE_URL to satisfy
+          # any build-time client instantiation (Prisma client is lazy).
+          DATABASE_URL: "postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?schema=public"
+          AUTH_SECRET: "build-time-placeholder-not-used-at-runtime"
+          NEXTAUTH_URL: "https://my-testo.com"
+        run: pnpm build

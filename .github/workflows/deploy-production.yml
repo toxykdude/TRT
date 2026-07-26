@@ -1,0 +1,145 @@
+# Deploy to PRODUCTION — fires ONLY on push to main (i.e., after PR merge).
+# Target: https://my-testo.com (pm2 process `trt` on :3000, Postgres DB `trt`).
+#
+# Hard rules:
+#   - Depends on PR Validation passing (enforced by branch protection, not here).
+#   - prisma migrate deploy runs unattended — author migrations carefully.
+#   - Zero downtime via `pm2 reload --update-env`.
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+# Never cancel a prod deploy mid-flight; queue instead.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to my-testo.com
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://my-testo.com
+    if: github.repository == 'toxykdude/TRT'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start GitHub deployment record
+        uses: bobheadxi/deployments@v1
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: production
+          ref: ${{ github.sha }}
+          desc: "main → my-testo.com"
+
+      - name: Configure SSH
+        env:
+          LXC_HOST: ${{ secrets.LXC_HOST }}
+          LXC_SSH_USER: ${{ secrets.LXC_SSH_USER }}
+          LXC_SSH_KEY: ${{ secrets.LXC_SSH_KEY }}
+          LXC_KNOWN_HOSTS: ${{ secrets.LXC_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          if [ -n "$LXC_KNOWN_HOSTS" ]; then
+            echo "$LXC_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "$LXC_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          fi
+          printf '%s\n' "$LXC_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "SSH_ALIAS=$LXC_SSH_USER@$LXC_HOST" >> "$GITHUB_ENV"
+
+      - name: Render apps/web/.env.local on runner
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          NEXTAUTH_SALT: ${{ secrets.NEXTAUTH_SALT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_URL: ${{ secrets.OPENAI_API_URL }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+          WOMPI_ENV: ${{ secrets.WOMPI_ENV }}
+          WOMPI_PUBLIC_KEY: ${{ secrets.WOMPI_PUBLIC_KEY }}
+          WOMPI_EVENTS_SECRET: ${{ secrets.WOMPI_EVENTS_SECRET }}
+          WOMPI_INTEGRITY_SECRET: ${{ secrets.WOMPI_INTEGRITY_SECRET }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          umask 077
+          mkdir -p render
+          cat > render/.env.local <<EOF
+          # Auto-rendered by GitHub Actions PRODUCTION deploy at ${TARGET_SHA}
+          # DO NOT EDIT BY HAND — overwritten on every deploy.
+          DATABASE_URL="${DATABASE_URL}"
+          NEXTAUTH_URL="https://my-testo.com"
+          AUTH_SECRET="${AUTH_SECRET}"
+          NEXTAUTH_SALT="${NEXTAUTH_SALT}"
+          OPENAI_API_KEY="${OPENAI_API_KEY}"
+          OPENAI_API_URL="${OPENAI_API_URL}"
+          OPENAI_MODEL="${OPENAI_MODEL}"
+          RESEND_API_KEY="${RESEND_API_KEY}"
+          EMAIL_FROM="${EMAIL_FROM}"
+          GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}"
+          GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}"
+          MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN}"
+          WOMPI_ENV="${WOMPI_ENV}"
+          WOMPI_PUBLIC_KEY="${WOMPI_PUBLIC_KEY}"
+          WOMPI_EVENTS_SECRET="${WOMPI_EVENTS_SECRET}"
+          WOMPI_INTEGRITY_SECRET="${WOMPI_INTEGRITY_SECRET}"
+          UPLOADS_DIR="/var/lib/trt/uploads"
+          KB_DB_PATH="/var/lib/trt/kb/knowledge.db"
+          KB_TEXT_DIR="/var/lib/trt/kb/text"
+          CORPUS_DIR="/var/lib/trt/corpus"
+          OCR_ENDPOINT="https://imagedit.powerhousegym.co/ocr"
+          GRAPHITI_MCP_URL="http://127.0.0.1:8000"
+          GRAPH_QUERY_URL="http://127.0.0.1:8001"
+          MCP_HTTP_HOST="127.0.0.1"
+          MCP_HTTP_PORT="8002"
+          NODE_ENV="production"
+          EOF
+          echo "Rendered $(wc -l < render/.env.local) lines"
+
+      - name: Copy .env.local to PROD box
+        run: scp -o StrictHostKeyChecking=accept-new render/.env.local "$SSH_ALIAS:/opt/trt/apps/web/.env.local"
+
+      - name: Run deploy on PROD box
+        env:
+          TARGET_SHA: ${{ github.sha }}
+          DEPLOY_ACTOR: ${{ github.actor }}
+        run: |
+          ssh "$SSH_ALIAS" \
+            "TARGET_SHA='$TARGET_SHA' DEPLOY_ACTOR='$DEPLOY_ACTOR' bash /opt/trt/scripts/ci-deploy.sh production"
+
+      - name: Finish deployment (success)
+        if: success()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: success
+          env: production
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          env_url: https://my-testo.com
+
+      - name: Finish deployment (failure)
+        if: failure()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: failure
+          env: production
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}

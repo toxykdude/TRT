@@ -84,7 +84,7 @@ The product is built patient‑first: upload → dose is the core flow. The phys
 - OCR pipeline, PDF text/layout extraction, image upload support (JPG, PNG, HEIC)  
 
 **Deployment**  
-- pm2 on a Debian LXC, behind a Cloudflare Tunnel (`https://trt.powerhousegym.co`). See AGENTS.md §1.5 for the runbook. (Vercel is out — kept here only as the v1 plan.)  
+- pm2 on a Debian LXC, behind a Cloudflare Tunnel (`https://my-testo.com`). See AGENTS.md §1.5 for the runbook. (Vercel is out — kept here only as the v1 plan.) Migrated from `trt.powerhousegym.co` 2026-07.
 
 All third‑party services must be chosen/consented-to with PHI handling in mind where applicable.  
 

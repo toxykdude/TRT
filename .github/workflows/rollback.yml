@@ -1,0 +1,193 @@
+# Rollback — manual dispatch. Picks a previous SHA/tag, re-renders .env.local
+# from the SAME environment secrets currently in GitHub, and redeploys that
+# commit. Migrations are NOT reversed (prisma migrate deploy is forward-only).
+#
+# Usage: Actions tab → Rollback → Run workflow → pick environment + ref.
+#
+# IMPORTANT: If a forward migration ran between the target ref and HEAD,
+# rolling back the CODE without rolling back the DB may break the app.
+# Inspect packages/db/prisma/migrations/ between target ref and HEAD first.
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Which environment to roll back?"
+        type: choice
+        options: [production, development]
+        required: true
+        default: production
+      ref:
+        description: "Commit SHA, tag, or branch to roll back to (e.g. v1.2.0 or a40f3c1)"
+        type: string
+        required: true
+      reason:
+        description: "Why? (recorded in audit log)"
+        type: string
+        required: true
+
+concurrency:
+  group: rollback-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  rollback:
+    name: Rollback ${{ github.event.inputs.environment }} → ${{ github.event.inputs.ref }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Resolve the target ref to a concrete SHA
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_REF: ${{ github.event.inputs.ref }}
+        run: |
+          # Resolve ref (SHA/tag/branch) to a full commit SHA via the GitHub API.
+          SHA="$(gh api repos/${{ github.repository }}/commits/"$TARGET_REF" --jq '.sha')"
+          if [ -z "$SHA" ]; then
+            echo "ERROR: could not resolve ref '$TARGET_REF' to a SHA" >&2
+            exit 1
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Resolved $TARGET_REF → $SHA"
+          echo "::notice::Rolling back ${{ github.event.inputs.environment }} to $SHA ($TARGET_REF). Reason: ${{ github.event.inputs.reason }}"
+
+      - name: Start GitHub deployment record
+        uses: bobheadxi/deployments@v1
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: ${{ github.event.inputs.environment }}
+          ref: ${{ steps.resolve.outputs.sha }}
+          desc: "ROLLBACK to ${{ github.event.inputs.ref }} — ${{ github.event.inputs.reason }}"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve.outputs.sha }}
+
+      - name: Configure SSH
+        env:
+          LXC_HOST: ${{ secrets.LXC_HOST }}
+          LXC_SSH_USER: ${{ secrets.LXC_SSH_USER }}
+          LXC_SSH_KEY: ${{ secrets.LXC_SSH_KEY }}
+          LXC_KNOWN_HOSTS: ${{ secrets.LXC_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          if [ -n "$LXC_KNOWN_HOSTS" ]; then
+            echo "$LXC_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "$LXC_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          fi
+          printf '%s\n' "$LXC_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "SSH_ALIAS=$LXC_SSH_USER@$LXC_HOST" >> "$GITHUB_ENV"
+
+      - name: Render apps/web/.env.local on runner
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          NEXTAUTH_SALT: ${{ secrets.NEXTAUTH_SALT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_URL: ${{ secrets.OPENAI_API_URL }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+          WOMPI_ENV: ${{ secrets.WOMPI_ENV }}
+          WOMPI_PUBLIC_KEY: ${{ secrets.WOMPI_PUBLIC_KEY }}
+          WOMPI_EVENTS_SECRET: ${{ secrets.WOMPI_EVENTS_SECRET }}
+          WOMPI_INTEGRITY_SECRET: ${{ secrets.WOMPI_INTEGRITY_SECRET }}
+          ENV_NAME: ${{ github.event.inputs.environment }}
+          TARGET_SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          # Per-env values
+          case "$ENV_NAME" in
+            production)  URL="https://my-testo.com";      DATA_DIR="/var/lib/trt";      APP_DIR="/opt/trt";     PORT="8002" ;;
+            development) URL="https://dev.my-testo.com";  DATA_DIR="/var/lib/trt-dev";  APP_DIR="/opt/trt-dev"; PORT="8003" ;;
+          esac
+          umask 077
+          mkdir -p render
+          cat > render/.env.local <<EOF
+          # AUTO-RENDERED by Rollback workflow at ${TARGET_SHA}
+          # REASON: ${{ github.event.inputs.reason }}
+          DATABASE_URL="${DATABASE_URL}"
+          NEXTAUTH_URL="${URL}"
+          AUTH_SECRET="${AUTH_SECRET}"
+          NEXTAUTH_SALT="${NEXTAUTH_SALT}"
+          OPENAI_API_KEY="${OPENAI_API_KEY}"
+          OPENAI_API_URL="${OPENAI_API_URL}"
+          OPENAI_MODEL="${OPENAI_MODEL}"
+          RESEND_API_KEY="${RESEND_API_KEY}"
+          EMAIL_FROM="${EMAIL_FROM}"
+          GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}"
+          GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}"
+          MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN}"
+          WOMPI_ENV="${WOMPI_ENV}"
+          WOMPI_PUBLIC_KEY="${WOMPI_PUBLIC_KEY}"
+          WOMPI_EVENTS_SECRET="${WOMPI_EVENTS_SECRET}"
+          WOMPI_INTEGRITY_SECRET="${WOMPI_INTEGRITY_SECRET}"
+          UPLOADS_DIR="${DATA_DIR}/uploads"
+          KB_DB_PATH="${DATA_DIR}/kb/knowledge.db"
+          KB_TEXT_DIR="${DATA_DIR}/kb/text"
+          CORPUS_DIR="${DATA_DIR}/corpus"
+          OCR_ENDPOINT="https://imagedit.powerhousegym.co/ocr"
+          GRAPHITI_MCP_URL="http://127.0.0.1:8000"
+          GRAPH_QUERY_URL="http://127.0.0.1:8001"
+          MCP_HTTP_HOST="127.0.0.1"
+          MCP_HTTP_PORT="${PORT}"
+          NODE_ENV="$ENV_NAME"
+          EOF
+
+      - name: Copy .env.local to box
+        env:
+          ENV_NAME: ${{ github.event.inputs.environment }}
+        run: |
+          case "$ENV_NAME" in
+            production)  TARGET_DIR="/opt/trt" ;;
+            development) TARGET_DIR="/opt/trt-dev" ;;
+          esac
+          scp -o StrictHostKeyChecking=accept-new render/.env.local "$SSH_ALIAS:${TARGET_DIR}/apps/web/.env.local"
+
+      - name: Run deploy (checks out the rollback SHA, not main)
+        env:
+          TARGET_SHA: ${{ steps.resolve.outputs.sha }}
+          DEPLOY_ACTOR: ${{ github.actor }}
+          ENV_NAME: ${{ github.event.inputs.environment }}
+        run: |
+          # ci-deploy.sh lives inside each checkout, so the path differs per env.
+          # prod: /opt/trt/scripts/ci-deploy.sh  | dev: /opt/trt-dev/scripts/ci-deploy.sh
+          case "$ENV_NAME" in
+            production)  SCRIPT_PATH="/opt/trt/scripts/ci-deploy.sh" ;;
+            development) SCRIPT_PATH="/opt/trt-dev/scripts/ci-deploy.sh" ;;
+          esac
+          ssh "$SSH_ALIAS" \
+            "TARGET_SHA='$TARGET_SHA' DEPLOY_ACTOR='$DEPLOY_ACTOR' bash '$SCRIPT_PATH' '$ENV_NAME'"
+
+      - name: Finish deployment (success)
+        if: success()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: success
+          env: ${{ github.event.inputs.environment }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+
+      - name: Finish deployment (failure)
+        if: failure()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: failure
+          env: ${{ github.event.inputs.environment }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}

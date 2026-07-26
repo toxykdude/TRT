@@ -34,12 +34,23 @@ anything else in this repo — conflicts with GOLD, GOLD wins.
 > design/tasks/apply-progress/verify-report/archive-report).
 
 **Deploy target.** Production is **pm2 on the Debian LXC** (`root@10.162.36.45:/opt/trt`,
-app name `trt`), behind a Cloudflare Tunnel at `https://trt.powerhousegym.co`.
-GOLD.md §4 still says "Vercel" — that is **stale**; always follow the LXC runbook.
-Deploy steps: `git pull` on the box → `pnpm install --frozen-lockfile` →
-`pnpm --filter @trt/web build` → `pm2 reload trt --update-env` (the `--update-env`
-preserves the pm2 process env). Run `pnpm --filter @trt/db prisma:migrate` **only
-when the schema changed**.
+app name `trt`), behind a Cloudflare Tunnel at `https://my-testo.com`
+(migrated from `trt.powerhousegym.co` 2026-07; old host decommissioned).
+DEV is the same LXC at `https://dev.my-testo.com` (pm2 `trt-dev` on :3001,
+Postgres `trt_dev` — synthetic seed data only, never real PHI). GOLD.md §4
+still says "Vercel" — that is **stale**; always follow the LXC runbook.
+
+**CI/CD is the ONLY deploy path (2026-07 onward).** GitHub is the single source
+of truth. Four workflows in `.github/workflows/`: `pr-validation.yml` (PR gate),
+`deploy-dev.yml` (PR → DEV), `deploy-production.yml` (push main → PROD),
+`rollback.yml` (manual dispatch). Each deploy renders `/opt/trt[-dev]/apps/web/.env.local`
+from GitHub Environment secrets on the runner, scp's it to the box, then runs
+`scripts/ci-deploy.sh` (pull → `pnpm install --frozen-lockfile` → `prisma migrate
+deploy` → `pnpm --filter @trt/web build` → `pm2 reload --update-env` → append
+`/var/log/trt-deploy.log`). **Do NOT hand-edit `.env.local` on the box — it is
+overwritten on every deploy.** See [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md)
+for the full runbook. The old manual flow (`git pull` on the box → `pm2 reload`)
+is **deprecated** — only use it for hotfixes if CI is down, and document why.
 
 **`prismaFor(userId)` is BYPASSRLS** (`packages/db/src/index.ts`). It returns the
 generic client — Postgres RLS is **not** the tenancy gate. **App-layer
