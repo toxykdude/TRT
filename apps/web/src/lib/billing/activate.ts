@@ -6,7 +6,7 @@
  * extends `currentPeriodEnd` by the plan interval from the later of
  * (now, current period end) — paying early never loses paid time.
  */
-import { prisma, type PaymentStatus, type SubscriptionStatus } from '@trt/db';
+import { Prisma, prisma, type PaymentStatus, type SubscriptionStatus } from '@trt/db';
 import { PLANS, type PaidPlanCode } from '../plans';
 
 export type ActivateDb = {
@@ -89,7 +89,7 @@ export async function activatePlan(
   params: {
     userId: string;
     planCode: PaidPlanCode;
-    provider: 'WOMPI' | 'PAYPAL' | 'MANUAL';
+    provider: 'WOMPI' | 'PAYPAL' | 'STRIPE' | 'MANUAL';
     externalRef?: string | null;
   },
   db: ActivateDb = prisma as unknown as ActivateDb,
@@ -147,7 +147,7 @@ export async function ensureActivated(args: {
   userId: string;
   planCode: PaidPlanCode;
   paymentStatus: PaymentStatus;
-  provider: 'WOMPI' | 'PAYPAL';
+  provider: 'WOMPI' | 'PAYPAL' | 'STRIPE';
   externalRef?: string | null;
   isReplay?: boolean;
   db?: ActivateDb;
@@ -173,4 +173,77 @@ export async function ensureActivated(args: {
     db,
     args.now,
   );
+}
+
+/**
+ * Stripe subscription state sync (docs/STRIPE_SUBSCRIPTIONS_PLAN.md §3.1/§3.3).
+ *
+ * Unlike {@link activatePlan}, this NEVER calls {@link computeNewPeriodEnd} —
+ * `currentPeriodEnd` is always ASSIGNED verbatim from the caller (who reads it
+ * off the live Stripe subscription object via `periodEndFromSubscription`).
+ * Stripe owns the billing cycle; local computation here would drift from
+ * proration, trials, retries, and dunning grace.
+ *
+ * Looked up by `stripeSubscriptionId` (not userId) so this is order-independent:
+ * `checkout.session.completed` and `invoice.paid` can arrive in either order
+ * for the same first period, and whichever arrives first creates the row —
+ * the other just updates it by the same Stripe subscription id. Reuses the
+ * existing {@link ActivateDb} structural port; no second DB-injection
+ * mechanism.
+ */
+export async function applyStripeSubscriptionState(
+  params: {
+    userId: string;
+    planCode: PaidPlanCode;
+    stripeSubscriptionId: string;
+    status: SubscriptionStatus;
+    currentPeriodEnd: Date;
+    cancelAtPeriodEnd: boolean;
+  },
+  db: ActivateDb = prisma as unknown as ActivateDb,
+  /** Accepted for signature symmetry with activatePlan (and tests that pass `now`); Stripe state never derives from it. */
+  _now = new Date(),
+): Promise<{ currentPeriodEnd: Date; status: SubscriptionStatus }> {
+  return db.$transaction(async (tx) => {
+    const existing = await tx.subscription.findFirst({
+      where: { stripeSubscriptionId: params.stripeSubscriptionId },
+      select: { id: true, currentPeriodEnd: true, status: true },
+    });
+
+    const data = {
+      planCode: params.planCode,
+      provider: 'STRIPE' as const,
+      status: params.status,
+      currentPeriodEnd: params.currentPeriodEnd,
+      cancelAtPeriodEnd: params.cancelAtPeriodEnd,
+      stripeSubscriptionId: params.stripeSubscriptionId,
+      externalRef: params.stripeSubscriptionId,
+    };
+
+    if (existing) {
+      await tx.subscription.update({ where: { id: existing.id }, data });
+    } else {
+      try {
+        await tx.subscription.create({ data: { userId: params.userId, ...data } });
+      } catch (e) {
+        if (!isUniqueViolation(e)) throw e;
+        // Lost a create race: another delivery for this same Stripe
+        // subscription (checkout.session.completed vs invoice.paid arriving
+        // concurrently) committed its row between our findFirst and our
+        // create. Its row is now visible — update it instead of failing.
+        const raced = await tx.subscription.findFirst({
+          where: { stripeSubscriptionId: params.stripeSubscriptionId },
+          select: { id: true, currentPeriodEnd: true, status: true },
+        });
+        if (!raced) throw e; // unexpected — surface the original error
+        await tx.subscription.update({ where: { id: raced.id }, data });
+      }
+    }
+
+    return { currentPeriodEnd: params.currentPeriodEnd, status: params.status };
+  });
+}
+
+function isUniqueViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 }

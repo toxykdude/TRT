@@ -44,6 +44,7 @@
     "react-hook-form": "^7.53.2",
     "recharts": "^2.13.3",
     "resend": "^6.18.0",
+    "stripe": "^22.3.0",
     "tailwind-merge": "^2.5.4",
     "zod": "^3.23.8"
   },
