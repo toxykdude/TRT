@@ -149,6 +149,8 @@
     "forever": "forever",
     "monthlyOnly": "Pro is currently available with monthly billing only.",
     "checkoutNote": "Create an account or sign in to continue. Secure checkout is completed from your authenticated account.",
+    "checkoutPending": "Redirecting to secure checkout…",
+    "checkoutError": "Something went wrong starting checkout. Please try again.",
     "plans": {
       "free": {
         "name": "Free",
@@ -368,6 +370,28 @@
       "exportTitle": "Data export & deletion — coming next",
       "exportWhat": "Right-to-be-forgotten and full data export (GOLD §8) are part of the next pass. Until then, contact your administrator to export or delete your data.",
       "exportNext": "One-click JSON export and verified account deletion that purges all patient data."
+    },
+    "Billing": {
+      "title": "Billing",
+      "freePlan": "You're on the Free plan.",
+      "currentPlan": "Current plan: {plan}",
+      "statusLabel": "Status: {status}",
+      "status": {
+        "ACTIVE": "Active",
+        "PAST_DUE": "Past due",
+        "CANCELED": "Canceled",
+        "EXPIRED": "Expired"
+      },
+      "renewsOn": "Renews on {date}",
+      "cancelPending": "Your plan will not renew after {date}.",
+      "manageBilling": "Manage billing",
+      "redirecting": "Redirecting…",
+      "cancelSubscription": "Cancel subscription",
+      "canceling": "Canceling…",
+      "actionError": "Something went wrong. Please try again.",
+      "checkoutSuccess": "Your subscription is active. Welcome aboard!",
+      "checkoutCanceled": "Checkout was canceled — no changes were made.",
+      "resumingCheckout": "Resuming checkout for the plan you selected…"
     }
   },
   "Report": {

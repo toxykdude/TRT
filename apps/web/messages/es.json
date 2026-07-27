@@ -149,6 +149,8 @@
     "forever": "para siempre",
     "monthlyOnly": "Actualmente, Pro solo está disponible con facturación mensual.",
     "checkoutNote": "Cree una cuenta o inicie sesión para continuar. El pago seguro se completa desde su cuenta autenticada.",
+    "checkoutPending": "Redirigiendo al pago seguro…",
+    "checkoutError": "Algo salió mal al iniciar el pago. Inténtelo de nuevo.",
     "plans": {
       "free": {
         "name": "Gratis",
@@ -368,6 +370,28 @@
       "exportTitle": "Exportación y eliminación de datos — próximamente",
       "exportWhat": "El derecho al olvido y la exportación completa de datos (GOLD §8) forman parte de la próxima etapa. Hasta entonces, contacte a su administrador para exportar o eliminar sus datos.",
       "exportNext": "Exportación JSON con un clic y eliminación verificada de cuenta que purga todos los datos del paciente."
+    },
+    "Billing": {
+      "title": "Facturación",
+      "freePlan": "Está en el plan Gratis.",
+      "currentPlan": "Plan actual: {plan}",
+      "statusLabel": "Estado: {status}",
+      "status": {
+        "ACTIVE": "Activo",
+        "PAST_DUE": "Pago pendiente",
+        "CANCELED": "Cancelado",
+        "EXPIRED": "Vencido"
+      },
+      "renewsOn": "Se renueva el {date}",
+      "cancelPending": "Su plan no se renovará después del {date}.",
+      "manageBilling": "Gestionar facturación",
+      "redirecting": "Redirigiendo…",
+      "cancelSubscription": "Cancelar suscripción",
+      "canceling": "Cancelando…",
+      "actionError": "Algo salió mal. Inténtelo de nuevo.",
+      "checkoutSuccess": "Su suscripción está activa. ¡Bienvenido!",
+      "checkoutCanceled": "El pago fue cancelado — no se realizó ningún cambio.",
+      "resumingCheckout": "Reanudando el pago del plan que seleccionó…"
     }
   },
   "Report": {

@@ -4,6 +4,7 @@ import { LandingNav } from '@/components/landing/landing-nav';
 import { PricingSection4, type PricingPlanView } from '@/components/ui/pricing-section-4';
 import { SafetyBanner } from '@/components/safety-banner';
 import { PLANS } from '@/lib/plans';
+import { auth } from '@/lib/auth';
 
 type PricingPageProps = {
   params: Promise<{ locale: string }>;
@@ -23,7 +24,12 @@ export default async function PricingPage({ params }: PricingPageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, footer] = await Promise.all([getTranslations('Pricing'), getTranslations('Footer')]);
+  const [t, footer, session] = await Promise.all([
+    getTranslations('Pricing'),
+    getTranslations('Footer'),
+    auth(),
+  ]);
+  const authenticated = Boolean(session?.user?.id);
 
   const plans: PricingPlanView[] = [
     {
@@ -45,8 +51,10 @@ export default async function PricingPage({ params }: PricingPageProps) {
       yearlyPrice: PLANS.PLUS_YEARLY.priceUsdCents / 100,
       features: PLANS.PLUS_MONTHLY.featureKeys.map((key) => t(`plans.features.${key}`)),
       cta: t('plans.plus.cta'),
-      href: '/register',
+      href: '/register?plan=PLUS_MONTHLY',
       featured: true,
+      planCode: 'PLUS_MONTHLY',
+      yearlyPlanCode: 'PLUS_YEARLY',
     },
     {
       id: 'pro',
@@ -56,8 +64,9 @@ export default async function PricingPage({ params }: PricingPageProps) {
       yearlyPrice: null,
       features: PLANS.PRO_MONTHLY.featureKeys.map((key) => t(`plans.features.${key}`)),
       cta: t('plans.pro.cta'),
-      href: '/register',
+      href: '/register?plan=PRO_MONTHLY',
       featured: false,
+      planCode: 'PRO_MONTHLY',
     },
   ];
 
@@ -72,6 +81,7 @@ export default async function PricingPage({ params }: PricingPageProps) {
         <PricingSection4
           locale={locale}
           plans={plans}
+          authenticated={authenticated}
           copy={{
             eyebrow: t('eyebrow'),
             title: t('title'),

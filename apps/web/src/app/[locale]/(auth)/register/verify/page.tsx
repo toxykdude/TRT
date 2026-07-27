@@ -8,7 +8,7 @@ export default async function VerifyPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ email?: string; plan?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -17,7 +17,8 @@ export default async function VerifyPage({
   if (session?.user) redirect({ href: '/dashboard', locale });
 
   const t = await getTranslations('Auth.Verify');
-  const email = (await searchParams).email?.trim() ?? '';
+  const { email: rawEmail, plan } = await searchParams;
+  const email = rawEmail?.trim() ?? '';
 
   return (
     <div className="space-y-6">
@@ -28,7 +29,7 @@ export default async function VerifyPage({
         </p>
       </div>
 
-      {email && <VerifyForm email={email} />}
+      {email && <VerifyForm email={email} plan={plan ?? null} />}
 
       <p className="text-center text-sm text-muted-foreground">
         <Link href="/register" className="font-medium text-primary hover:underline">

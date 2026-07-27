@@ -18,7 +18,13 @@
  */
 import { Resend } from 'resend';
 
-const FROM = process.env.EMAIL_FROM ?? 'TRT <no-reply@my-testo.com>';
+// NOTE: `||`, deliberately not `??`. CI renders apps/web/.env.local on every
+// deploy and ALWAYS writes an EMAIL_FROM line (.github/workflows/*.yml), so the
+// var is always DEFINED — just empty when the GitHub secret is unset. `??` only
+// guards null/undefined, so it would hand Resend an empty From address, which
+// it rejects: every OTP send would fail and no password login could complete.
+// Treat blank as absent. Same trap applies to any secret-backed var read here.
+const FROM = process.env.EMAIL_FROM?.trim() || 'TRT <no-reply@my-testo.com>';
 
 /** Which flow the code belongs to — selects the subject/body copy below. */
 export type OtpPurpose = 'signup' | 'login' | 'password_reset';

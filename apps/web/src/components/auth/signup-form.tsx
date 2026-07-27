@@ -18,13 +18,19 @@ function Submit({ label }: { label: string }) {
   );
 }
 
-/** Step 1 signup form: collects account details and requests an email OTP. */
-export function SignupForm() {
+/**
+ * Step 1 signup form: collects account details and requests an email OTP.
+ * `plan` (from `?plan=` on the pricing page — Phase 4.3) is carried in a
+ * hidden field through every step of registration/login so a paid-plan
+ * choice made before signing up resumes checkout right after login.
+ */
+export function SignupForm({ plan }: { plan?: string | null }) {
   const t = useTranslations('Auth.Register');
   const [state, action] = useActionState<AuthActionState, FormData>(requestSignupOtp, {});
 
   return (
     <form action={action} className="space-y-4">
+      {plan && <input type="hidden" name="plan" value={plan} />}
       <div className="space-y-2">
         <Label htmlFor="name">{t('name')}</Label>
         <Input id="name" name="name" type="text" autoComplete="name" />

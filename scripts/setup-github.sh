@@ -12,11 +12,17 @@
 #      Sets DEVELOPMENT environment secrets from the values you exported.
 #      Requires: DATABASE_URL (trt_dev DB), AUTH_SECRET, NEXTAUTH_SALT,
 #      OPENAI_API_KEY (empty ok), OPENAI_API_URL, OPENAI_MODEL, RESEND_API_KEY,
-#      EMAIL_FROM, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MCP_AUTH_TOKEN
+#      EMAIL_FROM, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MCP_AUTH_TOKEN,
+#      WOMPI_ENV, WOMPI_PUBLIC_KEY, WOMPI_EVENTS_SECRET, WOMPI_INTEGRITY_SECRET,
+#      STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PLUS_MONTHLY,
+#      STRIPE_PRICE_PLUS_YEARLY, STRIPE_PRICE_PRO_MONTHLY (empty ok in DEV
+#      stub mode; every Stripe var is per-environment — test vs live mode
+#      issue different Price ids and webhook signing secrets)
 #
 #   3. bash scripts/setup-github.sh env production
 #      Sets PRODUCTION environment secrets from the values you exported.
-#      Same var names, DIFFERENT values (real prod DB, real OPENAI_API_KEY, etc.)
+#      Same var names, DIFFERENT values (real prod DB, real OPENAI_API_KEY,
+#      live-mode Stripe keys/Price ids, etc.)
 #
 # USAGE
 #   gh auth login --scopes repo,workflow
@@ -41,6 +47,8 @@ APP_SECRETS=(
   GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET
   MCP_AUTH_TOKEN
   WOMPI_ENV WOMPI_PUBLIC_KEY WOMPI_EVENTS_SECRET WOMPI_INTEGRITY_SECRET
+  STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET
+  STRIPE_PRICE_PLUS_MONTHLY STRIPE_PRICE_PLUS_YEARLY STRIPE_PRICE_PRO_MONTHLY
 )
 
 set_secret() { # env_or_empty name value

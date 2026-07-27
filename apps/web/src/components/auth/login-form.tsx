@@ -26,12 +26,13 @@ function Submit({ label }: { label: string }) {
  * created. On failure it returns a generic "Invalid email or password", the
  * same message whether the email or the password was wrong.
  */
-export function LoginForm() {
+export function LoginForm({ plan }: { plan?: string | null } = {}) {
   const t = useTranslations('Auth.Login');
   const [state, action] = useActionState<AuthActionState, FormData>(requestLoginOtp, {});
 
   return (
     <form action={action} className="space-y-4">
+      {plan && <input type="hidden" name="plan" value={plan} />}
       <div className="space-y-2">
         <Label htmlFor="email">{t('email')}</Label>
         <Input id="email" name="email" type="email" required autoComplete="email" />

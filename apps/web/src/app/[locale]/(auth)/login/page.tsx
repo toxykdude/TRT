@@ -10,7 +10,7 @@ export default async function LoginPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ verified?: string; reset?: string }>;
+  searchParams: Promise<{ verified?: string; reset?: string; plan?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -19,7 +19,7 @@ export default async function LoginPage({
   if (session?.user) redirect({ href: '/dashboard', locale });
 
   const t = await getTranslations('Auth.Login');
-  const { verified, reset } = await searchParams;
+  const { verified, reset, plan } = await searchParams;
   const justVerified = verified === '1';
   const justReset = reset === '1';
 
@@ -42,7 +42,7 @@ export default async function LoginPage({
         </p>
       )}
 
-      <LoginForm />
+      <LoginForm plan={plan ?? null} />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -53,7 +53,7 @@ export default async function LoginPage({
         </div>
       </div>
 
-      <form action={googleAction}>
+      <form action={googleAction.bind(null, plan ?? null)}>
         <Button variant="outline" type="submit" className="w-full">
           {t('google')}
         </Button>

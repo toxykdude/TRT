@@ -8,7 +8,7 @@ export default async function LoginVerifyPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ email?: string; plan?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -17,7 +17,8 @@ export default async function LoginVerifyPage({
   if (session?.user) redirect({ href: '/dashboard', locale });
 
   const t = await getTranslations('Auth.LoginVerify');
-  const email = (await searchParams).email?.trim() ?? '';
+  const { email: rawEmail, plan } = await searchParams;
+  const email = rawEmail?.trim() ?? '';
 
   return (
     <div className="space-y-6">
@@ -28,7 +29,7 @@ export default async function LoginVerifyPage({
         </p>
       </div>
 
-      {email && <LoginVerifyForm email={email} />}
+      {email && <LoginVerifyForm email={email} plan={plan ?? null} />}
 
       <p className="text-center text-sm text-muted-foreground">
         <Link href="/login" className="font-medium text-primary hover:underline">

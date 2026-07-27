@@ -36,7 +36,7 @@ function ResendSubmit({ label }: { label: string }) {
  * (`canResendOtp` / `dailySendCapReached`, §8 of the plan) — `resendLoginOtp`
  * returns a real inline error when the caller is rate-limited.
  */
-export function LoginVerifyForm({ email }: { email: string }) {
+export function LoginVerifyForm({ email, plan }: { email: string; plan?: string | null }) {
   const t = useTranslations('Auth.LoginVerify');
   const [state, action] = useActionState<AuthActionState, FormData>(verifyLoginOtp, {});
   const [resendState, resendAction] = useActionState<AuthActionState, FormData>(resendLoginOtp, {});
@@ -45,6 +45,7 @@ export function LoginVerifyForm({ email }: { email: string }) {
     <div className="space-y-4">
       <form action={action} className="space-y-4">
         <input type="hidden" name="email" value={email} />
+        {plan && <input type="hidden" name="plan" value={plan} />}
         <div className="space-y-2">
           <Label htmlFor="code">{t('code')}</Label>
           <Input

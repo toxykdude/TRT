@@ -10,7 +10,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Sparkles } from '@/components/ui/sparkles';
 import { TimelineAnimation } from '@/components/ui/timeline-animation';
 import { VerticalCutReveal } from '@/components/ui/vertical-cut-reveal';
+import { CheckoutButton } from '@/components/billing/checkout-button';
 import { cn } from '@/lib/utils';
+import type { PaidPlanCode } from '@/lib/plans';
 
 export type PricingPlanView = {
   id: 'free' | 'plus' | 'pro';
@@ -22,6 +24,10 @@ export type PricingPlanView = {
   cta: string;
   href: string;
   featured: boolean;
+  /** Plan code for the (default/monthly) checkout. Absent for FREE. */
+  planCode?: PaidPlanCode;
+  /** Plan code when the yearly toggle is active (Plus only — Pro is monthly-only). */
+  yearlyPlanCode?: PaidPlanCode;
 };
 
 export type PricingSectionCopy = {
@@ -46,9 +52,11 @@ type PricingSectionProps = {
   locale: string;
   plans: PricingPlanView[];
   copy: PricingSectionCopy;
+  /** Renders CheckoutButton for paid plans instead of the FREE/anonymous href. */
+  authenticated?: boolean;
 };
 
-export function PricingSection4({ locale, plans, copy }: PricingSectionProps) {
+export function PricingSection4({ locale, plans, copy, authenticated = false }: PricingSectionProps) {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const shouldReduceMotion = useReducedMotion();
   const numberLocale = locale === 'es' ? 'es-CO' : 'en-US';
@@ -132,6 +140,8 @@ export function PricingSection4({ locale, plans, copy }: PricingSectionProps) {
             const yearlyPrice =
               plan.id === 'plus' && billing === 'yearly' ? plan.yearlyPrice : null;
             const price = yearlyPrice ?? plan.monthlyPrice;
+            const activePlanCode =
+              plan.id === 'plus' && billing === 'yearly' ? plan.yearlyPlanCode : plan.planCode;
             const interval =
               plan.id === 'free'
                 ? copy.forever
@@ -217,18 +227,32 @@ export function PricingSection4({ locale, plans, copy }: PricingSectionProps) {
                   </CardContent>
 
                   <CardFooter className="p-7 pt-0">
-                    <Button
-                      asChild
-                      size="lg"
-                      variant={plan.featured ? 'default' : 'outline'}
-                      className={cn(
-                        'w-full rounded-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white',
-                        plan.featured &&
-                          'border-mint bg-mint text-charcoal hover:bg-mint/90 hover:text-charcoal',
-                      )}
-                    >
-                      <Link href={plan.href}>{plan.cta}</Link>
-                    </Button>
+                    {authenticated && activePlanCode ? (
+                      <CheckoutButton
+                        planCode={activePlanCode}
+                        label={plan.cta}
+                        size="lg"
+                        variant={plan.featured ? 'default' : 'outline'}
+                        className={cn(
+                          'w-full rounded-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white',
+                          plan.featured &&
+                            'border-mint bg-mint text-charcoal hover:bg-mint/90 hover:text-charcoal',
+                        )}
+                      />
+                    ) : (
+                      <Button
+                        asChild
+                        size="lg"
+                        variant={plan.featured ? 'default' : 'outline'}
+                        className={cn(
+                          'w-full rounded-full border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white',
+                          plan.featured &&
+                            'border-mint bg-mint text-charcoal hover:bg-mint/90 hover:text-charcoal',
+                        )}
+                      >
+                        <Link href={plan.href}>{plan.cta}</Link>
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
               </TimelineAnimation>
