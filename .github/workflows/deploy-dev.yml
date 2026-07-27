@@ -57,6 +57,11 @@ jobs:
           WOMPI_PUBLIC_KEY: ${{ secrets.WOMPI_PUBLIC_KEY }}
           WOMPI_EVENTS_SECRET: ${{ secrets.WOMPI_EVENTS_SECRET }}
           WOMPI_INTEGRITY_SECRET: ${{ secrets.WOMPI_INTEGRITY_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_PLUS_MONTHLY: ${{ secrets.STRIPE_PRICE_PLUS_MONTHLY }}
+          STRIPE_PRICE_PLUS_YEARLY: ${{ secrets.STRIPE_PRICE_PLUS_YEARLY }}
+          STRIPE_PRICE_PRO_MONTHLY: ${{ secrets.STRIPE_PRICE_PRO_MONTHLY }}
           TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           umask 077
@@ -79,6 +84,14 @@ jobs:
           WOMPI_PUBLIC_KEY="${WOMPI_PUBLIC_KEY}"
           WOMPI_EVENTS_SECRET="${WOMPI_EVENTS_SECRET}"
           WOMPI_INTEGRITY_SECRET="${WOMPI_INTEGRITY_SECRET}"
+          STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}"
+          STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}"
+          STRIPE_PRICE_PLUS_MONTHLY="${STRIPE_PRICE_PLUS_MONTHLY}"
+          STRIPE_PRICE_PLUS_YEARLY="${STRIPE_PRICE_PLUS_YEARLY}"
+          STRIPE_PRICE_PRO_MONTHLY="${STRIPE_PRICE_PRO_MONTHLY}"
+          # Not a secret — hardcoded like NEXTAUTH_URL above. Stripe Checkout
+          # success/cancel URLs and the Portal return_url are built from this.
+          NEXT_PUBLIC_APP_URL="https://dev.my-testo.com"
           UPLOADS_DIR="/var/lib/trt-dev/uploads"
           KB_DB_PATH="/var/lib/trt-dev/kb/knowledge.db"
           KB_TEXT_DIR="/var/lib/trt-dev/kb/text"
