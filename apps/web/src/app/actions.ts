@@ -42,6 +42,9 @@ export async function googleAction() {
  *  working untouched since it only ever reads `error`. */
 export type AuthActionState = { error?: string; sent?: boolean };
 
+const REGISTRATION_UNAVAILABLE_ERROR =
+  'Registration is temporarily unavailable. Please try again.';
+
 /**
  * Step 1 of signup: validate the account details, mint a 6-digit code, store the
  * PENDING signup (no User row yet), and email the code. On success, redirect to
@@ -57,21 +60,26 @@ export async function requestSignupOtp(_prev: AuthActionState, formData: FormDat
     return { error: 'Email and an 8+ character password are required.' };
   }
 
-  const existing = await servicePrisma.user.findUnique({ where: { email } });
-  if (existing) return { error: 'An account with that email already exists.' };
+  let code: string;
+  try {
+    const existing = await servicePrisma.user.findUnique({ where: { email } });
+    if (existing) return { error: 'An account with that email already exists.' };
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  const code = generateOtpCode();
-  const codeHash = await hashOtp(code);
-  const expiresAt = otpExpiry();
+    const passwordHash = await bcrypt.hash(password, 12);
+    code = generateOtpCode();
+    const codeHash = await hashOtp(code);
+    const expiresAt = otpExpiry();
 
-  // Upsert the pending signup: re-requesting a code for the same email replaces
-  // the previous code and RESETS the attempt counter.
-  await servicePrisma.signupOtp.upsert({
-    where: { email },
-    create: { email, name: name || null, passwordHash, codeHash, expiresAt, attempts: 0 },
-    update: { name: name || null, passwordHash, codeHash, expiresAt, attempts: 0 },
-  });
+    // Upsert the pending signup: re-requesting a code for the same email replaces
+    // the previous code and RESETS the attempt counter.
+    await servicePrisma.signupOtp.upsert({
+      where: { email },
+      create: { email, name: name || null, passwordHash, codeHash, expiresAt, attempts: 0 },
+      update: { name: name || null, passwordHash, codeHash, expiresAt, attempts: 0 },
+    });
+  } catch {
+    return { error: REGISTRATION_UNAVAILABLE_ERROR };
+  }
 
   try {
     await sendOtpEmail(email, code, 'signup');
