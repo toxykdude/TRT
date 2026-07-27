@@ -6,6 +6,7 @@ import { getLocale } from 'next-intl/server';
 import { servicePrisma } from '@trt/db';
 import { signIn, signOut } from '@/lib/auth';
 import { redirect } from '@/i18n/navigation';
+import { isPaidPlan } from '@/lib/plans';
 import {
   generateOtpCode,
   hashOtp,
@@ -19,10 +20,25 @@ import {
 import { sendOtpEmail } from '@/lib/email';
 import { verifyUserPassword, validatePasswordChange } from '@/lib/password';
 
-/** Resolve the localized dashboard path for post-auth redirects. */
-async function dashboardRedirect() {
+/**
+ * Resolve the localized dashboard path for post-auth redirects. When `plan`
+ * is a valid paid plan code (threaded from `?plan=` on the pricing page
+ * through registration/login — Phase 4.3), land on the settings page with
+ * `startCheckout` set instead, so SubscriptionCard resumes checkout for the
+ * plan the user originally chose before creating an account.
+ */
+async function dashboardRedirect(plan?: string | null) {
   const locale = await getLocale();
+  if (plan && isPaidPlan(plan)) {
+    return `/${locale}/dashboard/settings?startCheckout=${plan}`;
+  }
   return `/${locale}/dashboard`;
+}
+
+/** Reads and validates the `plan` field carried through the auth forms. Returns null when absent/invalid. */
+function planFromFormData(formData: FormData): string | null {
+  const plan = String(formData.get('plan') ?? '');
+  return isPaidPlan(plan) ? plan : null;
 }
 
 /** Sign-out server action. Imported by client components (sidebar). */
@@ -31,9 +47,14 @@ export async function signOutAction() {
   await signOut({ redirectTo: `/${locale}` });
 }
 
-/** Google OAuth sign-in. Untouched by the OTP work — Google runs its own 2FA. */
-export async function googleAction() {
-  await signIn('google', { redirectTo: await dashboardRedirect() });
+/**
+ * Google OAuth sign-in. Untouched by the OTP work — Google runs its own 2FA.
+ * `plan`, when a valid paid plan code, is bound by the caller
+ * (`googleAction.bind(null, plan)`) so the register/login pages can carry a
+ * `?plan=` choice through Google sign-in too (Phase 4.3).
+ */
+export async function googleAction(plan?: string | null) {
+  await signIn('google', { redirectTo: await dashboardRedirect(plan) });
 }
 
 /** Shape returned to every auth form (signup, verify, login, reset) via useActionState.
@@ -80,7 +101,9 @@ export async function requestSignupOtp(_prev: AuthActionState, formData: FormDat
   }
 
   const locale = await getLocale();
-  redirect({ href: `/register/verify?email=${encodeURIComponent(email)}`, locale });
+  const plan = planFromFormData(formData);
+  const planQuery = plan ? `&plan=${plan}` : '';
+  redirect({ href: `/register/verify?email=${encodeURIComponent(email)}${planQuery}`, locale });
   return {}; // unreachable: redirect() throws to navigate.
 }
 
@@ -135,7 +158,9 @@ export async function verifySignupOtp(_prev: AuthActionState, formData: FormData
   // Verified + account created. Send them to login (we never keep the plaintext
   // password, so we can't auto-establish a credentials session here).
   const locale = await getLocale();
-  redirect({ href: '/login?verified=1', locale });
+  const plan = planFromFormData(formData);
+  const planQuery = plan ? `&plan=${plan}` : '';
+  redirect({ href: `/login?verified=1${planQuery}`, locale });
   return {}; // unreachable: redirect() throws to navigate.
 }
 
@@ -192,7 +217,9 @@ export async function requestLoginOtp(_prev: AuthActionState, formData: FormData
   }
 
   const locale = await getLocale();
-  redirect({ href: `/login/verify?email=${encodeURIComponent(email)}`, locale });
+  const plan = planFromFormData(formData);
+  const planQuery = plan ? `&plan=${plan}` : '';
+  redirect({ href: `/login/verify?email=${encodeURIComponent(email)}${planQuery}`, locale });
   return {}; // unreachable: redirect() throws to navigate.
 }
 
@@ -207,9 +234,10 @@ export async function requestLoginOtp(_prev: AuthActionState, formData: FormData
 export async function verifyLoginOtp(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const code = String(formData.get('code') ?? '').trim();
+  const plan = planFromFormData(formData);
 
   try {
-    await signIn('login-otp', { email, code, redirectTo: await dashboardRedirect() });
+    await signIn('login-otp', { email, code, redirectTo: await dashboardRedirect(plan) });
     return {}; // unreachable when signIn succeeds: it redirects (throws) instead.
   } catch (error) {
     if (error instanceof AuthError) {

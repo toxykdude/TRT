@@ -7,8 +7,10 @@ import { Link, redirect } from '@/i18n/navigation';
 
 export default async function RegisterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ plan?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -17,6 +19,7 @@ export default async function RegisterPage({
   if (session?.user) redirect({ href: '/dashboard', locale });
 
   const t = await getTranslations('Auth.Register');
+  const plan = (await searchParams).plan ?? null;
 
   return (
     <div className="space-y-6">
@@ -25,7 +28,7 @@ export default async function RegisterPage({
         <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <SignupForm />
+      <SignupForm plan={plan} />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -36,7 +39,7 @@ export default async function RegisterPage({
         </div>
       </div>
 
-      <form action={googleAction}>
+      <form action={googleAction.bind(null, plan)}>
         <Button variant="outline" type="submit" className="w-full">
           {t('google')}
         </Button>
