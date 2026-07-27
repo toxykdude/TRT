@@ -46,6 +46,11 @@ model User {
   licenseState       String?
   npi                String?
 
+  // Stripe Customer id (one per person, reused across every subscription they
+  // ever hold — see docs/STRIPE_SUBSCRIPTIONS_PLAN.md §4). Never on
+  // Subscription: that would duplicate it and let the two rows disagree.
+  stripeCustomerId String? @unique
+
   accounts      Account[]
   sessions      Session[]
   patients      Patient[]
@@ -476,6 +481,7 @@ model AuditLog {
 enum PaymentProvider {
   WOMPI
   PAYPAL
+  STRIPE
   MANUAL // comped accounts granted by an admin
 }
 
@@ -507,6 +513,9 @@ model Subscription {
   status            SubscriptionStatus @default(ACTIVE)
   currentPeriodEnd  DateTime
   externalRef       String? // provider transaction/subscription id (last seen)
+  // Stripe subscription id. Stripe is the source of truth for this row's
+  // status/currentPeriodEnd — see docs/STRIPE_SUBSCRIPTIONS_PLAN.md §3.1.
+  stripeSubscriptionId String?         @unique
   cancelAtPeriodEnd Boolean            @default(false)
   // P1.b — optional trial window. While now < trialEndsAt, checkQuota treats
   // the user as holding this subscription's plan (trial access). Null when no
