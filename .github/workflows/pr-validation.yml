@@ -25,10 +25,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here on purpose. package.json pins
+      # "packageManager": "pnpm@10.18.0", and action-setup@v4 hard-errors when a
+      # version is given in BOTH places ("Multiple versions of pnpm specified"),
+      # which failed this job before it ever reached a gate. Letting the action
+      # read packageManager keeps CI and the deploy host on one pinned version.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -38,6 +41,15 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # packages/db/src/generated is gitignored — the Prisma client is generated,
+      # never committed. Without this step @trt/db cannot resolve
+      # './generated/client/index.js', so typecheck, test and build all fail on a
+      # clean checkout. ci-deploy.sh already does this before building; PR
+      # validation needs the same. No database is contacted: `prisma generate`
+      # only reads schema.prisma and emits types.
+      - name: Generate Prisma client
+        run: pnpm --filter @trt/db generate
 
       - name: Lint
         run: pnpm lint

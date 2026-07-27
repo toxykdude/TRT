@@ -1,8 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src",
+    // No `outDir`/`rootDir`: this package has no build step. It ships as TS
+    // source (package.json main/types -> ./src/index.ts) and is compiled by the
+    // consumer via Next's `transpilePackages`. The only script here is
+    // `tsc --noEmit`, so emit-shaping options were dead config — and `rootDir:
+    // ./src` actively broke the typecheck, since `include` also covers
+    // prisma/**/* (TS6059: file not under rootDir) for seed.ts, seed-clinician.ts
+    // and apply-rls.ts. See .github/workflows/pr-validation.yml, which gates
+    // merges on `pnpm typecheck`.
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "types": ["node"]

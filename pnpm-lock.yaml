@@ -185,6 +185,9 @@ importers:
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
     devDependencies:
+      '@types/node':
+        specifier: ^22.9.0
+        version: 22.20.0
       prisma:
         specifier: ^5.22.0
         version: 5.22.0
@@ -235,6 +238,9 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.11
         version: 7.6.13
+      '@types/node':
+        specifier: ^22.9.0
+        version: 22.20.0
       tsx:
         specifier: ^4.19.2
         version: 4.23.0
@@ -243,7 +249,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.4
-        version: 2.1.9(@types/node@26.1.1)
+        version: 2.1.9(@types/node@22.20.0)
 
   packages/mcp:
     dependencies:
