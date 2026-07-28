@@ -28,8 +28,8 @@ describe('periodFor', () => {
 });
 
 describe('limitFor (company plan §5)', () => {
-  it('Free: manual entry only, 1 report/quarter', () => {
-    expect(limitFor('FREE', 'UPLOAD')).toBe(0);
+  it('Free: 1 extraction/month, 1 report/quarter (streamline-upload-to-insight)', () => {
+    expect(limitFor('FREE', 'UPLOAD')).toBe(1);
     expect(limitFor('FREE', 'REPORT')).toBe(1);
   });
   it('Plus: 10 uploads/mo, unlimited reports', () => {
@@ -100,10 +100,14 @@ function mockDb(opts: { plan?: string; used?: number }): QuotaDb {
 }
 
 describe('checkQuota — tier × action matrix', () => {
-  it('Free upload: never allowed (manual entry only)', async () => {
-    const c = await checkQuota('u1', 'UPLOAD', mockDb({ used: 0 }), NOW);
-    expect(c.allowed).toBe(false);
-    expect(c.planCode).toBe('FREE');
+  it('Free upload: first extraction allowed, second blocked (FREE allowance = 1)', async () => {
+    const first = await checkQuota('u1', 'UPLOAD', mockDb({ used: 0 }), NOW);
+    expect(first.allowed).toBe(true);
+    expect(first.planCode).toBe('FREE');
+    expect(first.limit).toBe(1);
+    const second = await checkQuota('u1', 'UPLOAD', mockDb({ used: 1 }), NOW);
+    expect(second.allowed).toBe(false);
+    expect(second.limit).toBe(1);
   });
   it('Free report: 1 per quarter, 2nd blocked', async () => {
     expect((await checkQuota('u1', 'REPORT', mockDb({ used: 0 }), NOW)).allowed).toBe(true);

@@ -31,13 +31,6 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // ── Quota (P1.d) — UPLOAD path. Free tier (0 uploads) is blocked entirely. ──
-  const uploadQuota = await checkQuota(session.user.id, 'UPLOAD');
-  if (!uploadQuota.allowed) {
-    const locale = new URL(req.url).pathname.split('/')[1] ?? 'en';
-    return NextResponse.json(quotaExceededPayload(uploadQuota, locale), { status: 402 });
-  }
-
   const { labReportId } = await req.json();
   if (!labReportId) return NextResponse.json({ error: 'labReportId required' }, { status: 400 });
 
@@ -47,13 +40,46 @@ export async function POST(req: NextRequest) {
   });
   if (!report) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  await db.labReport.update({
-    where: { id: labReportId },
-    data: { status: 'EXTRACTING' },
-  });
+  // ── Idempotent metering (obs #134 / design.md) ───────────────────────────
+  // Gate + meter ONLY on NEW attempts (status === 'UPLOADED'). An atomic
+  // updateMany(where status=UPLOADED) is the claim: exactly one request wins
+  // and records usage, so sequential retry is free and concurrent requests
+  // can't double-count. FAILED→EXTRACTING retries and EXTRACTED/REVIEW_NEEDED
+  // re-extractions BYPASS both the quota gate and metering. There is no longer
+  // a finally-block recordUsage — metering happens once, at claim time.
+  if (report.status === 'EXTRACTING') {
+    // Another in-flight request is already extracting; don't double-extract.
+    return NextResponse.json({ ok: true, concurrent: true });
+  }
 
+  const isNewAttempt = report.status === 'UPLOADED';
   const live = isLiveExtractionConfigured();
   const extractedBy = live ? 'openai' : 'stub';
+
+  if (isNewAttempt) {
+    const locale = new URL(req.url).pathname.split('/')[1] ?? 'en';
+    const uploadQuota = await checkQuota(session.user.id, 'UPLOAD');
+    if (!uploadQuota.allowed) {
+      return NextResponse.json(quotaExceededPayload(uploadQuota, locale), { status: 402 });
+    }
+    // Atomic claim UPLOADED→EXTRACTING. Only the winner (count === 1) meters;
+    // a concurrent loser (count === 0) steps aside without double work/metering.
+    const claim = await db.labReport.updateMany({
+      where: { id: labReportId, ownerId: session.user.id, status: 'UPLOADED' },
+      data: { status: 'EXTRACTING' },
+    });
+    if (claim.count === 1) {
+      await recordUsage(session.user.id, 'UPLOAD').catch(() => undefined);
+    } else {
+      return NextResponse.json({ ok: true, concurrent: true });
+    }
+  } else {
+    // Retry (FAILED) or re-extraction (EXTRACTED/REVIEW_NEEDED): no gate, no meter.
+    await db.labReport.update({
+      where: { id: labReportId },
+      data: { status: 'EXTRACTING' },
+    });
+  }
 
   try {
     const { extraction, run } = await extractLabWithRun({
@@ -203,11 +229,5 @@ export async function POST(req: NextRequest) {
       },
       { status: 500 },
     );
-  } finally {
-    // Quota counts PAID ATTEMPTS, not successes (RISK-01): a vision-API call is
-    // consumed whether or not parsing/persistence succeeds, so an authenticated
-    // user cannot burn paid calls via repeated failures. checkQuota('UPLOAD')
-    // above remains the gate; this meters every attempt that reached the pipeline.
-    await recordUsage(session.user.id, 'UPLOAD').catch(() => undefined);
   }
 }
