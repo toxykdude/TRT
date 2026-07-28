@@ -45,12 +45,12 @@ export async function POST(req: NextRequest) {
   const patient = await db.patient.findUnique({ where: { ownerId: session.user.id } });
   if (!patient) return NextResponse.json({ error: 'No patient record' }, { status: 400 });
 
-  await db.labReport.create({
+  const labReport = await db.labReport.create({
     data: {
       patientId: patient.id,
       ownerId: session.user.id,
       fileName: file.name,
-      filePath, // private, not web-accessible
+      filePath, // private, not web-addressable
       mimeType: file.type || 'application/octet-stream',
       sizeBytes: BigInt(file.size),
       status: 'UPLOADED',
@@ -61,5 +61,7 @@ export async function POST(req: NextRequest) {
     data: { userId: session.user.id, action: 'create', entity: 'lab_reports', entityId: id },
   });
 
-  return NextResponse.json({ ok: true });
+  // Return the new LabReport id so the client can auto-chain extraction without
+  // re-fetching the list (streamline-upload-to-insight §2.1).
+  return NextResponse.json({ ok: true, labReportId: labReport.id });
 }
