@@ -234,7 +234,16 @@ export async function buildAnalyticsSeries(
   ]);
 
   return {
-    biomarkers: buildMarkerViews(results as never),
+    // Defense-in-depth confirmed-only backstop (parity w/ the medication two-
+    // layer model: by-construction select + assertConsumerSafe throw). The query
+    // above already filters `reviewStatus: 'CONFIRMED'`; strip any non-CONFIRMED
+    // row HERE too so a bypassed/changed WHERE can NEVER surface pending data to
+    // a consumer payload. This is the content-independent must-BLOCK floor.
+    biomarkers: buildMarkerViews(
+      (results as Array<{ reviewStatus?: string }>).filter(
+        (r) => r.reviewStatus === 'CONFIRMED',
+      ) as never,
+    ),
     medications: (medications as MedRow[]).map(stripMedicationToTiming),
     symptoms: (symptoms as SymptomRow[]).map((s) => ({
       date: toIso(s.date) ?? new Date(0).toISOString(),

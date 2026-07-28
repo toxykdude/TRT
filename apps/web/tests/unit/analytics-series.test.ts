@@ -282,3 +282,96 @@ describe('buildAnalyticsSeries — timing-only read + ownerId tenancy (TC-4, TC-
     expect(symWhere.where.date).toBeDefined();
   });
 });
+
+// ── Confirmed-only invariant: PENDING_REVIEW never reaches a consumer payload ─
+// Content-independent must-BLOCK, parity with the medication-dose field test
+// (lines 164-181): there, a forbidden FIELD is blocked regardless of its value;
+// here, a PENDING_REVIEW ROW is blocked regardless of its value/content. Two
+// independent layers — the query WHERE filter (by-construction) + a post-query
+// reviewStatus guard (defense-in-depth, fail-closed) — mirror the medication
+// two-layer model (by-construction select + assertConsumerSafe throw).
+describe('buildAnalyticsSeries — PENDING_REVIEW must-BLOCK (content-independent, parity w/ med-dose)', () => {
+  it('drops a PENDING_REVIEW row regardless of its value/content (defense-in-depth backstop)', async () => {
+    // Seed BOTH a CONFIRMED and a PENDING_REVIEW row. The query WHERE filters
+    // CONFIRMED by-construction; the post-query guard is the fail-closed
+    // backstop that holds even if the WHERE were bypassed (mock returns both).
+    const { client } = mkDb({
+      labResults: [
+        {
+          biomarker: { key: 'total_testosterone', name: 'T', category: 'hormone', canonicalUnit: 'ng/dL', refLow: 240, refHigh: 870 },
+          biomarkerKey: 'total_testosterone',
+          biomarkerName: 'T',
+          category: 'hormone',
+          collectedAt: new Date('2026-01-01'),
+          valueNumeric: 500,
+          unit: 'ng/dL',
+          rawValue: '500',
+          rawUnit: 'ng/dL',
+          rawRefLow: '240',
+          rawRefHigh: '870',
+          rawRefText: null,
+          flag: null,
+          reviewStatus: 'CONFIRMED',
+        },
+        // A PENDING_REVIEW row with a DIFFERENT biomarker + a distinctive
+        // rawValue marker. It must NEVER appear in the consumer payload —
+        // content-independent: the block does not depend on what the value is.
+        {
+          biomarker: { key: 'hematocrit', name: 'HCT', category: 'cbc', canonicalUnit: '%', refLow: 41, refHigh: 53 },
+          biomarkerKey: 'hematocrit',
+          biomarkerName: 'HCT',
+          category: 'cbc',
+          collectedAt: new Date('2026-01-01'),
+          valueNumeric: 999,
+          unit: '%',
+          rawValue: '999-PENDING-MARKER',
+          rawUnit: '%',
+          rawRefLow: '41',
+          rawRefHigh: '53',
+          rawRefText: null,
+          flag: null,
+          reviewStatus: 'PENDING_REVIEW',
+        },
+      ],
+    });
+
+    const series = await buildAnalyticsSeries(client as never, 'u1');
+
+    const keys = series.biomarkers.map((m) => m.key);
+    // The CONFIRMED biomarker appears; the PENDING one does not.
+    expect(keys).toContain('total_testosterone');
+    expect(keys).not.toContain('hematocrit');
+    // The distinctive pending content never leaks into the serialized payload —
+    // proves the block is content-independent (no string of the value survives).
+    expect(JSON.stringify(series)).not.toContain('999-PENDING-MARKER');
+  });
+
+  it('surfaces ONLY CONFIRMED rows even when the mock returns a pending-only set', async () => {
+    // Pure-PENDING seed → empty biomarker output (the guard blocks everything,
+    // never degrades to surfacing unconfirmed data). Content-independent: the
+    // output is empty regardless of the pending rows' values.
+    const { client } = mkDb({
+      labResults: [
+        {
+          biomarker: { key: 'hematocrit', name: 'HCT', category: 'cbc', canonicalUnit: '%', refLow: 41, refHigh: 53 },
+          biomarkerKey: 'hematocrit',
+          biomarkerName: 'HCT',
+          category: 'cbc',
+          collectedAt: new Date('2026-01-01'),
+          valueNumeric: 54,
+          unit: '%',
+          rawValue: '54',
+          rawUnit: '%',
+          rawRefLow: '41',
+          rawRefHigh: '53',
+          rawRefText: null,
+          flag: null,
+          reviewStatus: 'PENDING_REVIEW',
+        },
+      ],
+    });
+
+    const series = await buildAnalyticsSeries(client as never, 'u1');
+    expect(series.biomarkers).toHaveLength(0);
+  });
+});

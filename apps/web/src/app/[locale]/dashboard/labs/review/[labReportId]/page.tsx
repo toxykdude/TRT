@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { SafetyBanner } from '@/components/safety-banner';
 import { ReviewForm } from '@/components/dashboard/review-form';
 import { buildReviewRows } from '@/lib/review-flow';
+import { loadReviewData } from '@/lib/review-data';
 
 /**
  * Explicit accuracy confirmation surface (spec Req 4 / design.md).
@@ -14,9 +15,10 @@ import { buildReviewRows } from '@/lib/review-flow';
  * biomarker name, printed value, unit, and uncertainty reason, plus confirm /
  * correct / manual actions. The disclaimer is NON-DISMISSIBLE (GOLD §2.5).
  *
- * Tenancy: the labReport fetch binds ownerId from auth (prismaFor is BYPASSRLS —
- * `where: { ownerId }` is the only gate); a cross-owner report → notFound() (no
- * oracle leak, same 404 as a missing id). The pending list is scoped the same way.
+ * Tenancy: `loadReviewData` binds ownerId on both the report fetch and the
+ * pending list (prismaFor is BYPASSRLS — `where: { ownerId }` is the only gate);
+ * a cross-owner report → notFound() (no oracle leak, same 404 as a missing id),
+ * and the pending-list query is never issued (no PHI read).
  */
 export default async function ReviewPage({
   params,
@@ -32,20 +34,11 @@ export default async function ReviewPage({
 
   const db = prismaFor(session.user.id);
 
-  // Owner-scoped report fetch — cross-owner is "not found".
-  const report = await db.labReport.findFirst({
-    where: { id: labReportId, ownerId: session.user.id },
-  });
-  if (!report) notFound();
+  // Owner-scoped fetch — cross-owner returns null (no pending-list read issued).
+  const data = await loadReviewData(db, labReportId, session.user.id);
+  if (!data) notFound();
 
-  // Owner-scoped PENDING_REVIEW list (P0.2.b — pending never feeds trends).
-  const results = await db.labResult.findMany({
-    where: { labReportId, ownerId: session.user.id, reviewStatus: 'PENDING_REVIEW' },
-    include: { biomarker: true },
-    orderBy: { collectedAt: 'asc' },
-  });
-
-  const rows = buildReviewRows(results as never);
+  const rows = buildReviewRows(data.results as never);
 
   return (
     <div className="space-y-8">
