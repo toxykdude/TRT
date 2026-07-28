@@ -529,13 +529,19 @@
   "Upload": {
     "dropHere": "Drag & drop lab files here, or click to browse",
     "formats": "PDF, JPG, PNG, HEIC · unlimited uploads",
-    "uploadButton": "Upload {count, plural, one {# file} other {# files}}"
+    "usesAllowance": "Uploading uses 1 of your extraction credits — extraction starts automatically.",
+    "uploadButton": "Upload {count, plural, one {# file} other {# files}}",
+    "extracting": "Extracting…",
+    "retry": "Retry",
+    "manualEntry": "Enter values manually"
   },
   "LabsList": {
     "empty": "No lab reports uploaded yet. Drop a file above to begin.",
     "uploaded": "Uploaded {date}",
     "valueCount": "{count, plural, one {# value} other {# values}}",
-    "extract": "Extract"
+    "extract": "Extract",
+    "extractFailed": "Extraction failed. You can retry or enter values manually.",
+    "retry": "Retry"
   },
   "GenerateReport": {
     "failed": "Failed"

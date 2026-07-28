@@ -529,13 +529,19 @@
   "Upload": {
     "dropHere": "Arrastre y suelte los archivos de laboratorio aquí o haga clic para seleccionar",
     "formats": "PDF, JPG, PNG, HEIC · cargas ilimitadas",
-    "uploadButton": "Cargar {count, plural, one {# archivo} other {# archivos}}"
+    "usesAllowance": "Cargar usa 1 de sus créditos de extracción; la extracción comienza automáticamente.",
+    "uploadButton": "Cargar {count, plural, one {# archivo} other {# archivos}}",
+    "extracting": "Extrayendo…",
+    "retry": "Reintentar",
+    "manualEntry": "Ingresar valores manualmente"
   },
   "LabsList": {
     "empty": "Aún no hay informes de laboratorio cargados. Suelte un archivo arriba para comenzar.",
     "uploaded": "Cargado {date}",
     "valueCount": "{count, plural, one {# valor} other {# valores}}",
-    "extract": "Extraer"
+    "extract": "Extraer",
+    "extractFailed": "La extracción falló. Puede reintentar o ingresar los valores manualmente.",
+    "retry": "Reintentar"
   },
   "GenerateReport": {
     "failed": "Error"
