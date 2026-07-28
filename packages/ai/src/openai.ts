@@ -35,20 +35,59 @@ export function isLiveExtractionConfigured(): boolean {
   return typeof key === 'string' && key.trim() !== '' && key.trim() !== 'PASTE_KEY_HERE';
 }
 
+/**
+ * Resolved OpenAI-compatible base URL. Uses `||` (not `??`) so an empty-string
+ * secret rendered by CI (`OPENAI_API_URL=""`) falls back to the default instead
+ * of surviving as `""` (`"" ?? DEFAULT === ""`). Trailing slashes are stripped.
+ */
+export function openaiApiBaseUrl(): string {
+  return (process.env.OPENAI_API_URL || DEFAULT_OPENAI_API_URL).replace(/\/+$/, '');
+}
+
+/**
+ * Surface the silent empty-secret trap at startup. Returns the warning strings
+ * (and console.warn's each), so callers/unit tests can observe what was flagged.
+ * A live key with an empty-string URL or MODEL is the documented CI trap; an
+ * unset key simply means deterministic stub mode (informational).
+ */
+export function warnIfConfigIncomplete(): string[] {
+  const warnings: string[] = [];
+  const url = process.env.OPENAI_API_URL;
+  const model = process.env.OPENAI_MODEL;
+  if (isLiveExtractionConfigured()) {
+    if (url === '') {
+      warnings.push(
+        'OPENAI_API_URL is set to an empty string; falling back to the default OpenAI base URL. If you intended a different endpoint (e.g. Z.AI), set a non-empty value.',
+      );
+    }
+    if (model === '') {
+      warnings.push(
+        'OPENAI_MODEL is set to an empty string; falling back to the default model. Set a vision-capable model id.',
+      );
+    }
+  } else {
+    warnings.push(
+      'OPENAI_API_KEY is not configured; extraction will run in deterministic stub mode.',
+    );
+  }
+  for (const w of warnings) console.warn(`[trt/ai] ${w}`);
+  return warnings;
+}
+
 /** The OpenAI-compatible client, configured from env. */
 export function openaiClient(): OpenAI {
   return new OpenAI({
     apiKey: process.env.OPENAI_API_KEY ?? '',
-    baseURL: (process.env.OPENAI_API_URL ?? DEFAULT_OPENAI_API_URL).replace(/\/+$/, ''),
+    baseURL: openaiApiBaseUrl(),
     // Long-lived: vision + PDF extraction can take a while.
     timeout: 300_000,
     maxRetries: 2,
   });
 }
 
-/** The model id used for extraction (env-overridable). */
+/** The model id used for extraction (env-overridable; empty string → default). */
 export function extractionModelId(): string {
-  return process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL;
+  return process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
 }
 
 /**
