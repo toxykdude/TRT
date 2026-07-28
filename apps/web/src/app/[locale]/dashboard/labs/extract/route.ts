@@ -69,14 +69,23 @@ export async function POST(req: NextRequest) {
       data: { status: 'EXTRACTING' },
     });
     if (claim.count === 1) {
-      await recordUsage(session.user.id, 'UPLOAD').catch(() => undefined);
+      // S-1: metering is best-effort (a transient usageRecord failure must NOT
+      // block extraction), but it is NOT silently swallowed — log server-side in
+      // a PHI-free form (error class only; usageRecord holds no patient data) so
+      // a FREE under-count is observable.
+      await recordUsage(session.user.id, 'UPLOAD').catch((e) => {
+        console.error('usage_record_failed', e instanceof Error ? e.name : 'UnknownError');
+      });
     } else {
       return NextResponse.json({ ok: true, concurrent: true });
     }
   } else {
     // Retry (FAILED) or re-extraction (EXTRACTED/REVIEW_NEEDED): no gate, no meter.
-    await db.labReport.update({
-      where: { id: labReportId },
+    // S-2: scope the status flip with ownerId (defense-in-depth parity with the
+    // atomic claim above, which includes ownerId) even though the preceding
+    // findFirst already gated tenancy.
+    await db.labReport.updateMany({
+      where: { id: labReportId, ownerId: session.user.id },
       data: { status: 'EXTRACTING' },
     });
   }
