@@ -29,15 +29,19 @@ anything else in this repo — conflicts with GOLD, GOLD wins.
 
 ## 1.5 Current state & handoff (read this before resuming work)
 
-> Snapshot as of 2026-07-24. The full SDD history of every change is in **Engram**
-> (`mem_search` the change name, e.g. `analytics-graphs` → explore/proposal/spec/
-> design/tasks/apply-progress/verify-report/archive-report).
+> Snapshot as of 2026-07-29. The full SDD history of every change is in **Engram**
+> (`mem_search` the change name, e.g. `streamline-upload-to-insight` → explore/proposal/
+> spec/design/tasks/apply-progress/verify-report/archive-report). See also
+> [STATUS.md](./STATUS.md) and [RESUME.md](./RESUME.md) for the quick orientation.
 
 **Deploy target.** Production is **pm2 on the Debian LXC** (`root@10.162.36.45:/opt/trt`,
 app name `trt`), behind a Cloudflare Tunnel at `https://my-testo.com`
 (migrated from `trt.powerhousegym.co` 2026-07; old host decommissioned).
 DEV is the same LXC at `https://dev.my-testo.com` (pm2 `trt-dev` on :3001,
-Postgres `trt_dev` — synthetic seed data only, never real PHI). GOLD.md §4
+Postgres `trt_dev` — synthetic seed data only, never real PHI). The DEV
+Cloudflare tunnel was **restored 2026-07-29** — it had been missing its DNS
+record and tunnel ingress (broken, not just 404); fixed by adding both via the
+Cloudflare API. Also directly reachable at `http://10.162.36.45:3001`. GOLD.md §4
 still says "Vercel" — that is **stale**; always follow the LXC runbook.
 
 **CI/CD is the ONLY deploy path (2026-07 onward).** GitHub is the single source
@@ -72,20 +76,60 @@ test (`apps/web/tests/unit/analytics-series.test.ts`). A medication **name** tha
 trips the dosing scan (e.g. "Testosterone 200mg/ml") is **gracefully omitted +**
 audited, not thrown, so the common TRT case doesn't 500 the page.
 
-**AI extraction is LIVE on prod** (no longer stub). `packages/ai` calls Z.AI
-`glm-4.6v` (vision + `json_object` mode) via the OpenAI-compatible client
-(`packages/ai/src/openai.ts`). Config lives in `/opt/trt/apps/web/.env.local`:
-`OPENAI_API_KEY`, `OPENAI_API_URL=https://api.z.ai/api/coding/paas/v4`,
-`OPENAI_MODEL=glm-4.6v`. `pdftoppm` renders PDF→PNG on the box. When
-`OPENAI_API_KEY` is unset (local dev), a deterministic stub runs — that is
-intentional. Verified end-to-end 2026-07-24 (SYNLAB PDF → correct biomarkers).
+**`streamline-upload-to-insight` shipped to production** 2026-07-29 via PRs #8,
+#9, #10 (main HEAD `5996f70`; all production deploys green). Full SDD trail at
+`openspec/changes/archive/2026-07-28-streamline-upload-to-insight/`; synced spec
+at `openspec/specs/upload-to-insight-workflow/spec.md` (7 requirements, 14
+scenarios). It delivered the end-to-end upload→insight loop:
+1. **Auto-extraction** — uploading a lab report starts extraction automatically
+   (no manual "Extract" button); visible `EXTRACTING` spinner badge.
+2. **FREE tier = 1 extraction** (`plans.ts` `FREE.uploadsPerMonth` 0 → 1) so the
+   core loop is demonstrable end-to-end.
+3. **OpenAI env-trap fix** (`packages/ai/src/openai.ts`) — `??` → `||` so
+   empty-string `OPENAI_API_URL`/`OPENAI_MODEL` fall back to defaults; startup
+   warning via `apps/web/instrumentation.ts` `warnIfConfigIncomplete()`.
+4. **Idempotent extraction metering** (`extract/route.ts`) — quota gate + usage
+   metering fire ONLY on new attempts (`status==='UPLOADED'`) via an atomic
+   `updateMany` claim; FAILED→EXTRACTING retries bypass BOTH gate and metering
+   (no double-charge); `finally`-block metering removed; FAILED ExtractionRun
+   audit trail preserved.
+5. **Structured error surfacing** — `labs-list.tsx` no longer silently swallows
+   extraction errors (the reported "Extract button does nothing" bug); shows a
+   structured 402 (`QuotaExceededDialog`), retry, and manual-entry actions;
+   `window.location.reload()` → `router.refresh()`.
+6. **PENDING_REVIEW confirmation surface** — `labs/confirm/route.ts` +
+   `labs/review/[labReportId]/page.tsx` + `review-form.tsx`; confirm/correct/
+   manual-re-entry flips PENDING_REVIEW→CONFIRMED in a transaction with
+   AuditLog; cross-owner → 404; non-dismissible SafetyBanner disclaimer.
+7. **Confirmed-only must-BLOCK invariant** — `analytics-series.ts` has a
+   defense-in-depth post-query CONFIRMED filter; content-independent test proves
+   PENDING_REVIEW never reaches analysis/trends/reports/dosing.
+(The Cloudflare beacon `ERR_BLOCKED_BY_CLIENT` console error was confirmed
+**non-causal** — blocked passive analytics, not extraction; left untouched.)
+
+**AI extraction is LIVE on prod.** `packages/ai` calls Z.AI `glm-4.6v` (vision +
+`json_object` mode) via the OpenAI-compatible client (`packages/ai/src/openai.ts`).
+Config lives in `/opt/trt/apps/web/.env.local`: `OPENAI_API_KEY`,
+`OPENAI_API_URL=https://api.z.ai/api/coding/paas/v4`, `OPENAI_MODEL=glm-4.6v`.
+`pdftoppm` renders PDF→PNG on the box. When `OPENAI_API_KEY` is unset (local
+dev), a deterministic stub runs — that is intentional.
 
 **Open follow-ups** (none block the current deploy):
+- **W-1 (WARNING — blocks only the *next* prod merge)**: manual Playwright harness
+  (5 scenarios: upload→auto-extract→insight; 402 dialog; retry-after-failure;
+  review→confirm→analysis; disclaimer non-dismissible) documented in
+  `openspec/changes/archive/2026-07-28-streamline-upload-to-insight/playwright-harness.md`
+  but NOT yet run against live DEV/prod. DOM render wiring is verified only by
+  typecheck/build, not by a real browser run. Run pre-merge of the next change.
+- **S-3 (SUGGESTION, non-blocking)**: `extract/route.ts:228-231` catch-block
+  FAILED-status flip uses `update({where:{id}})` without `ownerId` — tenancy is
+  safe (the upstream `findFirst` at `:38-40` already gates `ownerId`) but it is a
+  defense-in-depth parity improvement.
 - `@trt/db` `typecheck` is RED (missing `@types/node`, prisma outside rootDir) —
   pre-existing debt. If CI runs `pnpm -r typecheck` it will fail; scope CI
   typecheck per-package or fix the db tsconfig.
-- Playwright E2E + DB-level tenant-isolation tests need a live server+DB+auth;
-  not run headless. Run pre-merge.
+- GOLD.md §4 still says "Vercel" — stale; production is pm2 on LXC behind a
+  Cloudflare Tunnel.
 
 ---
 

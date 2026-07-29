@@ -1,0 +1,53 @@
+schema: spec-driven
+
+context: |
+  Stack: pnpm monorepo; Next.js 15 App Router, React 19 RC, TypeScript strict, Tailwind, Prisma/PostgreSQL.
+  Architecture: server-first web app with deterministic engine, guardrails, AI extraction, KB, and MCP packages.
+  Safety: GOLD.md is authoritative; consumer payloads must pass canonical guardrails and clinical surfaces require disclaimers.
+  Tenancy: prismaFor bypasses RLS; reads and writes of patient data must bind ownerId from auth.
+  Delivery: CI validates lint, typecheck, unit tests, and build; production deploys through GitHub Actions to pm2.
+  Testing: Vitest workspace unit/golden tests; Playwright smoke specs require a live app, database, and auth.
+
+strict_tdd: true
+testing:
+  detected: 2026-07-28
+  test_runner:
+    framework: Vitest 2.1.4
+    command: pnpm test
+  layers:
+    unit: "Vitest across web, engine, guardrails, AI, KB, and MCP"
+    integration: "Vitest route and policy tests; live database/auth integration is environment-dependent"
+    e2e: "Playwright 1.61.1; pnpm --filter @trt/web exec playwright test"
+  coverage:
+    available: false
+    command: ""
+  quality:
+    linter: pnpm lint
+    typecheck: pnpm typecheck
+    formatter: pnpm exec prettier --check .
+
+rules:
+  proposal:
+    - Trace work to GOLD.md and include a rollback plan for risky changes.
+    - Preserve clinical safety, tenant isolation, and PHI boundaries.
+  specs:
+    - Use Given/When/Then scenarios and RFC 2119 keywords.
+    - State consumer-versus-clinician access boundaries explicitly where relevant.
+  design:
+    - Document safety, ownerId scoping, audit, and guardrail implications.
+    - Include sequence diagrams for complex flows and rationale for architecture decisions.
+  tasks:
+    - Group work by phase with hierarchical numbering; keep tasks session-completable.
+    - Include tests with implementation tasks.
+  apply:
+    guidelines:
+      - Follow TypeScript strict and server-first conventions.
+      - Do not expose PHI in client bundles, logs, errors, or analytics.
+    tdd: true
+    test_command: pnpm test
+  verify:
+    test_command: pnpm test
+    build_command: pnpm build
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas.
