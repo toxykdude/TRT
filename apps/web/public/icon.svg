@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 142 142" width="142" height="142" role="img" aria-labelledby="icon-title icon-desc">
+  <title id="icon-title">my-testo.com</title>
+  <desc id="icon-desc">A geometric MT monogram inside a rounded technical frame.</desc>
+  <defs>
+    <linearGradient id="my_testo_icon_gradient" x1="40" y1="48" x2="148" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00E6A1" />
+      <stop offset="0.52" stop-color="#16C9B5" />
+      <stop offset="1" stop-color="#0EA5E9" />
+    </linearGradient>
+  </defs>
+
+  <!--
+    Icon-only crop of public/brand/my-testo-monogram.svg (the wordmark is
+    dropped). Geometry keeps the source coordinate system so the gradient stops
+    still line up; the group translate re-centers that box inside a square
+    viewBox. Stroke-on-transparent reads correctly in both light and dark UI.
+  -->
+  <g transform="translate(-21 -39)" fill="none" stroke="url(#my_testo_icon_gradient)" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="29" y="47" width="126" height="126" rx="34" stroke-width="1.8" opacity="0.34" />
+    <path d="M52 137V78l23 28 23-28v59" stroke-width="7" />
+    <path d="M102 78h36M120 78v59" stroke-width="7" />
+    <path d="M42 58h18M42 58v18M142 162h-18M142 162v-18" stroke-width="2.2" opacity="0.65" />
+    <circle cx="145" cy="57" r="4" fill="#00E6A1" stroke="none" />
+    <circle cx="39" cy="163" r="3" fill="#0EA5E9" stroke="none" />
+  </g>
+</svg>

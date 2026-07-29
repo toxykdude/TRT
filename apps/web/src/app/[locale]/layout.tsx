@@ -21,6 +21,10 @@ export async function generateMetadata({
   return {
     title: 'TRT Clinical Decision Support Dashboard',
     description: t('copyright', { year: new Date().getFullYear() }),
+    // Declaring the icon explicitly stops the browser's implicit `/favicon.ico`
+    // probe, which 404s — the repo ships an SVG mark, not an .ico. Same asset
+    // backs `theme.logo` in `@/lib/auth`.
+    icons: { icon: '/icon.svg' },
   };
 }
 

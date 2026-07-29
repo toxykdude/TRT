@@ -136,5 +136,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: '/login',
+    // Auth.js flattens every throw that is not in its client-safe allowlist to
+    // `?error=Configuration`, and its built-in page renders that as "Server
+    // error / There is a problem with the server configuration" — a dead end.
+    // In production that bucket is dominated by `InvalidCheck`: the
+    // `__Secure-authjs.pkce.code_verifier` cookie carries `Max-Age=900`, so
+    // waiting out 15 minutes on the Google consent screen, refreshing mid-flow,
+    // or catching a deploy mid-flow all land here even though a retry succeeds.
+    // The custom page localizes the cause and offers that retry.
+    // Both paths are unprefixed: the next-intl middleware adds the locale.
+    error: '/auth-error',
   },
 });
