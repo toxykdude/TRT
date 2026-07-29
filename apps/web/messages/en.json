@@ -57,7 +57,27 @@
   },
   "Auth": {
     "Layout": {
-      "quote": "A structured, longitudinal view of your labs — so the time with your doctor goes to decisions, not deciphering PDFs."
+      "kicker": "TRT Insights",
+      "headlineLine1": "Optimize Your Hormones.",
+      "headlineLine2": "Elevate Your Life.",
+      "subheadline": "Personalized testosterone optimization designed to help qualified patients improve energy, body composition, cognitive performance, recovery, and overall well-being under licensed medical supervision.",
+      "features": {
+        "energy": { "title": "More Energy", "body": "Increase daily vitality and reduce fatigue.*" },
+        "clarity": { "title": "Mental Clarity", "body": "Support focus and cognitive performance.*" },
+        "muscle": { "title": "Lean Muscle Support", "body": "Help maintain healthy muscle mass alongside proper training.*" },
+        "aging": { "title": "Healthy Aging", "body": "Optimize hormonal balance for long-term wellness.*" }
+      },
+      "featuresFootnote": "*Results vary by individual and require physician evaluation.",
+      "trust": {
+        "title": "Evidence-Based TRT",
+        "body": "Personalized treatment plans guided by licensed clinicians, comprehensive laboratory testing, and continuous health monitoring."
+      },
+      "badges": {
+        "physician": "Physician Supervised",
+        "secure": "Secure Platform",
+        "hipaa": "HIPAA Ready",
+        "personalized": "Personalized Care"
+      }
     },
     "Login": {
       "title": "Welcome back",
