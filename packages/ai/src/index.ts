@@ -32,6 +32,8 @@ export {
 
 export {
   openaiClient,
+  openaiApiBaseUrl,
+  warnIfConfigIncomplete,
   extractionModelId,
   isLiveExtractionConfigured,
   estimateCostUsd,

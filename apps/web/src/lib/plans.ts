@@ -38,7 +38,7 @@ export const PLANS: Record<PlanCode, PlanDefinition> = {
     priceUsdCents: 0,
     priceCopCents: 0,
     interval: null,
-    quotas: { uploadsPerMonth: 0, reportsPerQuarter: 1, trendBiomarkers: 3 },
+    quotas: { uploadsPerMonth: 1, reportsPerQuarter: 1, trendBiomarkers: 3 },
     featureKeys: ['manualEntry', 'trends3', 'reportQuarter'],
   },
   PLUS_MONTHLY: {

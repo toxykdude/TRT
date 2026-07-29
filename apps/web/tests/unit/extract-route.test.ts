@@ -1,12 +1,18 @@
 /**
- * Labs extract route — transactional persistence + quota-on-attempt (RES-1/R-1,
- * RISK-01). Behavioral contract tests for the P0.2.a POST handler:
+ * Labs extract route — transactional persistence + idempotent metering
+ * (RES-1/R-1, RISK-01; obs #134 / design.md). Behavioral contract tests for the
+ * POST handler:
  *
  *  - The delete + create loop + ExtractionRun + LabReport.update run inside ONE
  *    db.$transaction callback (rollback-safe; no orphaned LabResults).
  *  - Two extracted names resolving to the SAME canonical biomarker are deduped
  *    so they don't trip @@unique([labReportId, biomarkerId]) inside the tx.
- *  - A FAILED attempt still meters usage (recordUsage runs for both outcomes).
+ *  - Metering is gated by an atomic UPLOADED→EXTRACTING claim: a NEW attempt is
+ *    quota-gated and metered EXACTLY once (even when extraction later fails);
+ *    a FAILED→EXTRACTING retry BYPASSES both the gate and metering; concurrent
+ *    claims for the same UPLOADED report produce a single usage record.
+ *  - A persistence failure rolls back inside the tx (no partial LabResults) and
+ *    leaves the report FAILED → retryable without re-metering.
  *  - Raw errors are never echoed to the client (generic message on failure).
  *
  * The live vision call, auth, quota DB, and prisma client are all mocked so the
@@ -55,8 +61,20 @@ vi.mock('@trt/db', () => ({ prismaFor: () => mockDb }));
 const { POST } = await import('@/app/[locale]/dashboard/labs/extract/route');
 
 // ── In-memory mock prisma client ─────────────────────────────────────────────
-/** A fresh report row the handler will find + mutate. */
-function makeReport() {
+/**
+ * A fresh report row the handler will find + mutate. Defaults to status UPLOADED
+ * (a NEW attempt — the metered path). Tests that exercise retries pass
+ * `{ status: 'FAILED' }`.
+ */
+function makeReport(overrides: { status?: string } = {}): {
+  id: string;
+  patientId: string;
+  ownerId: string;
+  filePath: string;
+  mimeType: string;
+  fileName: string;
+  status: string;
+} {
   return {
     id: 'lr1',
     patientId: 'p1',
@@ -64,6 +82,8 @@ function makeReport() {
     filePath: '/private/lr1.pdf',
     mimeType: 'application/pdf',
     fileName: 'lr1.pdf',
+    status: 'UPLOADED',
+    ...overrides,
   };
 }
 
@@ -85,7 +105,7 @@ let tx: {
   labReport: { update: Spy };
 };
 let mockDb: {
-  labReport: { findFirst: Spy; update: Spy };
+  labReport: { findFirst: Spy; update: Spy; updateMany: Spy };
   biomarker: { findMany: Spy };
   labResult: { deleteMany: Spy; create: Spy };
   extractionRun: { create: Spy };
@@ -100,7 +120,12 @@ function resetClient() {
     labReport: { update: mkRowSpy() },
   };
   mockDb = {
-    labReport: { findFirst: vi.fn(async () => makeReport()), update: mkRowSpy() },
+    labReport: {
+      findFirst: vi.fn(async () => makeReport()),
+      update: mkRowSpy(),
+      // Atomic UPLOADED→EXTRACTING claim succeeds by default (count: 1).
+      updateMany: vi.fn(async () => ({ count: 1 })),
+    },
     biomarker: { findMany: vi.fn(async () => CATALOG) },
     labResult: { deleteMany: mkRowSpy(), create: mkRowSpy() },
     extractionRun: { create: mkRowSpy() },
@@ -214,14 +239,23 @@ describe('labs/extract POST — transactional + quota behavior', () => {
     expect(ids).toContain(null);
   });
 
-  it('meters usage on a FAILED attempt too (quota counts paid attempts, RISK-01)', async () => {
+  it('meters a NEW attempt at claim time even when extraction later fails', async () => {
+    // status UPLOADED (default) → new attempt: claim + meter happen BEFORE the
+    // vision call, so a subsequent failure does not un-meter the attempt.
     mocks.extractLabWithRun.mockRejectedValue(new Error('boom'));
     mocks.isLive.mockReturnValue(true); // a paid call was (would be) made
 
     const res = await POST(req({ labReportId: 'lr1' }));
     expect(res.status).toBe(500);
 
-    // recordUsage ran once for the attempt — even though extraction failed.
+    // The atomic claim flipped UPLOADED→EXTRACTING (idempotency unit).
+    expect(mockDb.labReport.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'lr1', ownerId: 'u1', status: 'UPLOADED' }),
+        data: expect.objectContaining({ status: 'EXTRACTING' }),
+      }),
+    );
+    // recordUsage ran once for the NEW attempt — at claim, before the failure.
     expect(mocks.recordUsage).toHaveBeenCalledTimes(1);
     expect(mocks.recordUsage).toHaveBeenCalledWith('u1', 'UPLOAD');
     // The failure trail was recorded outside the tx.
@@ -257,5 +291,118 @@ describe('labs/extract POST — transactional + quota behavior', () => {
     // The pipeline never ran, so no attempt is metered.
     expect(mocks.recordUsage).not.toHaveBeenCalled();
     expect(mocks.extractLabWithRun).not.toHaveBeenCalled();
+  });
+
+  // ── Idempotent metering (obs #134 / design.md) ────────────────────────────
+  it('a NEW attempt (UPLOADED) is quota-gated and metered exactly once via the atomic claim', async () => {
+    mocks.extractLabWithRun.mockResolvedValue(
+      mkExtraction([
+        { name: 'Testosterona Total', canonicalCode: 'total_testosterone', value: '500', unit: 'ng/dL', referenceLow: '240', referenceHigh: '870', collectedAt: '2026-07-08', confidence: 0.99, sourcePage: 1 },
+      ]),
+    );
+
+    const res = await POST(req({ labReportId: 'lr1' }));
+    expect(res.status).toBe(200);
+
+    // Quota gated the NEW attempt.
+    expect(mocks.checkQuota).toHaveBeenCalledTimes(1);
+    expect(mocks.checkQuota).toHaveBeenCalledWith('u1', 'UPLOAD');
+    // Atomic claim: only UPLOADED→EXTRACTING meters.
+    expect(mockDb.labReport.updateMany).toHaveBeenCalledTimes(1);
+    expect(mockDb.labReport.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'lr1', ownerId: 'u1', status: 'UPLOADED' },
+        data: { status: 'EXTRACTING' },
+      }),
+    );
+    // Metered EXACTLY once — and NOT via a finally block (no second call).
+    expect(mocks.recordUsage).toHaveBeenCalledTimes(1);
+  });
+
+  it('a FAILED→EXTRACTING retry BYPASSES both the quota gate and metering', async () => {
+    // A previously-failed report retrying: no gate, no meter, just re-extract.
+    mockDb.labReport.findFirst.mockResolvedValue(makeReport({ status: 'FAILED' }));
+    mocks.extractLabWithRun.mockResolvedValue(
+      mkExtraction([
+        { name: 'Testosterona Total', canonicalCode: 'total_testosterone', value: '500', unit: 'ng/dL', referenceLow: '240', referenceHigh: '870', collectedAt: '2026-07-08', confidence: 0.99, sourcePage: 1 },
+      ]),
+    );
+
+    const res = await POST(req({ labReportId: 'lr1' }));
+    expect(res.status).toBe(200);
+
+    // Retry is NOT quota-gated (free retry is the point of the new model).
+    expect(mocks.checkQuota).not.toHaveBeenCalled();
+    // Retry is NOT metered — no usage record, no atomic claim.
+    expect(mocks.recordUsage).not.toHaveBeenCalled();
+    expect(mockDb.labReport.updateMany).not.toHaveBeenCalled();
+    // Extraction still ran (status flipped to EXTRACTING then persisted).
+    expect(mocks.extractLabWithRun).toHaveBeenCalledTimes(1);
+    expect(mockDb.labReport.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'lr1' }, data: expect.objectContaining({ status: 'EXTRACTING' }) }),
+    );
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('concurrent claims for the same UPLOADED report produce a single usage record', async () => {
+    // First request wins the atomic claim (count 1) and meters; the second
+    // request's claim finds status no longer UPLOADED (count 0) → no meter,
+    // no duplicate extraction. Net: exactly ONE usage record.
+    mockDb.labReport.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    mocks.extractLabWithRun.mockResolvedValue(
+      mkExtraction([
+        { name: 'Testosterona Total', canonicalCode: 'total_testosterone', value: '500', unit: 'ng/dL', referenceLow: '240', referenceHigh: '870', collectedAt: '2026-07-08', confidence: 0.99, sourcePage: 1 },
+      ]),
+    );
+
+    const first = await POST(req({ labReportId: 'lr1' }));
+    const second = await POST(req({ labReportId: 'lr1' }));
+    expect(first.status).toBe(200);
+
+    // Across BOTH requests, usage was recorded exactly once.
+    expect(mocks.recordUsage).toHaveBeenCalledTimes(1);
+    // The losing request did not start a second extraction/persistence batch.
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+    // The loser returns a benign non-error response (no 500, no double work).
+    expect(second.status).toBe(200);
+  });
+
+  it('a persistence failure leaves no partial LabResults and the report stays retryable', async () => {
+    // Extraction itself succeeds, but persistence throws inside the $transaction
+    // → the single-tx boundary means delete+create roll back together (no orphan
+    // rows), the report is marked FAILED, and a later retry bypasses metering.
+    mocks.extractLabWithRun.mockResolvedValue(
+      mkExtraction([
+        { name: 'Testosterona Total', canonicalCode: 'total_testosterone', value: '500', unit: 'ng/dL', referenceLow: '240', referenceHigh: '870', collectedAt: '2026-07-08', confidence: 0.99, sourcePage: 1 },
+      ]),
+    );
+    // The tx callback throws mid-persistence (e.g. transient unique violation).
+    mockDb.$transaction.mockImplementationOnce(async () => {
+      throw new Error('unique constraint');
+    });
+
+    const failed = await POST(req({ labReportId: 'lr1' }));
+    expect(failed.status).toBe(500);
+    // New attempt was metered once at claim; the persistence failure doesn't
+    // double-meter (no finally block).
+    expect(mocks.recordUsage).toHaveBeenCalledTimes(1);
+    // The report is now FAILED → a retry must NOT gate or meter again.
+    expect(mockDb.labReport.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'lr1' }, data: expect.objectContaining({ status: 'FAILED' }) }),
+    );
+
+    // ── Retry on the now-FAILED report: bypasses gate + meter ────────────────
+    mocks.recordUsage.mockClear();
+    mocks.checkQuota.mockClear();
+    mockDb.labReport.findFirst.mockResolvedValue(makeReport({ status: 'FAILED' }));
+    // Restore the real tx behavior (runs the callback, returns its value) for
+    // the retry — the persistence-failure was a one-shot via mockImplementationOnce.
+    mockDb.$transaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+    const retried = await POST(req({ labReportId: 'lr1' }));
+    expect(retried.status).toBe(200);
+    expect(mocks.checkQuota).not.toHaveBeenCalled();
+    expect(mocks.recordUsage).not.toHaveBeenCalled();
   });
 });
