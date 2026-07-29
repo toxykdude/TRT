@@ -4,6 +4,7 @@ import { googleAction } from '@/app/actions';
 import { LoginForm } from '@/components/auth/login-form';
 import { Button } from '@/components/ui/button';
 import { Link, redirect } from '@/i18n/navigation';
+import { isGoogleConfigured } from '@/lib/auth-config';
 
 export default async function LoginPage({
   params,
@@ -22,6 +23,10 @@ export default async function LoginPage({
   const { verified, reset } = await searchParams;
   const justVerified = verified === '1';
   const justReset = reset === '1';
+  // Hide the Google button entirely when creds are missing: an empty
+  // GOOGLE_CLIENT_ID makes every Google sign-in fail with Google's
+  // "Missing required parameter: client_id". Better no button than a broken one.
+  const googleEnabled = isGoogleConfigured();
 
   return (
     <div className="space-y-6">
@@ -44,6 +49,8 @@ export default async function LoginPage({
 
       <LoginForm />
 
+      {googleEnabled && (
+        <>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
@@ -64,6 +71,8 @@ export default async function LoginPage({
           {t('google')}
         </Button>
       </form>
+        </>
+      )}
 
       <p className="text-center text-sm text-muted-foreground">
         {t('noAccount')}{' '}
