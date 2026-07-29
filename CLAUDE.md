@@ -33,7 +33,13 @@ touching anything.
 | Typecheck | `pnpm typecheck` |
 | DB migrate (dev) | `pnpm --filter @trt/db prisma:migrate dev` |
 
-`@trt/db` `typecheck` is RED (pre-existing debt) — see STATUS.md → Open Follow-ups.
+## Keeping the docs in sync
+
+STATUS.md, RESUME.md, AGENTS.md §1.5, and SKILL.md repeat the same facts (Main
+HEAD, test counts, known debt). Before calling a change done, update all of
+them — see AGENTS.md §1.6 for the full checklist. A stale fact repeated in one
+doc and fixed in another is worse than no doc: the next agent can't tell which
+is current.
 
 ## Project layout
 ```
