@@ -107,6 +107,31 @@ scenarios). It delivered the end-to-end upload→insight loop:
 (The Cloudflare beacon `ERR_BLOCKED_BY_CLIENT` console error was confirmed
 **non-causal** — blocked passive analytics, not extraction; left untouched.)
 
+**`fix/auth-error-page` shipped to production** 2026-07-29 (PR #11, main HEAD
+`8fd9b08`). Ad hoc fix, not run through the SDD pipeline — no `openspec/`
+change folder; full trail in Engram (`mem_search "auth-error-page"` /
+`"InvalidCheck"`). A user hit "Server error / There is a problem with the
+server configuration" trying to sign in with Google. Root cause: `@auth/core`
+flattens every throw outside its `clientErrors` allowlist to
+`?error=Configuration`; in production that bucket is dominated by
+`InvalidCheck` — the `__Secure-authjs.pkce.code_verifier` cookie carries
+`Max-Age=900`, so lingering ~15 min on the Google consent screen, refreshing
+mid-flow, or catching a deploy mid-flow all produce it, even though a retry
+succeeds. Confirmed by reading `pm2 logs trt` on the LXC (SSH needs
+`-i /root/.ssh/faceapp` — plain `ssh root@10.162.36.45` is refused) and a live
+PKCE round-trip against `my-testo.com`, ruling out `AUTH_SECRET` rotation,
+Google credential mismatch, and a missing migration along the way. Fix:
+`presentAuthError` (`apps/web/src/lib/auth-error.ts`) maps Auth.js codes over a
+closed table — `Configuration`/`MissingCSRF` → retryable, `AccessDenied` and
+account-linking conflicts → not; unrecognised `?error=` values collapse to
+`unknown` so the attacker-controlled query param never reaches the rendered
+page. New localized `/auth-error` page lives in the `(auth)` route group.
+Same PR also committed `apps/web/public/icon.svg` — the first git-tracked file
+under `apps/web/public/` — fixing the `theme.logo`/favicon 404s that had been
+broken since `public/` was created. Verified end-to-end on a locally-started
+build, then DEV, then prod post-deploy, by curling the actual failing routes —
+not just by trusting CI green.
+
 **AI extraction is LIVE on prod.** `packages/ai` calls Z.AI `glm-4.6v` (vision +
 `json_object` mode) via the OpenAI-compatible client (`packages/ai/src/openai.ts`).
 Config lives in `/opt/trt/apps/web/.env.local`: `OPENAI_API_KEY`,
@@ -125,11 +150,53 @@ dev), a deterministic stub runs — that is intentional.
   FAILED-status flip uses `update({where:{id}})` without `ownerId` — tenancy is
   safe (the upstream `findFirst` at `:38-40` already gates `ownerId`) but it is a
   defense-in-depth parity improvement.
-- `@trt/db` `typecheck` is RED (missing `@types/node`, prisma outside rootDir) —
-  pre-existing debt. If CI runs `pnpm -r typecheck` it will fail; scope CI
-  typecheck per-package or fix the db tsconfig.
-- GOLD.md §4 still says "Vercel" — stale; production is pm2 on LXC behind a
-  Cloudflare Tunnel.
+- GOLD.md §4 "Backend / Data" and "Auth" bullets still list Supabase (Postgres +
+  Auth + Storage). The real stack has zero Supabase usage: local Postgres on
+  the LXC + Prisma + Auth.js v5 (Credentials + Google) + local-disk storage
+  (`writeFile`, mode `0o600`). This needs a deliberate product-owner revision
+  to GOLD, not a silent doc sync — flag it, don't just edit GOLD.
+- `apps/web/public/brand/*.svg` + `README.md` (4 logo concepts) are untracked
+  local marketing work. `apps/web/public/icon.svg`'s provenance comment already
+  references `my-testo-monogram.svg`, so that comment dangles until
+  `public/brand/` is committed (or the comment is repointed).
+
+**Resolved, no longer a follow-up**: `@trt/db` `typecheck` was RED (missing
+`@types/node`, prisma outside rootDir) — confirmed **green** 2026-07-29 via
+`pnpm typecheck` across all 7 workspaces before merging PR #11. "GOLD.md §4
+says Vercel" is also resolved — line 87 already correctly documents pm2/LXC
+and explicitly notes "Vercel is out"; that follow-up had itself gone stale.
+
+---
+
+## 1.6 Keeping the handoff docs in sync
+
+**STATUS.md, RESUME.md, this file's §1.5, `CLAUDE.md`, and `SKILL.md` repeat
+the same handful of facts** — Main HEAD, test counts, known debt, deploy
+target. A fact stated in one and contradicted (or left stale) in another is
+**worse than no doc at all**: the next agent — human or AI — can't tell which
+one is current, and will either trust the wrong one or re-derive the truth
+from scratch, which is the exact cost these docs exist to avoid.
+
+Before calling a change done:
+
+1. **Update STATUS.md** — Main HEAD, Live features (if user-visible behavior
+   changed), Latest Shipped Change, test counts, Open Follow-ups (add new ones,
+   **remove** ones you just fixed — don't leave a resolved item sitting next
+   to unresolved ones).
+2. **Update RESUME.md** — Last Completed, Immediate Next Steps, Session
+   History (append, don't rewrite), Key Decisions Made, Environment Notes (any
+   new gotcha you hit — a flag, a silent CLI failure, a required env var).
+3. **Update this file's §1.5** — same snapshot, agent-operating-manual framing.
+4. **Grep the rest of the repo for the specific fact you changed** (e.g.
+   `rg -l '232/232'` after a test count changes, or `rg -l '@trt/db.*RED'` after
+   fixing that debt) and fix every hit — typically `CLAUDE.md` and `SKILL.md`
+   repeat a subset of these facts without the narrative. Don't duplicate prose
+   into them; just correct the numbers/claims they already state.
+5. **When you fix a "known debt" item, delete it from every list that
+   mentions it.** Fixing the code and leaving the doc entry is how "pre-existing
+   debt" notes outlive the debt by months.
+
+This is a Definition-of-Done item, not optional cleanup — see §9.
 
 ---
 
@@ -324,6 +391,8 @@ Don't merge with failing tests. Don't disable a guardrail test to make CI green
 - PR description includes: what changed, how §2 safety is preserved, how it was
   tested.
 - Definition of Done is GOLD §12 — verify each item before requesting review.
+- Definition of Done also includes syncing the handoff docs (§1.6) — a shipped
+  change isn't done until STATUS.md, RESUME.md, and §1.5 agree with it.
 - Commit messages: imperative, present tense ("add estradiol trend chart").
 
 ---

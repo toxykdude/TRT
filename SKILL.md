@@ -8,12 +8,12 @@
 |---|---|---|---|
 | Unit / golden | Vitest 2.1.4 | `pnpm test` | Across web, engine, guardrails, ai, kb, mcp. **Strict TDD** (`openspec/config.yaml`). |
 | Lint | ESLint | `pnpm lint` | `pnpm -r lint` |
-| Typecheck | tsc | `pnpm typecheck` | `@trt/db` is RED (pre-existing debt) — see STATUS.md. |
+| Typecheck | tsc | `pnpm typecheck` | All 7 workspaces green (was RED on `@trt/db`; fixed by 2026-07-29 — see STATUS.md). |
 | Build | Next 15 | `pnpm build` | |
 | E2E | Playwright 1.61.1 | `pnpm --filter @trt/web exec playwright test` | **Needs live server + DB + auth** — not headless. W-1 harness pending. |
 | Coverage | — | not configured | |
 
-**Suite (green):** web 232/232 · ai 29/29 · guardrails 63/63 · engine 25/25 · kb 7/7 · mcp 24/24.
+**Suite (green):** web 239/239 · ai 29/29 · guardrails 63/63 · engine 25/25 · kb 7/7 · mcp 24/24 (387 total).
 When you tune an engine rule or change an extraction/guardrail string, update the
 corresponding test in the **same PR**.
 
@@ -74,12 +74,13 @@ CI/CD is the **only** deploy path (2026-07 onward). GitHub is the single source 
 
 | Workflow | Trigger | Target |
 |---|---|---|
-| `pr-validation.yml` | PR → main | gate (lint + typecheck + test + build) |
-| `deploy-dev.yml` | PR → main / push → `feature/*` | DEV |
-| `deploy-production.yml` | push → main | PROD |
-| `rollback.yml` | manual dispatch | PROD |
+| `pr-validation.yml` | PR → main | gate (lint + typecheck + test + build) — `ubuntu-latest`, GitHub-hosted |
+| `deploy-dev.yml` | PR → main / push → `feature/*` | DEV — `[self-hosted, LXC]` |
+| `deploy-production.yml` | push → main | PROD — `[self-hosted, LXC]` |
+| `rollback.yml` | manual dispatch | PROD — `[self-hosted, LXC]` |
 
-Self-hosted runner `trt-lxc` **is** the LXC (`10.162.36.45`). Deploy script
+The `[self-hosted, LXC]` runner **is** the box itself (`10.162.36.45`); the PR
+gate does NOT run there — no LXC access, no secrets. Deploy script
 `scripts/ci-deploy.sh`: pull → `pnpm install --frozen-lockfile` → `prisma migrate
 deploy` → `pnpm --filter @trt/web build` → `pm2 reload --update-env` → append
 `/var/log/trt-deploy.log`. `.env.local` is **rendered from GitHub Environment
