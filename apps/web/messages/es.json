@@ -57,7 +57,27 @@
   },
   "Auth": {
     "Layout": {
-      "quote": "Una vista estructurada y longitudinal de sus laboratorios, para que el tiempo con su médico se destine a tomar decisiones y no a descifrar archivos PDF."
+      "kicker": "TRT Insights",
+      "headlineLine1": "Optimice sus hormonas.",
+      "headlineLine2": "Eleve su vida.",
+      "subheadline": "Optimización personalizada de la testosterona, diseñada para ayudar a pacientes calificados a mejorar la energía, la composición corporal, el rendimiento cognitivo, la recuperación y el bienestar general, bajo supervisión médica licenciada.",
+      "features": {
+        "energy": { "title": "Más energía", "body": "Aumente la vitalidad diaria y reduzca la fatiga.*" },
+        "clarity": { "title": "Claridad mental", "body": "Apoye el enfoque y el rendimiento cognitivo.*" },
+        "muscle": { "title": "Músculo magro", "body": "Ayude a mantener una masa muscular saludable junto con un entrenamiento adecuado.*" },
+        "aging": { "title": "Envejecimiento saludable", "body": "Optimice el equilibrio hormonal para el bienestar a largo plazo.*" }
+      },
+      "featuresFootnote": "*Los resultados varían según la persona y requieren evaluación médica.",
+      "trust": {
+        "title": "TRT basada en la evidencia",
+        "body": "Planes de tratamiento personalizados guiados por médicos licenciados, pruebas de laboratorio completas y monitoreo continuo de la salud."
+      },
+      "badges": {
+        "physician": "Supervisión médica",
+        "secure": "Plataforma segura",
+        "hipaa": "Preparado para HIPAA",
+        "personalized": "Atención personalizada"
+      }
     },
     "Login": {
       "title": "Bienvenido de nuevo",
