@@ -123,6 +123,23 @@
       "submit": "Reset password",
       "restart": "Didn't get a code? Start over"
     },
+    "Error": {
+      "title": "We couldn't complete your sign-in",
+      "retry": "Try signing in again",
+      "backToSignIn": "Back to sign in",
+      "persists": "If this keeps happening, contact support.",
+      "home": "Back to home",
+      "reason": {
+        "interrupted": "The secure link between your browser and the sign-in provider expired or was interrupted. This usually happens after waiting a while on the provider's screen. Signing in again should work.",
+        "providerError": "The sign-in provider rejected the request. Please try again.",
+        "verification": "That verification link has expired or was already used. Please request a new one.",
+        "credentials": "That sign-in code is incorrect or has expired. Please request a new one.",
+        "sessionRequired": "Please sign in to view that page.",
+        "accessDenied": "Sign-in was cancelled, so we didn't receive permission to continue.",
+        "accountNotLinked": "That email already has an account created with a different sign-in method. Please use the method you originally signed up with.",
+        "unknown": "Something went wrong while signing you in. Please try again."
+      }
+    },
     "PasswordToggle": {
       "show": "Show password",
       "hide": "Hide password"

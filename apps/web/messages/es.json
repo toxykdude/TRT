@@ -123,6 +123,23 @@
       "submit": "Restablecer contraseña",
       "restart": "¿No recibió el código? Empiece de nuevo"
     },
+    "Error": {
+      "title": "No pudimos completar su inicio de sesión",
+      "retry": "Volver a iniciar sesión",
+      "backToSignIn": "Volver al inicio de sesión",
+      "persists": "Si el problema persiste, comuníquese con soporte.",
+      "home": "Volver al inicio",
+      "reason": {
+        "interrupted": "El enlace seguro entre su navegador y el proveedor de inicio de sesión expiró o se interrumpió. Suele ocurrir después de esperar un tiempo en la pantalla del proveedor. Volver a iniciar sesión debería funcionar.",
+        "providerError": "El proveedor de inicio de sesión rechazó la solicitud. Vuelva a intentarlo.",
+        "verification": "Ese enlace de verificación expiró o ya fue utilizado. Solicite uno nuevo.",
+        "credentials": "Ese código de inicio de sesión es incorrecto o expiró. Solicite uno nuevo.",
+        "sessionRequired": "Inicie sesión para ver esa página.",
+        "accessDenied": "El inicio de sesión se canceló, por lo que no recibimos permiso para continuar.",
+        "accountNotLinked": "Ese correo ya tiene una cuenta creada con otro método de inicio de sesión. Use el método con el que se registró originalmente.",
+        "unknown": "Algo salió mal al iniciar su sesión. Vuelva a intentarlo."
+      }
+    },
     "PasswordToggle": {
       "show": "Mostrar contraseña",
       "hide": "Ocultar contraseña"
