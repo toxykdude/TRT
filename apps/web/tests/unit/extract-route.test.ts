@@ -333,13 +333,22 @@ describe('labs/extract POST — transactional + quota behavior', () => {
 
     // Retry is NOT quota-gated (free retry is the point of the new model).
     expect(mocks.checkQuota).not.toHaveBeenCalled();
-    // Retry is NOT metered — no usage record, no atomic claim.
+    // Retry is NOT metered — no usage record, no atomic UPLOADED→EXTRACTING claim.
     expect(mocks.recordUsage).not.toHaveBeenCalled();
-    expect(mockDb.labReport.updateMany).not.toHaveBeenCalled();
+    // No atomic CLAIM updateMany (the where-status='UPLOADED' variant) ran.
+    expect(
+      mockDb.labReport.updateMany.mock.calls.some(
+        (c) => (c[0] as { where: { status?: string } }).where.status === 'UPLOADED',
+      ),
+    ).toBe(false);
     // Extraction still ran (status flipped to EXTRACTING then persisted).
     expect(mocks.extractLabWithRun).toHaveBeenCalledTimes(1);
-    expect(mockDb.labReport.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'lr1' }, data: expect.objectContaining({ status: 'EXTRACTING' }) }),
+    // S-2: the retry flip is ownerId-scoped (defense-in-depth parity with the claim).
+    expect(mockDb.labReport.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'lr1', ownerId: 'u1' },
+        data: { status: 'EXTRACTING' },
+      }),
     );
     expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
   });

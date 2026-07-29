@@ -238,6 +238,27 @@
       "rangeLabel": "Range",
       "valueCount": "{count, plural, one {# value} other {# values}}"
     },
+    "Review": {
+      "title": "Review extracted values",
+      "subtitle": "Confirm each value's accuracy, correct it, or re-enter it manually. Only confirmed values feed your analysis.",
+      "nothingPending": "Nothing to review — every value is already confirmed.",
+      "reviewTitle": "Values awaiting your confirmation",
+      "reviewDesc": "{count, plural, one {# value needs review} other {# values need review}}",
+      "refRange": "Reference range",
+      "reasonUnmapped": "Unmapped biomarker",
+      "reasonLowConfidence": "Low confidence",
+      "actionConfirm": "Confirm",
+      "actionCorrect": "Correct",
+      "actionManual": "Re-enter",
+      "fieldValue": "Value",
+      "fieldUnit": "Unit",
+      "fieldRefLow": "Ref low",
+      "fieldRefHigh": "Ref high",
+      "fieldBiomarkerKey": "Biomarker key",
+      "submit": "Confirm values",
+      "errUnauthorized": "Your session expired. Please sign in again.",
+      "errFailed": "We couldn't save your confirmation. Please try again."
+    },
     "Timeline": {
       "title": "Timeline",
       "subtitle": "Every recorded event, in chronological order (GOLD §5.8).",

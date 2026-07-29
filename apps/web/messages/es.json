@@ -238,6 +238,27 @@
       "rangeLabel": "Rango",
       "valueCount": "{count, plural, one {# valor} other {# valores}}"
     },
+    "Review": {
+      "title": "Revisar valores extraídos",
+      "subtitle": "Confirme la precisión de cada valor, corríjalo o reingréselo manualmente. Solo los valores confirmados alimentan su análisis.",
+      "nothingPending": "Nada que revisar — todos los valores ya están confirmados.",
+      "reviewTitle": "Valores que requieren su confirmación",
+      "reviewDesc": "{count, plural, one {# valor necesita revisión} other {# valores necesitan revisión}}",
+      "refRange": "Rango de referencia",
+      "reasonUnmapped": "Biomarcador no mapeado",
+      "reasonLowConfidence": "Confianza baja",
+      "actionConfirm": "Confirmar",
+      "actionCorrect": "Corregir",
+      "actionManual": "Reingresar",
+      "fieldValue": "Valor",
+      "fieldUnit": "Unidad",
+      "fieldRefLow": "Ref. mín.",
+      "fieldRefHigh": "Ref. máx.",
+      "fieldBiomarkerKey": "Clave de biomarcador",
+      "submit": "Confirmar valores",
+      "errUnauthorized": "Su sesión expiró. Inicie sesión de nuevo.",
+      "errFailed": "No pudimos guardar su confirmación. Inténtelo de nuevo."
+    },
     "Timeline": {
       "title": "Línea de tiempo",
       "subtitle": "Cada evento registrado, en orden cronológico (GOLD §5.8).",
